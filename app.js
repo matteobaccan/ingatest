@@ -11,6 +11,7 @@ import { markdown } from "./md.js";
 import { createPicker } from "./picker.js";
 import * as chats from "./chats.js";
 import { t, setLang } from "./i18n.js";
+import { ask as askBox, setupAsk } from "./ask.js";
 import { fmt, createRate, downloadLine, estimate, lastSpeed, saveSpeed } from "./eta.js";
 import { gauge, gaugeTitle, promptLimit, detail } from "./ctx.js";
 import { PRESET_FIELDS, catalogEntry, presetOf, presetValues, handFromSaved, describePreset } from "./preset.js";
@@ -55,6 +56,7 @@ let deviceUsed = { device: "cpu", label: "" }; // the device chosen for it (choo
 let onGpu = false; // the loaded model runs on the GPU (WebGPU)
 let lastStats = null; // the last answer's statistics ("done"), for the beta's report
 let modelName = ""; // the loaded model's name, on its answers
+let pageReady = false; // the page's script has run to its end (the picker made)
 let loadedInfo = null; // the last "loaded" message: info, memory, gpu, note
 // Whether the loaded model can think (its chat template's marks, `info.thinks`; a module
 // that does not say counts as yes): Think shows, and `thinking` is sent, only then.
@@ -91,6 +93,8 @@ let dlRate = null;
 
 function setBusy(b) {
   busy = b;
+  // Inga's mark animates while the page works (a load, an answer), as inga serve's.
+  $("brand-mark").classList.toggle("busy", b);
   for (const id of ["url-go", "file"]) $(id).disabled = b;
   document.querySelectorAll("button[data-act]").forEach((x) => (x.disabled = b));
   const loaded = !!source;
@@ -101,6 +105,10 @@ function setBusy(b) {
   $("new-chat").disabled = b;
   for (const x of document.querySelectorAll("#convs button")) x.disabled = b;
   $("gpubench").disabled = b || !loaded || !onGpu;
+  sendHint();
+  // An empty chat says whether a model is there (a load, a model deleted).
+  const empty = $("chat").querySelector(".empty");
+  if (pageReady && empty && empty.dataset.loaded !== String(loaded)) renderChat();
   $("gpuprofile").disabled = b || !loaded || !onGpu;
   // Free again: the context gauge counts what the model would now read.
   if (!b) countSoon(0);
@@ -769,7 +777,19 @@ async function gpuInfo() {
   }
 }
 
+// The test models' fold: closed by default, its state kept in this browser.
+const TESTS_OPEN_KEY = "inga.testsOpen";
+try {
+  $("tests-fold").open = localStorage.getItem(TESTS_OPEN_KEY) === "1";
+} catch {}
+$("tests-fold").addEventListener("toggle", () => {
+  try {
+    localStorage.setItem(TESTS_OPEN_KEY, $("tests-fold").open ? "1" : "0");
+  } catch {}
+});
+
 function showSuggested() {
+  $("tests-count").textContent = `(${SUGGESTED.length})`;
   const ul = $("suggested");
   ul.textContent = "";
   for (const s of SUGGESTED) {
@@ -797,6 +817,11 @@ function showSuggested() {
     li.append(d, row);
     ul.append(li);
   }
+}
+
+// A stored file's deletion, asked in the page's box.
+function askDeleteFile(name, bytes) {
+  return askBox({ title: t("file.del.t"), message: t("file.del.ask", "{0}", bytes != null ? fmt(bytes) : "?"), strong: name, ok: t("ask.delete"), cancel: t("ask.cancel"), danger: true });
 }
 
 // Every file this site stores (the worker lists OPFS recursively): the models, then
@@ -844,7 +869,9 @@ function showStored(models) {
     del.className = "ghost";
     del.dataset.act = "1";
     del.textContent = "Delete";
-    del.onclick = () => worker.postMessage({ type: "delete", path: m.path });
+    del.onclick = async () => {
+      if (await askDeleteFile(m.name ?? m.path, m.size)) worker.postMessage({ type: "delete", path: m.path });
+    };
     row.append(del);
     li.append(d, row);
     ul.append(li);
@@ -1448,19 +1475,10 @@ for (const id of SETTINGS) {
     }
   });
 }
-// "Delete all stored data": confirmed inside the page, then the worker removes the whole
+// "Delete all stored data": asked in the page's box, then the worker removes the whole
 // OPFS tree (closing the model it reads first).
-$("wipe").onclick = () => {
-  $("wipe-confirm").hidden = false;
-  $("wipe").hidden = true;
-};
-$("wipe-no").onclick = () => {
-  $("wipe-confirm").hidden = true;
-  $("wipe").hidden = false;
-};
-$("wipe-yes").onclick = () => {
-  $("wipe-confirm").hidden = true;
-  $("wipe").hidden = false;
+$("wipe").onclick = async () => {
+  if (!(await askBox({ title: t("wipe.t"), message: t("wipe.ask"), ok: t("wipe.ok"), cancel: t("ask.cancel"), danger: true }))) return;
   if (source?.name) source = null;
   setBusy(true);
   status("Deleting all stored data…");
@@ -1496,7 +1514,9 @@ $("gpuprofile").onclick = gpuProfile;
 $("stdtest").onclick = standardTest;
 $("std-copy").onclick = () => copyText($("std-line").textContent, $("std-line"));
 $("std-copy-all").onclick = () => copyText(storedResults().join("\n"), $("std-list"));
-$("std-clear").onclick = () => {
+$("std-clear").onclick = async () => {
+  if (!storedResults().length) return;
+  if (!(await askBox({ title: t("std.clear.t"), message: t("std.clear.ask", storedResults().length), ok: t("std.clear.ok"), cancel: t("ask.cancel"), danger: true }))) return;
   try {
     localStorage.removeItem(STD_KEY);
   } catch {}
@@ -1710,13 +1730,55 @@ function renderChat() {
   if (!messages.length) {
     const e = document.createElement("div");
     e.className = "empty";
+    e.dataset.loaded = String(!!source);
     e.innerHTML = `<img src="logo.svg" alt=""><p></p>`;
-    e.lastChild.textContent = t("chat.empty");
+    e.lastChild.textContent = t(source ? "chat.empty" : "empty.nomodel");
+    if (!source) e.append(emptyActions());
     box.append(e);
   }
   for (const m of messages) box.append(m.role === "user" ? userBubble(m) : botBubble(m));
   box.scrollTop = box.scrollHeight;
   showHeader();
+}
+
+// No model loaded: the empty chat's calls to action. "Choose a model" opens the model
+// picker (Models); "Try a small one" loads the catalog's smallest starter that fits this
+// browser (picker.js, starterPick), shown once the catalog says there is one.
+function emptyActions() {
+  const row = document.createElement("div");
+  row.className = "row empty-act";
+  const choose = document.createElement("button");
+  choose.id = "empty-choose";
+  choose.type = "button";
+  choose.dataset.act = "1";
+  choose.innerHTML = `<svg class="ic"><use href="#i-package"/></svg><span></span>`;
+  choose.lastChild.textContent = t("empty.choose");
+  choose.disabled = busy;
+  choose.onclick = () => {
+    showView("models");
+    picker.open();
+  };
+  const small = document.createElement("button");
+  small.id = "empty-small";
+  small.type = "button";
+  small.className = "ghost";
+  small.dataset.act = "1";
+  small.hidden = true;
+  small.disabled = busy;
+  row.append(choose, small);
+  picker.starter().then((p) => {
+    if (!p || source) return;
+    small.textContent = t("empty.small", `${p.model.name} ${p.variant.quant}`, (p.variant.size / 1e9).toFixed(p.variant.size < 1e9 ? 2 : 1));
+    small.title = t("empty.small.t");
+    small.hidden = false;
+    small.onclick = () => picker.load(p.model, p.variant);
+  });
+  return row;
+}
+
+// The hint under the composer: the send key, or, with no model, where to get one.
+function sendHint() {
+  $("send-hint").textContent = !source ? t("hint.nomodel") : t($("sendkey").value === "ctrl" ? "hint.ctrl" : "hint.enter");
 }
 
 // A new conversation: nothing stored until its first message.
@@ -1802,7 +1864,7 @@ async function showConvs() {
     del.innerHTML = `<svg class="ic"><use href="#i-trash"/></svg>`;
     // Asked first, with its title, as the native web UI asks ("Delete this chat?").
     del.onclick = async () => {
-      if (!confirm(t("conv.delask", c.title))) return;
+      if (!(await askBox({ title: t("conv.delask.t"), message: t("conv.delask", "{0}"), strong: c.title, ok: t("ask.delete"), cancel: t("ask.cancel"), danger: true }))) return;
       await chats.remove(c.id).catch(() => {});
       if (chat?.id === c.id) newChat();
       else showConvs();
@@ -1811,7 +1873,6 @@ async function showConvs() {
     ul.append(li);
   }
   $("convs-export").disabled = $("convs-export-md").disabled = $("convs-clear").disabled = !all.length;
-  if (!all.length) $("convs-clear-ask").hidden = true;
   setBusy(busy);
 }
 
@@ -1829,7 +1890,7 @@ const fileTitle = () => (chat?.title || "chat").replace(/[^\p{L}\p{N}]+/gu, "-")
 
 $("conv-rename").onclick = async () => {
   if (!chat) return;
-  const title = prompt(t("conv.renameask"), chat.title);
+  const title = await askBox({ title: t("conv.rename"), input: { value: chat.title, label: t("conv.renameask") }, ok: t("ask.rename"), cancel: t("ask.cancel") });
   if (title == null || !title.trim()) return;
   chat.title = title.trim().slice(0, 120);
   await persistChat();
@@ -1847,7 +1908,6 @@ $("convs-more").onclick = () => {
   const open = $("convs-actions").hidden;
   $("convs-actions").hidden = !open;
   $("convs-more").setAttribute("aria-expanded", String(open));
-  if (!open) $("convs-clear-ask").hidden = true;
 };
 async function exportAll(md) {
   const all = await chats.list().catch(() => []);
@@ -1858,7 +1918,6 @@ async function exportAll(md) {
 }
 $("convs-export").onclick = () => exportAll(false);
 $("convs-export-md").onclick = () => exportAll(true);
-$("convs-clear-export").onclick = () => exportAll(false);
 $("convs-import").onclick = () => $("convs-file").click();
 $("convs-file").onchange = async () => {
   const f = $("convs-file").files[0];
@@ -1874,16 +1933,15 @@ $("convs-file").onchange = async () => {
   }
   showConvs();
 };
+// Delete all: asked in the page's box, which offers the export first.
 $("convs-clear").onclick = async () => {
   const n = (await chats.list().catch(() => [])).length;
   if (!n) return;
-  $("convs-clear-what").textContent = n === 1 ? t("convs.clearask.one") : t("convs.clearask", n);
-  $("convs-clear-ask").hidden = false;
-};
-$("convs-clear-no").onclick = () => ($("convs-clear-ask").hidden = true);
-$("convs-clear-yes").onclick = async () => {
-  if (busy) return;
-  $("convs-clear-ask").hidden = true;
+  const yes = await askBox({
+    title: t("convs.clear.t"), message: n === 1 ? t("convs.clearask.one") : t("convs.clearask", n),
+    ok: t("convs.clear"), cancel: t("ask.cancel"), danger: true, secondary: { label: t("convs.exportfirst"), act: () => exportAll(false) },
+  });
+  if (!yes || busy) return;
   await chats.clear().catch(() => {});
   newChat();
   status(t("convs.cleared"));
@@ -1930,11 +1988,11 @@ function applyLook() {
   if (fs === "normal") delete document.documentElement.dataset.fs;
   else document.documentElement.dataset.fs = fs;
   setLang($("lang").value);
-  $("send-hint").textContent = t($("sendkey").value === "ctrl" ? "hint.ctrl" : "hint.enter");
+  sendHint();
   if (!source) $("model-name").textContent = t("chat.nomodel");
   presetLine();
   showHeader();
-  if (!messages.length) renderChat();
+  if (pageReady && !messages.length) renderChat();
 }
 $("theme-btn").onclick = () => {
   const order = ["auto", "light", "dark"];
@@ -1953,12 +2011,14 @@ $("settings-reset").onclick = () => {
 
 // "Delete model files": every stored model and its download record; conversations,
 // settings and other files stay.
-$("wipe-models").onclick = () => {
+$("wipe-models").onclick = async () => {
   const names = Object.keys(storedSize);
   if (!names.length) {
     status("No model files are stored.");
     return;
   }
+  const what = names.length === 1 ? t("wipem.ask.one", "{0}") : t("wipem.ask", names.length);
+  if (!(await askBox({ title: t("wipem.t"), message: what, strong: names[0], ok: t("ask.delete"), cancel: t("ask.cancel"), danger: true }))) return;
   if (source?.name && names.includes(source.name)) source = null;
   for (const name of names) worker.postMessage({ type: "delete", name });
   status(`Deleted ${names.length} model file${names.length === 1 ? "" : "s"}.`);
@@ -2030,12 +2090,15 @@ const picker = createPicker({
       loadStored(file);
     } else fromUrl(url, { model, variant });
   },
-  onDelete: (file) => {
+  onDelete: async (file) => {
+    if (!(await askDeleteFile(file, storedSize[file]))) return;
     if (source?.name === file) source = null;
     worker.postMessage({ type: "delete", name: file });
   },
 });
 $("picker-open").onclick = () => picker.open();
+setupAsk();
+pageReady = true;
 
 showSuggested();
 setupDevice();

@@ -107,6 +107,20 @@ function defaultVariant(m, env, stored) {
 // The dialog. `opts`: {dialog, url, getEnv(): Promise<env>, getStored(): {file: bytes},
 // speedHint(bytes): the time a download would take ("" when unknown), onLoad(model,
 // variant, url), onDelete(file)}.
+// The model to try first, with no model loaded: of the catalog's starters (`starter:
+// true`), the smallest variant marked as fitting `env`; null when none fits.
+export function starterPick(catalog, env) {
+  let best = null;
+  for (const m of catalog?.models ?? []) {
+    if (!m.starter) continue;
+    for (const v of m.variants) {
+      if (fitOf(v.size, v.approx, env).mark !== "fits") continue;
+      if (!best || v.size < best.variant.size) best = { model: m, variant: v };
+    }
+  }
+  return best;
+}
+
 export function createPicker(opts) {
   const d = opts.dialog;
   const $ = (sel) => d.querySelector(sel);
@@ -295,5 +309,16 @@ export function createPicker(opts) {
   $("#picker-q").addEventListener("input", render);
   $("#picker-all").addEventListener("change", render);
   $("#picker-close").onclick = () => d.close();
-  return { open, render: () => d.open && render(), get catalog() { return catalog; } };
+  // The starter to try (starterPick), the catalog read first; null when there is none.
+  async function starter() {
+    try {
+      catalog ??= await fetchCatalog();
+    } catch {
+      return null;
+    }
+    return starterPick(catalog, await opts.getEnv());
+  }
+  // Loads a catalog model's variant, as its card's button does.
+  const load = (m, v) => opts.onLoad(m, v, variantUrl(m, v));
+  return { open, starter, load, render: () => d.open && render(), get catalog() { return catalog; } };
 }
