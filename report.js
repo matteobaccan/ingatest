@@ -40,7 +40,8 @@ new MutationObserver(() => {
 
 const BETA = location.hostname.endsWith(".github.io") || new URLSearchParams(location.search).has("beta");
 if (BETA) $("beta-note").hidden = false;
-if (meta("inga-guide")) $("beta-guide").href = meta("inga-guide");
+// The guide's link, where the page has one (the redesigned page's beta note has none).
+if (meta("inga-guide") && $("beta-guide")) $("beta-guide").href = meta("inga-guide");
 
 function build() {
   return document.querySelector('meta[name="inga-build"]')?.content || "dev";
