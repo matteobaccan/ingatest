@@ -114,23 +114,65 @@ async function start() {
 
 const ready = start();
 
-// A sync access handle on `fileHandle`. Chromium releases a closed handle's lock in its
-// browser process after close() returns (and a terminated worker's later still), so
-// opening the file again at once (a load right after its download, a fresh worker after
-// Stop) can find it still locked: NoModificationAllowedError, "Access Handles cannot be
-// created if there is another open Access Handle". Asked again for up to 10 s before
-// the error goes to the page; a file really open elsewhere fails after that.
+// A sync access handle on `fileHandle` for writing (a download, a copy, a sidecar, the
+// disk test): exclusive ("readwrite", the default). Chromium releases a closed handle's
+// lock in its browser process after close() returns (and a terminated worker's later
+// still), so opening the file again at once (a load right after its download, a fresh
+// worker after Stop) can find it still locked: NoModificationAllowedError, "Access
+// Handles cannot be created if there is another open Access Handle". Asked again for up
+// to 10 s before the error goes to the page; a file really open elsewhere (another tab
+// reading or downloading it) fails after that.
 async function syncHandle(fileHandle) {
+  return await retryLocked(() => fileHandle.createSyncAccessHandle(),
+    "the model file is in use by another tab or window of this page: close the other Inga tabs and load it again");
+}
+
+async function retryLocked(open, why) {
   const until = performance.now() + 10000;
   for (let wait = 10; ; wait = Math.min(wait * 2, 500)) {
     try {
-      return await fileHandle.createSyncAccessHandle();
+      return await open();
     } catch (e) {
       if (e?.name !== "NoModificationAllowedError") throw e;
-      if (performance.now() >= until) throw new Error("the model file is in use by another tab or window of this page: close the other Inga tabs and load it again");
+      if (performance.now() >= until) throw new Error(why);
       await new Promise((r) => setTimeout(r, wait));
     }
   }
+}
+
+// Whether this browser opens a sync access handle "read-only" (Chrome 121+): several
+// such handles may be open on one file at once, in several tabs, so each tab can run
+// the same stored model. A browser without the option would ignore it and open an
+// exclusive handle, hence the check of the handle's `mode` attribute (added with it).
+const READ_ONLY = typeof FileSystemSyncAccessHandle !== "undefined" && "mode" in FileSystemSyncAccessHandle.prototype;
+
+// A model file opened for reading, with a sync access handle's read, getSize and close:
+// a "read-only" handle where the browser has it; else the file's snapshot (getFile)
+// read in slices with FileReaderSync, which takes no lock (slower, but another tab can
+// read the file at the same time). Only a writer locks the file then: a download or a
+// copy running in this or another tab; waited for like a writer's lock (the lock of
+// this worker's own download, released just after), then said.
+async function readHandle(fileHandle) {
+  const busyWhy = "the model file is being written (downloaded or copied) in another tab or window of this page: wait until that ends, then load it again";
+  if (READ_ONLY) {
+    const h = await retryLocked(() => fileHandle.createSyncAccessHandle({ mode: "read-only" }), busyWhy);
+    step(`${fileHandle.name}: opened read-only (other tabs may read it too)`);
+    return h;
+  }
+  const file = await retryLocked(() => fileHandle.getFile(), busyWhy);
+  step(`${fileHandle.name}: read with no lock (this browser has no read-only handle)`);
+  const reader = new FileReaderSync();
+  return {
+    read(view, { at = 0 } = {}) {
+      const end = Math.min(file.size, at + view.byteLength);
+      if (end <= at) return 0;
+      const bytes = new Uint8Array(reader.readAsArrayBuffer(file.slice(at, end)));
+      new Uint8Array(view.buffer, view.byteOffset, view.byteLength).set(bytes);
+      return bytes.length;
+    },
+    getSize: () => file.size,
+    close() {},
+  };
 }
 
 async function modelsDir() {
@@ -776,7 +818,7 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
   const t0 = performance.now();
   const progress = (done, total) => post({ type: "progress", what: "load", done, total });
   const open = async () => {
-    const h = await syncHandle(await (await modelsDir()).getFileHandle(name));
+    const h = await readHandle(await (await modelsDir()).getFileHandle(name));
     [streamHandle, streamName] = [h, name];
     return h;
   };
@@ -924,7 +966,7 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
     const h = await open();
     let d = null;
     if (draft) {
-      d = await syncHandle(await (await modelsDir()).getFileHandle(draft));
+      d = await readHandle(await (await modelsDir()).getFileHandle(draft));
       [draftHandle, draftName] = [d, draft];
     }
     step(`CPU: loading the weights (${Math.round(h.getSize() / 1048576)} MiB file)`);

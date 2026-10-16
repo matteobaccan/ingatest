@@ -8,9 +8,10 @@
 // anywhere (HTTPS needed for OPFS and workers off localhost).
 
 import { markdown } from "./md.js";
-import { createPicker } from "./picker.js";
+import { createPicker, fitOf, gpuFit, smallerPick, variantUrl, fileOf } from "./picker.js";
+import { infoSections, infoText, renderInfo } from "./info.js";
 import * as chats from "./chats.js";
-import { t, setLang } from "./i18n.js";
+import { t, setLang, num, size } from "./i18n.js";
 import { ask as askBox, setupAsk } from "./ask.js";
 import { fmt, createRate, downloadLine, estimate, lastSpeed, saveSpeed } from "./eta.js";
 import { gauge, gaugeTitle, promptLimit, detail, AUTO_FLOOR } from "./ctx.js";
@@ -53,6 +54,7 @@ let used = false; // this worker has loaded a model: its WebAssembly memory neve
 let stopFlag = null;
 let keepChat = false; // the model loads again after a stop: the chat stays
 let gpuUsed = ""; // the GPU memory limit of the load, as the load line says it
+let gpuLabel = ""; // the same with why (Auto's rule, or the Settings'), for the Info panel
 let limitUsed = ""; // the memory limit the model being loaded was given, as the load line says it
 let deviceUsed = { device: "cpu", label: "" }; // the device chosen for it (chooseDevice)
 let onGpu = false; // the loaded model runs on the GPU (WebGPU)
@@ -100,6 +102,8 @@ function setBusy(b) {
   for (const id of ["url-go", "file"]) $(id).disabled = b;
   document.querySelectorAll("button[data-act]").forEach((x) => (x.disabled = b));
   const loaded = !!source;
+  // No model any more (given back, lost, deleted): its lock goes.
+  if (!loaded && !b && modelLock) dropModelLock();
   $("send").disabled = b || !loaded;
   $("stdtest").disabled = b || !loaded;
   $("prompt").disabled = !loaded;
@@ -315,15 +319,14 @@ function armQuiet() {
   // A word after the warning: the worker is alive, the answer goes on.
   if (quietShown) {
     quietShown = false;
-    status("Answering…");
+    status(t("st.answering"));
   }
   quietTimer = setTimeout(() => {
     if (!answer) return;
-    const t = `No word from the model's worker for ${QUIET_MS / 1000} s: it is still reading the prompt, or the browser ` +
-      "stopped it (probably memory); Stop, or reload the page and load the model again";
-    loadLog(t);
+    const msg = t("st.quiet", QUIET_MS / 1000);
+    loadLog(msg);
     // A warning, not an error: the answer may still come.
-    status(t);
+    status(msg);
     quietShown = true;
   }, QUIET_MS);
 }
@@ -408,7 +411,7 @@ function handleMessage(m) {
     case "ready":
       // A worker started again to load a model: its progress follows.
       // An error shown (a worker lost) stays until the next action.
-      if (!busy && !released && $("status").className !== "err") status("Ready: pick a model.");
+      if (!busy && !released && $("status").className !== "err") status(t("st.pick"));
       worker.postMessage({ type: "list" });
       break;
     case "progress": {
@@ -421,8 +424,8 @@ function handleMessage(m) {
         progress(m.done, m.total, line);
         break;
       }
-      const what = { download: "Downloading", copy: "Copying into this site's storage", disktest: "Disk speed test" }[m.what] ?? "Loading";
-      status(`${what}: ${fmt(m.done)}${m.total ? " of " + fmt(m.total) : ""}`);
+      const what = t({ download: "st.p.download", copy: "st.p.copy", disktest: "st.p.disktest" }[m.what] ?? "st.p.load");
+      status(`${what}: ${size(m.done)}${m.total ? t("st.of", size(m.total)) : ""}`);
       progress(m.done, m.total);
       break;
     }
@@ -437,7 +440,7 @@ function handleMessage(m) {
         worker.terminate();
         startWorker();
         used = true;
-        status("The GPU did not take this model: loading it on the CPU…");
+        status(t("st.retry.cpu"));
         startLoading();
         worker.postMessage({ ...lastLoad, device: "cpu", auto: false, note: m.note });
       }
@@ -454,6 +457,8 @@ function handleMessage(m) {
       onGpu = i.device === "webgpu";
       modelName = i.name || source?.name || source?.file?.name || "model";
       modelMark = (source?.name && markOf[source.name]) || null;
+      if (source?.name) rememberFile(modelName, source.name);
+      holdModel(source?.name ?? null);
       reloadLater();
       showMark();
       $("model-name").textContent = modelName;
@@ -476,7 +481,7 @@ function handleMessage(m) {
       showAuto();
       status(`Loaded in ${m.secs.toFixed(1)} s: ${i.architecture}, ${i.layers} layers, ${fmt(i.bytes)} of weights, ` +
         `context ${i.ctx}, ${where}; WebAssembly memory ${fmt(m.memory)}${gpuBytes(m.gpu)}; ` +
-        `${limitUsed}; ${deviceUsed.label}.` + (why ? ` ${why}.` : "") + streamNote(i) + draftNote(i) + (reloadWhy ? " " + t("reloaded", ...reloadWhy) : "") +
+        `${limitUsed}; ${deviceUsed.label}.` + (variantLine(source?.name) ? " " + variantLine(source?.name) + "." : "") + (why ? ` ${why}.` : "") + streamNote(i) + draftNote(i) + (reloadWhy ? " " + t("reloaded", ...reloadWhy) : "") +
         (autoLine ? " " + autoLine + "." : "") + (ctxLine ? " " + ctxLine : "") + (slowLine ? " " + slowLine : ""));
       reloadWhy = null;
       $("wmem-hint").textContent = "";
@@ -498,6 +503,7 @@ function handleMessage(m) {
     }
     case "piece":
       if (!answer) break;
+      liveSpeed();
       if (m.reasoning) think(m.text);
       else {
         // Blank lines before the answer (after </think>, or before <think>) are dropped.
@@ -518,7 +524,7 @@ function handleMessage(m) {
       break;
     case "trimmed":
       trimmedNote = t(m.dropped === 1 ? "ctx.trimmed.one" : "ctx.trimmed", m.dropped);
-      status("Answering… " + trimmedNote);
+      status(t("st.answering") + " " + trimmedNote);
       break;
     case "done": {
       const s = m.stats;
@@ -539,12 +545,16 @@ function handleMessage(m) {
       endAnswer();
       persistChat();
       $("stop").disabled = true;
-      const r = s.reasoning_tokens ? ` (${s.reasoning_tokens} of them thinking)` : "";
-      $("stats").textContent = `Prompt: ${s.prompt_tokens - s.cached_tokens} tokens at ${s.prompt_tps.toFixed(1)} tok/s` +
-        ` (${s.cached_tokens} reused) · answer: ${s.gen_tokens} tokens at ${s.gen_tps.toFixed(1)} tok/s${r}` +
-        ` · ${s.stop} · memory ${fmt(m.memory)}${gpuBytes(m.gpu)}` + readNote(s) + draftStats(s) +
-        (s.gpu_sampled ? ` · ${s.gpu_sampled} drawn on the GPU` : "") + ` · seed ${answerSeed}` + (slowLine ? ` · ${slowLine}` : "");
-      status(trimmedNote ? "Ready. " + trimmedNote : "Ready.");
+      // In the page's language, its numbers too (i18n.js num).
+      const r = s.reasoning_tokens ? t("st.thinking", num(s.reasoning_tokens)) : "";
+      const stopKey = "st.stop." + s.stop;
+      const stop = t(stopKey) === stopKey ? s.stop : t(stopKey);
+      $("stats").textContent = t("st.prompt", num(s.prompt_tokens - s.cached_tokens), num(s.prompt_tps, 1), num(s.cached_tokens)) +
+        " · " + t("st.answer", num(s.gen_tokens), num(s.gen_tps, 1), r) +
+        ` · ${stop} · ` + t("st.memory", size(m.memory) + (m.gpu ? t("st.gpu", size(m.gpu.weight_bytes), size(m.gpu.other_bytes)) : "")) +
+        readNote(s) + draftStats(s) + (s.gpu_sampled ? " · " + t("st.sampled", num(s.gpu_sampled)) : "") + " · " + t("st.seed", answerSeed) +
+        (slowLine ? ` · ${slowLine}` : "");
+      status(trimmedNote ? t("st.ready") + " " + trimmedNote : t("st.ready"));
       trimmedNote = "";
       if (stdRunning) {
         stdRunning = false;
@@ -552,7 +562,7 @@ function handleMessage(m) {
         $("std-line").textContent = line;
         $("std-out").hidden = false;
         keepResult(line);
-        status("Ready. Standard test done: its line is below the chat.");
+        status(t("st.ready.std"));
       }
       setBusy(false);
       break;
@@ -560,7 +570,7 @@ function handleMessage(m) {
     case "gpuprofile":
       showKernels(m);
       $("stop").disabled = true;
-      status("Ready. Kernel times done: the table is below. The prompt is not part of the chat: the chat starts again.");
+      status(t("st.ready.kernels"));
       newChat();
       setBusy(false);
       break;
@@ -568,7 +578,7 @@ function handleMessage(m) {
       showBench(m);
       if (m.done) {
         $("stop").disabled = true;
-        status("Ready. The benchmark's prompt is not part of the chat: the chat starts again.");
+        status(t("st.ready.bench"));
         newChat();
         setBusy(false);
       }
@@ -576,7 +586,7 @@ function handleMessage(m) {
     case "disktest":
       progress(0, 0);
       $("disktest-out").textContent = `Read ${m.read_mbs.toFixed(0)} MB/s, write ${m.write_mbs.toFixed(0)} MB/s (${fmt(m.bytes)}, read back right after writing).`;
-      status("Ready.");
+      status(t("st.ready"));
       setBusy(false);
       break;
     case "gpulost":
@@ -696,7 +706,7 @@ function gpuProfile() {
   setBusy(true);
   $("stop").disabled = false;
   $("kernels").textContent = "";
-  status("Kernel times: timing every kernel of the loaded model's decode steps…");
+  status(t("st.kernels"));
   const n = Number(new URLSearchParams(location.search).get("bench_tokens")) || 16;
   worker.postMessage({ type: "gpuprofile", tokens: n });
 }
@@ -706,7 +716,7 @@ function gpuBench() {
   setBusy(true);
   $("stop").disabled = false;
   $("bench").textContent = "";
-  status("GPU benchmark: running the loaded model under each kernel choice…");
+  status(t("st.bench"));
   // `?bench_tokens=N` in the page's address: N tokens instead of 32 (the browser tests,
   // on a software GPU).
   const n = Number(new URLSearchParams(location.search).get("bench_tokens")) || 32;
@@ -866,6 +876,8 @@ function showStored(models) {
   ul.textContent = "";
   for (const k of Object.keys(storedSize)) delete storedSize[k];
   for (const m of models) if (m.model && m.complete !== false && !m.error) storedSize[m.name] = m.size;
+  sendHint();
+  noModelStatus();
   showDraftChoices();
   showSuggested();
   picker.render();
@@ -941,7 +953,7 @@ async function fromUrl(url, from = null) {
   try {
     url = new URL(url, location.href).href;
   } catch {
-    status("That is not a link.", true);
+    status(t("st.nolink"), true);
     return;
   }
   const name = fileName(url);
@@ -949,7 +961,7 @@ async function fromUrl(url, from = null) {
   setMark(name, from ? familyOf(from.model) : null);
   setBusy(true);
   await persist();
-  status(`Downloading ${name}…`);
+  status(t("st.downloading", name));
   source = null;
   const done = new Promise((resolve) => {
     const prev = worker.onmessage;
@@ -989,8 +1001,10 @@ let lastLoad = null; // the last load of a stored model, for a retry on the CPU
 
 async function loadStored(name) {
   source = { name };
+  // What the variants are judged on, for the load line (variantLine).
+  deviceEnv().then((e) => (lastEnv = e), () => {});
   setBusy(true);
-  status(`Loading ${name}…`);
+  status(t("st.loading", name));
   // The context the catalog gives this model, unless set by hand (preset.js).
   await presetBeforeLoad(name);
   snapLoad();
@@ -1002,6 +1016,7 @@ async function loadStored(name) {
   const gpuBudget = gpuLimit(budget);
   const separate = gpuSeparate();
   gpuUsed = `${Math.round(gpuBudget.bytes / MB)} MB`;
+  gpuLabel = deviceUsed.device === "cpu" ? "" : gpuBudget.label;
   if (deviceUsed.device === "gpu") limitUsed += `, GPU memory ${gpuBudget.label}`;
   // A draft model drafts on the CPU only: on the GPU the model answers without it.
   const draft = deviceUsed.device === "gpu" ? null : draftFor(name);
@@ -1026,7 +1041,7 @@ async function loadFile(file) {
   source = { file };
   snapLoad();
   setBusy(true);
-  status(`Loading ${file.name}…`);
+  status(t("st.loading", file.name));
   freshWorker();
   used = true;
   deviceUsed = { device: "cpu", label: gpu ? "device CPU: the GPU reads a model from this site's storage, which this browser lacks" : (await chooseDevice()).label };
@@ -1086,6 +1101,27 @@ function wire(list) {
   return out;
 }
 
+// The answer's speed while it streams, under it: tokens (the worker's pieces, one per
+// token) per second since the first, and why it is slow (layers on the CPU, layers read
+// from storage) when it is; redrawn at most twice a second, by the pieces themselves
+// (no timer). The final line (speedLine) replaces it.
+let live = null; // {n, t0, shown}
+let liveRate = null; // the last live speed (the Info panel's)
+function liveSpeed() {
+  const el = answerBox?.querySelector(".speed");
+  if (!live || !el) return;
+  const now = performance.now();
+  live.n++;
+  if (live.t0 == null) {
+    live.t0 = now;
+    return;
+  }
+  if (now - live.shown < 500 || now - live.t0 < 300) return;
+  live.shown = now;
+  liveRate = (live.n - 1) / ((now - live.t0) / 1000);
+  el.textContent = t("st.live", num(liveRate, 1)) + (slowLine ? " · " + slowLine : "");
+}
+
 // Sends `text` as the user's next message with `opts`.
 let askedOpts = null; // the options of the answer running (its Max tokens, Think)
 function ask(text, opts) {
@@ -1099,16 +1135,20 @@ function ask(text, opts) {
   if (!stdRunning) {
     chat.settings = { params: { ...opts }, system: $("sys-on").checked ? $("sys").value.trim() : "" };
   }
+  // Saved at once: a new chat has its title, its count and its place at the top of the
+  // list while its first answer streams.
+  persistChat();
   $("chat").querySelector(".empty")?.remove();
   $("chat").append(userBubble(mine));
   answerBox = botBubble(null);
   answer = answerBox.querySelector(".a");
   answerText = "";
+  live = { n: 0, t0: null, shown: 0 };
   $("chat").append(answerBox);
   answerBox.scrollIntoView({ block: "end" });
   setBusy(true);
   $("stop").disabled = false;
-  status("Answering…");
+  status(t("st.answering"));
   stopFlag = self.crossOriginIsolated ? new Int32Array(new SharedArrayBuffer(4)) : null;
   // The Standard test sends its prompt alone, whatever the Settings.
   const sent = stdRunning ? messages.map((m) => ({ role: m.role, content: m.content })) : wire(messages);
@@ -1204,14 +1244,14 @@ function keepResult(line) {
 async function copyText(text, el) {
   try {
     await navigator.clipboard.writeText(text);
-    status("Copied.");
+    status(t("copied"));
   } catch {
     const r = document.createRange();
     r.selectNodeContents(el);
     const sel = getSelection();
     sel.removeAllRanges();
     sel.addRange(r);
-    status("Selected: copy it with the system's Copy.");
+    status(t("st.selected"));
   }
 }
 
@@ -1237,7 +1277,7 @@ function stop() {
   // Messages to a worker wait until it has started.
   if (source?.file) loadFile(source.file);
   else if (source) loadStored(source.name);
-  status("Stopped; loading the model again…");
+  status(t("st.stopped"));
 }
 
 // ---- Memory for the model: what does not fit is read from OPFS while it runs ----
@@ -1429,8 +1469,8 @@ function slowNote(i) {
 function readNote(s) {
   if (!s.stream_read_bytes) return "";
   const secs = s.stream_read_secs;
-  const per = s.read_per_token ? `; ${fmt(s.read_per_token)} per token after the first` : "";
-  return ` · read ${fmt(s.stream_read_bytes)} from storage in ${secs.toFixed(1)} s (${(s.stream_read_bytes / 1e6 / Math.max(secs, 1e-9)).toFixed(0)} MB/s${per})`;
+  const per = s.read_per_token ? t("st.read.per", size(s.read_per_token)) : "";
+  return " · " + t("st.read", size(s.stream_read_bytes), num(secs, 1), num(s.stream_read_bytes / 1e6 / Math.max(secs, 1e-9)), per);
 }
 
 // ---- Draft model: a smaller stored model of the same vocabulary guesses tokens that
@@ -1472,14 +1512,13 @@ function draftNote(i) {
 
 function draftStats(s) {
   if (!s.draft_tokens && !s.draft_paused) return "";
-  const paused = s.draft_paused ? `; paused ${s.draft_paused}× for not paying` : "";
-  return ` · draft: ${s.draft_tokens} proposed, ${s.draft_accepted} accepted, ${s.accepted_per_check.toFixed(2)} accepted per check` +
-    ` (${s.draft_checks} checks, ${s.decode_passes} passes of the model)${paused}`;
+  const paused = s.draft_paused ? t("st.draft.paused", num(s.draft_paused)) : "";
+  return " · " + t("st.draft", num(s.draft_tokens), num(s.draft_accepted), num(s.accepted_per_check, 2), num(s.draft_checks), num(s.decode_passes), paused);
 }
 
 function importFile(file) {
   setBusy(true);
-  status(`Copying ${file.name} into this site's storage…`);
+  status(t("st.copying", file.name));
   const prev = worker.onmessage;
   worker.onmessage = ({ data: m }) => {
     onMessage(m);
@@ -1671,7 +1710,7 @@ $("wipe").onclick = async () => {
   if (!(await askBox({ title: t("wipe.t"), message: t("wipe.ask"), ok: t("wipe.ok"), cancel: t("ask.cancel"), danger: true }))) return;
   if (source?.name) source = null;
   setBusy(true);
-  status("Deleting all stored data…");
+  status(t("st.wiping"));
   // The conversations too (IndexedDB).
   chats.clear().catch(() => {}).then(() => {
     newChat();
@@ -1682,7 +1721,7 @@ $("wipe").onclick = async () => {
     onMessage(m);
     if (m.type === "models" || m.type === "error") {
       worker.onmessage = prev;
-      if (m.type === "models") status("All stored data deleted.");
+      if (m.type === "models") status(t("st.wiped"));
       setBusy(false);
     }
   };
@@ -1691,7 +1730,7 @@ $("wipe").onclick = async () => {
 $("disktest").onclick = () => {
   setBusy(true);
   $("disktest-out").textContent = "";
-  status("Disk speed test: writing and reading 256 MiB…");
+  status(t("st.disktest"));
   worker.postMessage({ type: "disktest" });
 };
 
@@ -1747,7 +1786,8 @@ $("prompt").addEventListener("keydown", (e) => {
 
 // ---- Conversations (chats.js): the side bar's list, kept in this browser ----
 
-const when = (ms) => new Date(ms).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+// In the page's language (its dates as its numbers).
+const when = (ms) => new Date(ms).toLocaleString(document.documentElement.lang === "it" ? "it-IT" : undefined, { dateStyle: "short", timeStyle: "short" });
 
 function userBubble(m) {
   const row = document.createElement("div");
@@ -1978,8 +2018,8 @@ function speedLine(row, m) {
   const el = row?.querySelector(".speed");
   if (!el || !m) return;
   const s = m.stats;
-  el.textContent = (s ? `Prefill: ${s.prompt_tps.toFixed(1)} tok/s, Decode: ${s.gen_tps.toFixed(1)} tok/s, ` : "") +
-    (m.seed != null ? `seed ${m.seed}, ` : "") + when(m.at ?? Date.now());
+  el.textContent = (s ? t("st.speed", num(s.prompt_tps, 1), num(s.gen_tps, 1)) : "") +
+    (m.seed != null ? t("st.seed", m.seed) + ", " : "") + when(m.at ?? Date.now());
 }
 
 function showHeader() {
@@ -2004,6 +2044,7 @@ function renderChat() {
   messages.forEach((m, i) => box.append(m.role === "user" ? userBubble(m) : botBubble(m, i === messages.length - 1)));
   box.scrollTop = box.scrollHeight;
   showHeader();
+  if (pageReady) sendHint();
 }
 
 // No model loaded: the empty chat's calls to action. "Choose a model" opens the model
@@ -2043,17 +2084,105 @@ function emptyActions() {
 
 // The hint under the composer: the send key, or, with no model, where to get one.
 function sendHint() {
-  $("send-hint").textContent = !source ? t("hint.nomodel") : t($("sendkey").value === "ctrl" ? "hint.ctrl" : "hint.enter");
+  // Before the page's script has run to its end, nothing to reload yet.
+  const r = pageReady && !source && reopenTarget();
+  $("send-hint").textContent = r ? t("hint.reopen", r.label) : !source ? t("hint.nomodel") : t($("sendkey").value === "ctrl" ? "hint.ctrl" : "hint.enter");
+  if (pageReady) drawReopen();
+}
+
+// ---- No model, a chat open: Reload the model it was with ----
+
+// The open chat is kept for this tab (sessionStorage: it survives a reload, F5, and a
+// tab Chrome discarded in the background), and opened again when the page starts; its
+// model is not loaded by itself (gigabytes the user did not ask for): the status bar and
+// the composer offer "Reload <model>" when that model is stored in this browser, else
+// "Choose a model".
+const OPEN_KEY = "inga.open";
+function keepOpen() {
+  try {
+    if (chat) sessionStorage.setItem(OPEN_KEY, chat.id);
+    else sessionStorage.removeItem(OPEN_KEY);
+  } catch {}
+}
+
+// The stored file of each model name loaded (the name the GGUF gives, as a chat keeps
+// it), for the chats saved before they kept their file.
+const FILES_KEY = "inga.modelFiles";
+let fileByName = {};
+try {
+  fileByName = JSON.parse(localStorage.getItem(FILES_KEY) || "{}") || {};
+} catch {}
+function rememberFile(name, file) {
+  if (!name || fileByName[name] === file) return;
+  fileByName[name] = file;
+  try {
+    localStorage.setItem(FILES_KEY, JSON.stringify(fileByName));
+  } catch {}
+}
+
+// What Reload would load: {file, label} when no model is loaded and the open chat's
+// model is stored here; else null.
+function reopenTarget() {
+  if (source || !chat) return null;
+  let file = chat.file;
+  // A chat saved before it kept its file: by its model's name.
+  if (file === undefined) file = storedSize[chat.model] != null ? chat.model : (fileByName[chat.model] ?? null);
+  if (!file || storedSize[file] == null) return null;
+  return { file, label: chat.model || file };
+}
+
+// No model, a chat open (the page started with one, or another opened): the status line
+// says how to go on with it, in place of the "pick a model" it said, or of its own.
+function noModelStatus() {
+  if (source || busy || !/^(Ready: pick a model\.|Pronto: scegli un modello\.|Ready: press Reload |Pronto: premi Ricarica )/.test($("status").textContent)) return;
+  const r = reopenTarget();
+  status(r ? t("reopen.status", r.label) : t("st.pick"));
+}
+
+function reopen() {
+  const r = reopenTarget();
+  if (!r || busy) return;
+  released = null;
+  keepChat = true;
+  loadStored(r.file);
+}
+
+// The buttons: in the status bar and above the composer, while no model is loaded and a
+// chat with messages is open (an empty chat has its own call to action).
+function drawReopen() {
+  const r = reopenTarget();
+  const show = !source && !busy && pageReady && (!!r || messages.length > 0);
+  const label = r ? t("reopen", r.label) : t("empty.choose");
+  for (const id of ["reopen-status", "reopen-go"]) {
+    const b = $(id);
+    b.lastChild.textContent = label;
+    b.title = r ? t("reopen.t", r.label) : "";
+    b.querySelector("use").setAttribute("href", r ? "#i-retry" : "#i-package");
+  }
+  $("reopen-status").hidden = !show;
+  $("reopen-bar").hidden = !show;
+  $("reopen-why").textContent = !show ? "" : r ? t("reopen.why", r.label) : t("reopen.choose.why");
+}
+for (const id of ["reopen-status", "reopen-go"]) {
+  $(id).onclick = () => {
+    if (reopenTarget()) reopen();
+    else {
+      showView("models");
+      picker.open();
+    }
+  };
 }
 
 // A new conversation: nothing stored until its first message.
 function newChat() {
   if (answer) return;
   chat = null;
+  keepOpen();
   messages = [];
   $("stats").textContent = "";
   worker?.postMessage({ type: "reset" });
   renderChat();
+  noModelStatus();
   showConvs();
   ctxUsed = 0;
   ctxParts = null;
@@ -2064,7 +2193,9 @@ function newChat() {
 function startChat(text) {
   if (chat) return;
   const title = text.replace(/\s+/g, " ").trim();
-  chat = { id: chats.newId(), title: title.length > 48 ? title.slice(0, 47) + "…" : title || t("chat.new"), created: Date.now(), updated: Date.now(), model: modelName, messages };
+  chat = { id: chats.newId(), title: title.length > 48 ? title.slice(0, 47) + "…" : title || t("chat.new"), created: Date.now(), updated: Date.now(), model: modelName,
+    file: source?.name ?? null, messages };
+  keepOpen();
 }
 
 async function persistChat() {
@@ -2072,6 +2203,8 @@ async function persistChat() {
   chat.messages = messages;
   chat.updated = Date.now();
   chat.model = modelName || chat.model;
+  // The stored model it was last with (null: a file of this device), for Reload.
+  if (source) chat.file = source.name ?? null;
   showHeader();
   try {
     await chats.save(chat);
@@ -2087,10 +2220,12 @@ async function openChat(id) {
   if (!c) return;
   chat = c;
   messages = c.messages;
+  keepOpen();
   // The worker's conversation starts again from these messages at the next question.
   worker?.postMessage({ type: "reset" });
   $("stats").textContent = "";
   renderChat();
+  noModelStatus();
   showConvs();
   showView("chat");
   countSoon(0);
@@ -2302,14 +2437,14 @@ $("settings-reset").onclick = () => {
 $("wipe-models").onclick = async () => {
   const names = Object.keys(storedSize);
   if (!names.length) {
-    status("No model files are stored.");
+    status(t("st.nomodels"));
     return;
   }
   const what = names.length === 1 ? t("wipem.ask.one", "{0}") : t("wipem.ask", names.length);
   if (!(await askBox({ title: t("wipem.t"), message: what, strong: names[0], ok: t("ask.delete"), cancel: t("ask.cancel"), danger: true }))) return;
   if (source?.name && names.includes(source.name)) source = null;
   for (const name of names) worker.postMessage({ type: "delete", name });
-  status(`Deleted ${names.length} model file${names.length === 1 ? "" : "s"}.`);
+  status(names.length === 1 ? t("st.deleted.one") : t("st.deleted", names.length));
   setBusy(false);
 };
 
@@ -2324,7 +2459,45 @@ window.ingaState = () => ({
   limit: limitUsed,
   version: pageVersion(),
   stats: lastStats,
+  // The Info panel's (info.js), the report's "Model info" too.
+  ctx_auto: loadedInfo?.ctx_auto ?? null,
+  ctxWhy: !loadedInfo ? "" : autoLine || ctxLine || (ctx() ? t("info.ctx.manual") : ""),
+  ctxUsed,
+  gpu: loadedInfo?.gpu ?? null,
+  gpuLimit: gpuLabel,
+  slow: slowLine,
+  live: answer ? liveRate : null,
+  preset: $("preset-line")?.textContent ?? "",
+  env: lastEnv,
+  variant: variantLine(source?.name),
 });
+
+// The model's Info panel (the ⓘ next to the model chip): info.js's sections, Copy.
+async function openInfo() {
+  try {
+    lastEnv = await deviceEnv();
+  } catch {}
+  const sections = await infoSections(window.ingaState());
+  renderInfo($("info-body"), sections);
+  $("info-out").textContent = "";
+  $("info").dataset.text = infoText(sections);
+  if (!$("info").open) $("info").showModal();
+}
+$("info-btn").onclick = openInfo;
+$("info-close").onclick = () => $("info").close();
+$("info").addEventListener("click", (e) => e.target === $("info") && $("info").close());
+$("info-copy").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText($("info").dataset.text ?? "");
+    $("info-out").textContent = t("info.copied");
+  } catch {
+    const r = document.createRange();
+    r.selectNodeContents($("info-body"));
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+    $("info-out").textContent = t("st.selected");
+  }
+};
 
 // ---- A hidden tab, and a GPU lost ----
 
@@ -2335,10 +2508,15 @@ window.ingaState = () => ({
 // it ends the model's worker (its WebAssembly memory and its WebGPU device, several GB
 // with a 7B model, go back to the system: a tab left for hours with them froze its
 // Chrome window on a Mac) and loads the model again when the tab is shown.
+// Only a model stored in this site's storage (OPFS) is given back: one loaded from the
+// catalog or a link is stored first, so it is opened again by name. A file of this
+// device loaded as it is (source.file) is never given back: it runs on the CPU (a file
+// for the GPU is copied into OPFS first, and then has a name), and the page could not
+// be sure to read it again once its worker ended (the user would have to pick it again).
 // `?release_ms=N` in the page's address shortens it (the browser tests).
 const RELEASE_MS = Number(new URLSearchParams(location.search).get("release_ms")) || 10 * 60000;
 let releaseTimer = null;
-let released = null; // the model given back while hidden: {name} (stored) or {file}
+let released = null; // the model given back while hidden: {name}, stored in OPFS
 document.addEventListener("visibilitychange", () => {
   const hidden = document.visibilityState === "hidden";
   document.documentElement.classList.toggle("tab-hidden", hidden);
@@ -2347,28 +2525,70 @@ document.addEventListener("visibilitychange", () => {
   if (hidden) {
     clearTimeout(countTimer);
     countTimer = null;
-    if (onGpu && source && !busy && !answer) releaseTimer = setTimeout(releaseModel, RELEASE_MS);
+    if (onGpu && source?.name && !busy && !answer) releaseTimer = setTimeout(releaseModel, RELEASE_MS);
   } else if (released) {
     const r = released;
     released = null;
+    // Busy meanwhile (the user pressed Reload, or loaded another model): nothing to do.
+    if (busy || source) return;
     keepChat = true;
-    if (r.name) loadStored(r.name);
-    else loadFile(r.file);
+    loadStored(r.name);
     status(t("hidden.reload"));
   }
 });
 
+// ---- The same model in several tabs ----
+
+// Each tab of the page loads its own copy of a model (its memory, its GPU buffers); the
+// worker reads the stored file with a "read-only" handle (or no lock at all), so several
+// tabs can run the same one. A tab holding a model takes a shared Web Lock named after
+// it; a tab that loads a model another tab holds says so once in its status line.
+let modelLock = null; // {name, release}: the lock of the model this tab holds
+function holdModel(name) {
+  if (modelLock?.name === name) return;
+  dropModelLock();
+  if (!name || !navigator.locks?.request) return;
+  const key = "inga-model:" + name;
+  let release;
+  const held = new Promise((r) => (release = r));
+  const mine = (modelLock = { name, release });
+  navigator.locks.request(key, { mode: "shared" }, async () => {
+    try {
+      const q = await navigator.locks.query();
+      if (modelLock === mine && q.held.filter((l) => l.name === key).length > 1 && !$("status").className) {
+        status($("status").textContent + " " + t("tabs.shared"));
+      }
+    } catch {}
+    return held;
+  }).catch(() => {});
+}
+function dropModelLock() {
+  modelLock?.release();
+  modelLock = null;
+}
+
+// The model chip with no model: "No model: pick one", no mark.
+function noModelChip() {
+  modelMark = null;
+  showMark();
+  $("model-name").textContent = t("chat.nomodel");
+  $("model-chip").title = "";
+}
+
 function releaseModel() {
   releaseTimer = null;
-  if (document.visibilityState !== "hidden" || busy || answer || !source) return;
-  released = source.name ? { name: source.name } : { file: source.file };
+  if (document.visibilityState !== "hidden" || busy || answer || !source?.name) return;
+  released = { name: source.name };
   worker.terminate();
   startWorker();
   source = null;
   loadedInfo = null;
   onGpu = false;
+  noModelChip();
   setBusy(false);
-  status(t("hidden.released", Math.max(1, Math.round(RELEASE_MS / 60000))));
+  const min = Math.max(1, Math.round(RELEASE_MS / 60000));
+  status(min === 1 ? t("hidden.released.one") : t("hidden.released", min));
+  drawReopen();
 }
 
 // The WebGPU device was lost (the worker's `gpulost`: the GPU reset, the driver
@@ -2386,6 +2606,7 @@ function gpuLost(m) {
   source = null;
   loadedInfo = null;
   onGpu = false;
+  noModelChip();
   worker.terminate();
   startWorker();
   $("stop").disabled = true;
@@ -2394,6 +2615,14 @@ function gpuLost(m) {
 }
 
 // ---- The model picker (picker.js): the catalog, and what fits this browser ----
+
+// The GPU memory a probe measured (bytes), once it lands: `window.ingaGpuMemory(bytes)`
+// (the hook for the VRAM probe of inga-webgpu); the picker judges against it from then on.
+let gpuVram = null;
+window.ingaGpuMemory = (bytes) => {
+  gpuVram = Number(bytes) > 0 ? Number(bytes) : null;
+  picker.refresh();
+};
 
 // What the picker judges each variant against: the memory limit of the Settings, the
 // 4 GiB of a wasm32 module (the build does not use Memory64), navigator.deviceMemory,
@@ -2414,10 +2643,14 @@ async function deviceEnv() {
         const i = a.info || {};
         await probeAdapter();
         const g = gpuLimit(budget);
+        // The GPU's memory measured (the VRAM probe, ingaGpuMemory) rules over Auto's
+        // guess; a value set in the Settings stays the user's.
+        const measured = gpuVram && $("gmem").value !== "mb" ? gpuVram : null;
         env.gpu = {
           name: [i.vendor, i.architecture, i.device, i.description].filter(Boolean).join(" ") || "unnamed adapter",
-          budget: g.bytes,
-          guess: $("gmem").value !== "mb",
+          budget: measured ?? g.bytes,
+          measured: !!measured,
+          guess: !measured && $("gmem").value !== "mb",
           separate: gpuSeparate(),
           maxBufferSize: a.limits.maxBufferSize,
           maxStorageBufferBindingSize: a.limits.maxStorageBufferBindingSize,
@@ -2426,6 +2659,54 @@ async function deviceEnv() {
     } catch {}
   }
   return env;
+}
+
+// Before a catalog model that would not run on the GPU here (picker.js gpuFit; without
+// a GPU, one that does not fit memory): a short question, with a smaller variant or
+// model that does fit when the catalog has one (a 4 GB card: Qwen2.5 Coder 3B for the
+// 7B). Resolves to true (load it anyway), false (cancelled) or {model, variant} (the
+// suggestion). The inputs of the estimate are in the Info panel.
+let lastEnv = null;
+
+// The catalog variant of a stored file, and the model's others with their size and
+// where they would run here ("Q8_0 · others: Q4_K_M 1.9 GB (fits the GPU)"): in the
+// load line and the Info panel, so a smaller variant is not missed. "" for a file the
+// catalog does not have.
+function variantLine(file) {
+  for (const m of picker?.catalog?.models ?? []) {
+    const v = file && m.variants.find((x) => fileOf(x) === file);
+    if (!v) continue;
+    const others = m.variants.filter((x) => x !== v).map((x) => {
+      const g = lastEnv && gpuFit(x.size, x.approx, lastEnv);
+      const f = lastEnv && fitOf(x.size, x.approx, lastEnv);
+      const where = g ? g.label : f ? { fits: t("fit.mem"), tight: t("fit.tight"), big: t("fit.big") }[f.mark] : "";
+      return `${x.quant} ${num(x.size / 1e9, 1)} GB${where ? ` (${where.charAt(0).toLowerCase() + where.slice(1)})` : ""}`;
+    });
+    return t("var.line", v.quant) + (others.length ? " · " + t("var.others", others.join(", ")) : "");
+  }
+  return "";
+}
+async function fitConfirm(model, variant) {
+  let env;
+  try {
+    env = lastEnv = await deviceEnv();
+  } catch {
+    return true;
+  }
+  const g = gpuFit(variant.size, variant.approx, env);
+  const f = fitOf(variant.size, variant.approx, env);
+  if (g ? g.mark === "gpu" : f.mark === "fits") return true;
+  const label = `${model.name} ${variant.quant}`;
+  const s = smallerPick(picker.catalog, model, variant, env);
+  const sLabel = s && `${s.model.name} ${s.variant.quant}`;
+  let pick = false;
+  const msg = (g?.mark === "big" || (!g && f.mark === "big") ? t("fit.ask.big", "{0}", (g ?? f).why) : t("fit.ask.part", "{0}", (g ?? f).why)) +
+    (s ? " " + t("fit.ask.try", sLabel) : "");
+  const ok = await askBox({
+    title: t("fit.ask.t"), message: msg, strong: label, ok: t("fit.ask.anyway"), cancel: t("ask.cancel"),
+    secondary: s ? { label: t("fit.ask.other", sLabel), act: () => { pick = true; $("ask-cancel").click(); } } : undefined,
+  });
+  return pick ? s : ok;
 }
 
 const picker = createPicker({
@@ -2439,7 +2720,10 @@ const picker = createPicker({
     return r ? t("dl.pick", estimate(bytes, r)) : "";
   },
   afterRender: () => setBusy(busy),
-  onLoad: (model, variant, url) => {
+  onLoad: async (model, variant, url) => {
+    const other = await fitConfirm(model, variant);
+    if (other === false) return;
+    if (typeof other === "object") [model, variant, url] = [other.model, other.variant, variantUrl(other.model, other.variant)];
     const name = url.split("/").pop().split("?")[0];
     const file = decodeURIComponent(name);
     if (storedSize[file] != null) {
@@ -2462,6 +2746,14 @@ setupDevice();
 gmemHint();
 renderChat();
 setBusy(false);
-chats.open().then(showConvs);
-if (!navigator.storage?.getDirectory) status("This browser has no Origin Private File System: only files of this device can be loaded.", true);
+chats.open().then(async () => {
+  await showConvs();
+  // The chat open before a reload (F5) or a discard: opened again, its model not loaded.
+  let id = null;
+  try {
+    id = sessionStorage.getItem(OPEN_KEY);
+  } catch {}
+  if (id && !chat && !busy && !source) await openChat(id);
+});
+if (!navigator.storage?.getDirectory) status(t("st.noopfs"), true);
 startWorker();

@@ -14,6 +14,8 @@
 // (matteobaccan/ingatest, whose issues anyone can open). An empty template opens a
 // plain issue with the report as its text, for a repository without the form.
 
+import { infoSections, infoText } from "./info.js";
+
 const meta = (name) => document.querySelector(`meta[name="${name}"]`)?.content?.trim() ?? "";
 const REPO = `https://github.com/${meta("inga-report-repo") || "matteobaccan/inga"}`;
 const TEMPLATE = meta("inga-report-template");
@@ -144,7 +146,7 @@ function issueUrl(f) {
   let log = f.log;
   for (;;) {
     const q = TEMPLATE
-      ? new URLSearchParams({ template: TEMPLATE, title, browser: f.browser, gpu: f.gpu, model: f.model, speeds: f.speeds, log })
+      ? new URLSearchParams({ template: TEMPLATE, title, browser: f.browser, gpu: f.gpu, model: `${f.info}\n\n${f.model}`, speeds: f.speeds, log })
       : new URLSearchParams({ title, body: "### What you did, what went well, what went wrong\n\n\n\n" + asText({ ...f, log }) });
     const url = `${REPO}/issues/new?${q}`;
     if (url.length <= MAX_URL || log.length < 200) return { url, cut: log !== f.log };
@@ -165,11 +167,13 @@ async function gather() {
     model: modelText(),
     speeds: speedsText(),
     log: logText(),
+    // The Info panel's block (info.js), the same text as its Copy.
+    info: infoText(await infoSections(st)),
   };
 }
 
 function asText(f) {
-  return [["Browser", f.browser], ["GPU", f.gpu], ["Model", f.model], ["Speeds", f.speeds], ["Log", f.log]]
+  return [["Model info", f.info], ["Browser", f.browser], ["GPU", f.gpu], ["Model", f.model], ["Speeds", f.speeds], ["Log", f.log]]
     .map(([h, t]) => `### ${h}\n\n\`\`\`\n${t}\n\`\`\``).join("\n\n");
 }
 

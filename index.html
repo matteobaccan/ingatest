@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 <!-- The commit and UTC date of a published build ("abc1234 2026-10-16") and Inga's version
 (Cargo.toml), which the Pages workflow writes: the side bar, About and the report show them;
 "dev" here. -->
-<meta name="inga-build" content="77ec680 2026-10-16">
+<meta name="inga-build" content="82d0bf5 2026-10-16">
 <meta name="inga-version" content="0.30.1">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
@@ -106,6 +106,15 @@ details summary { cursor: pointer; color: var(--muted); }
 dialog#about { width: min(440px, calc(100vw - 32px)); padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--text); box-sizing: border-box; }
 dialog#ask { width: min(420px, calc(100vw - 24px)); padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--text); box-sizing: border-box; box-shadow: 0 10px 40px rgb(0 0 0 / .25); }
 dialog#ask::backdrop { background: rgb(0 0 0 / .45); }
+/* The model's Info panel: styled as the question box. */
+dialog#info { width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--text); box-sizing: border-box; box-shadow: 0 10px 40px rgb(0 0 0 / .25); }
+dialog#info::backdrop { background: rgb(0 0 0 / .45); }
+dialog#info h2 { margin: 0; font-size: 1.1rem; }
+dialog#info h3 { margin: 14px 0 4px; font-size: .95rem; }
+dialog#info table { width: 100%; border-collapse: collapse; font-size: .85rem; table-layout: fixed; }
+dialog#info th { text-align: left; font-weight: normal; color: var(--muted); width: 42%; padding: 2px 8px 2px 0; vertical-align: top; overflow-wrap: anywhere; }
+dialog#info td { padding: 2px 0; overflow-wrap: anywhere; }
+dialog#info .ask-buttons { margin-top: 14px; }
 dialog#ask h2 { margin: 0 0 8px; font-size: 1.1rem; }
 dialog#ask p { margin: 0 0 14px; overflow-wrap: anywhere; color: var(--text); }
 dialog#ask p[hidden], dialog#ask input[hidden], dialog#ask button[hidden] { display: none; }
@@ -221,6 +230,11 @@ details.fold > summary .meta { font-weight: normal; }
 #prompt { border: 0; background: transparent; min-height: 2.6em; max-height: 40vh; padding: 6px; outline: none; }
 #composer .tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 #composer .tools .grow { flex: 1; }
+/* No model, a chat open: Reload its model (or Choose a model), above the composer and in the status bar. */
+#reopen-bar { max-width: var(--chat-w); margin: 0 auto 8px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+#reopen-bar[hidden], button.reopen[hidden] { display: none; }
+button.reopen { max-width: 100%; white-space: normal; text-align: left; font-weight: 600; }
+#reopen-status { padding: 4px 10px; font-size: .85rem; flex-shrink: 1; max-width: 50%; }
 .chip { display: inline-flex; gap: 6px; align-items: center; max-width: 100%; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: .85rem; }
 .chip.on { border-color: var(--accent); color: var(--accent); }
 #model-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14em; }
@@ -284,6 +298,11 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
 #picker .card-head { display: flex; gap: 8px; align-items: center; }
 #picker .card-head .icon { font-size: 1.3rem; width: 1.6em; text-align: center; }
 #picker .card select { width: 100%; }
+#picker .variants { display: flex; flex-wrap: wrap; gap: 4px; }
+#picker .vchip { padding: 3px 8px; font-size: .8rem; border-radius: 999px; background: transparent; color: var(--text); border: 1px solid var(--line); }
+#picker .vchip[aria-checked="true"] { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+#picker .vchip:hover { background: var(--hover); }
+#picker .vchip[aria-checked="true"]:hover { background: var(--accent); }
 #picker .fit.fits { color: var(--ok); } #picker .fit.tight { color: var(--warn); } #picker .fit.big { color: var(--danger); }
 #picker .card .row a { font-size: .85rem; }
 
@@ -440,6 +459,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
   </header>
   <div id="statusbar">
     <div class="row" style="flex-wrap:nowrap"><div id="status" style="flex:1">Starting…</div>
+      <button id="reopen-status" class="reopen" type="button" hidden><svg class="ic"><use href="#i-retry"/></svg><span></span></button>
       <button id="log-toggle" class="icon" type="button" title="Show the load log" aria-expanded="false"><svg class="ic"><use href="#i-braces"/></svg></button></div>
     <progress id="progress" max="1" value="0" hidden></progress>
     <pre id="load-log"></pre>
@@ -448,10 +468,12 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
   <section class="view" id="view-chat" aria-label="Chat">
     <div id="chat"></div>
     <div id="composer">
+      <div id="reopen-bar" hidden><button id="reopen-go" class="reopen" type="button"><svg class="ic"><use href="#i-retry"/></svg><span></span></button><span class="meta" id="reopen-why"></span></div>
       <div class="box">
         <textarea id="prompt" rows="2" placeholder="Write a message" data-i18n-ph="chat.ph" disabled></textarea>
         <div class="tools">
           <button id="model-chip" class="chip" type="button" title="Pick a model"><svg class="ic"><use href="#i-package"/></svg><span id="model-mark" hidden></span><span id="model-name">No model: pick one</span></button>
+          <button id="info-btn" class="icon" type="button" title="Model info" aria-label="Model info" data-i18n-title="info.btn" aria-haspopup="dialog"><svg class="ic"><use href="#i-info"/></svg></button>
           <label class="chip" title="Thinking models such as Qwen3 reason before they answer; unchecked, they answer at once"><input type="checkbox" id="think" checked><svg class="ic"><use href="#i-brain"/></svg><span data-i18n="chat.think">Think</span></label>
           <span class="grow"></span>
           <button id="reset" class="icon" type="button" title="New chat" disabled><svg class="ic"><use href="#i-plus"/></svg></button>
@@ -655,7 +677,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
       </div>
       <div class="row" id="std-out" hidden style="margin-top:6px">
         <code id="std-line" style="flex:1 1 100%;white-space:pre-wrap;word-break:break-word;font-size:.8rem"></code>
-        <button id="std-copy" class="ghost">Copy</button>
+        <button id="std-copy" class="ghost" data-i18n="md.copy">Copy</button>
       </div>
       <details id="std-all" style="margin-top:8px">
         <summary>Standard test results in this browser (<span id="std-count">0</span>)</summary>
@@ -703,6 +725,14 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
   <input type="text" id="ask-input" hidden>
   <div class="ask-buttons"><button id="ask-second" class="ghost" type="button" hidden></button>
     <span class="grow"></span><button id="ask-cancel" class="ghost" type="button">Cancel</button><button id="ask-ok" type="button">OK</button></div>
+</dialog>
+<dialog id="info" aria-labelledby="info-title">
+  <div class="row" style="justify-content:space-between;flex-wrap:nowrap">
+    <h2 id="info-title" data-i18n="info.title">Model info</h2>
+    <button id="info-close" class="ghost" type="button" data-i18n="info.close">Close</button>
+  </div>
+  <div id="info-body"></div>
+  <div class="ask-buttons"><span class="meta" id="info-out"></span><span class="grow"></span><button id="info-copy" type="button" data-i18n="info.copy">Copy</button></div>
 </dialog>
 <dialog id="about" aria-labelledby="about-title">
   <div class="row" style="justify-content:space-between;flex-wrap:nowrap">
