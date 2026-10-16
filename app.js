@@ -130,8 +130,13 @@ function ctxSize() {
 }
 
 // The Settings' Max tokens: what the answer may take.
+// Left at its default (never changed by hand), it is at least THINK_MAX for a model that
+// thinks with Think on: its reasoning alone often takes more than 256 tokens.
+const THINK_MAX = 2048;
+let maxHand = false; // Max tokens changed by hand (the Settings, or "Raise to …")
 function maxTokens() {
-  return Number($("max").value) || 256;
+  const v = Number($("max").value) || 256;
+  return !maxHand && thinks() && $("think").checked ? Math.max(v, THINK_MAX) : v;
 }
 
 function drawGauge() {
@@ -503,10 +508,13 @@ function handleMessage(m) {
       // Only the answer goes back to the model, as in inga serve's web UI; the reasoning
       // and the speeds are kept for the page.
       const reasoning = thinking?.lastChild?.textContent || undefined;
+      // How it ended (`max_tokens`: the limit) and the limit, for the note under it.
       const said = { role: "assistant", content: answerText, reasoning, model: modelName, ...(modelMark ? { mark: modelMark } : {}), at: Date.now(),
+        stop: s.stop, max: askedOpts?.max_tokens, think: askedOpts?.thinking !== false && thinks(),
         stats: { prompt_tps: s.prompt_tps, gen_tps: s.gen_tps, prompt_tokens: s.prompt_tokens, gen_tokens: s.gen_tokens } };
       messages.push(said);
       speedLine(answerBox, said);
+      if (!stdRunning) limitNote(answerBox, said, true);
       endAnswer();
       persistChat();
       $("stop").disabled = true;
@@ -998,17 +1006,32 @@ async function loadFile(file) {
   worker.postMessage({ type: "load", file, ctx: ctx(), device: "cpu" });
 }
 
-function send() {
-  const text = $("prompt").value.trim();
-  if (!text || busy || !source) return;
-  $("prompt").value = "";
+// The options of a question: Max tokens, the sampler's Settings, Think.
+function sendOpts() {
   const opts = { max_tokens: maxTokens(), temperature: Number($("temp").value), thinking: $("think").checked };
   // The sampler's Settings: each one sent when it is a number (empty: Inga's default).
   for (const [id, key] of [["topp", "top_p"], ["topk", "top_k"], ["minp", "min_p"], ["rep", "repeat_penalty"], ["pres", "presence_penalty"], ["freq", "frequency_penalty"]]) {
     const v = $(id).value.trim();
     if (v !== "" && Number.isFinite(Number(v))) opts[key] = Number(v);
   }
-  ask(text, opts);
+  return opts;
+}
+
+function send() {
+  const text = $("prompt").value.trim();
+  if (!text || busy || !source) return;
+  $("prompt").value = "";
+  ask(text, sendOpts());
+}
+
+// The last answer asked again: its exchange taken off the conversation, the question
+// sent with the Settings' options and `over` (a larger Max tokens, Think off).
+function regenerate(over = {}) {
+  if (busy || !source || messages.at(-1)?.role !== "assistant" || messages.at(-2)?.role !== "user") return;
+  messages.pop();
+  const q = messages.pop();
+  renderChat();
+  ask(q.content, { ...sendOpts(), ...over });
 }
 
 // What the model is sent: the system prompt (Settings), then the conversation's last
@@ -1025,7 +1048,11 @@ function wire(list) {
 }
 
 // Sends `text` as the user's next message with `opts`.
+let askedOpts = null; // the options of the answer running (its Max tokens, Think)
 function ask(text, opts) {
+  askedOpts = opts;
+  // The ways out of an earlier answer's limit go: they act on the last answer only.
+  for (const r of document.querySelectorAll("#chat .limit .row")) r.remove();
   const mine = { role: "user", content: text, at: Date.now() };
   messages.push(mine);
   startChat(text);
@@ -1333,6 +1360,7 @@ function saveSettings() {
   v.draft = draftWanted;
   // The preset fields changed by hand (preset.js).
   v.hand = [...hand];
+  v.maxHand = maxHand;
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(v));
   } catch {}
@@ -1351,6 +1379,8 @@ function restoreSettings() {
   }
   // A page saved before the presets: the fields not at their default were set by hand.
   hand = Array.isArray(v.hand) ? new Set(v.hand.filter((id) => PRESET_FIELDS.includes(id))) : handFromSaved(v, PRESET_BASE);
+  // A page saved before: a Max tokens not at the default was set by hand.
+  maxHand = typeof v.maxHand === "boolean" ? v.maxHand : v.max != null && String(v.max) !== $("max").defaultValue;
   for (const id of SETTINGS) {
     if (!(id in v)) continue;
     if (id === "draft") draftWanted = typeof v.draft === "string" ? v.draft : "";
@@ -1454,6 +1484,7 @@ $("gmem-mb").hidden = $("gmem").value !== "mb";
 for (const id of SETTINGS) {
   $(id).addEventListener("change", () => {
     if (id === "draft") draftWanted = $("draft").value;
+    if (id === "max") maxHand = true;
     // A preset field changed by hand: the user's from now on.
     if (PRESET_FIELDS.includes(id)) {
       hand.add(id);
@@ -1571,7 +1602,50 @@ function userBubble(m) {
 
 // An answer's message: Inga's mark, the model's name, its text (Markdown), its speeds.
 // `m` null: the answer about to stream.
-function botBubble(m) {
+// Under an answer that ran out of Max tokens, or ended with no answer after its
+// reasoning: what happened, and, on the last answer, the ways out (Max tokens doubled,
+// Think off). The engine cannot continue an answer it stopped (no assistant prefill), so
+// a cut answer is asked again with more room.
+function limitNote(row, m, last) {
+  const empty = !m.content?.trim();
+  const cut = m.stop === "max_tokens";
+  if (!cut && !(empty && m.reasoning)) return;
+  row.querySelector(".limit")?.remove();
+  const a = row.querySelector(".a");
+  const n = m.max ?? maxTokens();
+  const box = document.createElement("div");
+  box.className = "limit" + (empty ? " empty" : "");
+  const p = document.createElement("p");
+  p.textContent = empty ? (cut ? t("limit.think", n) : t("limit.noanswer")) : t("limit.max", n);
+  box.append(p);
+  if (empty) a.hidden = true;
+  if (last) {
+    const row2 = document.createElement("div");
+    row2.className = "row";
+    const btn = (id, label, fn, ghost) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.id = id;
+      b.dataset.act = "1";
+      b.disabled = busy;
+      if (ghost) b.className = "ghost";
+      b.textContent = label;
+      b.onclick = fn;
+      row2.append(b);
+    };
+    if (cut) btn("limit-raise", t("limit.raise", 2 * n), () => {
+      $("max").value = String(2 * n);
+      maxHand = true;
+      saveSettings();
+      regenerate({ max_tokens: 2 * n });
+    });
+    if (empty && m.think !== false && thinks()) btn("limit-nothink", t("limit.nothink"), () => regenerate({ thinking: false }), cut);
+    if (row2.firstChild) box.append(row2);
+  }
+  a.after(box);
+}
+
+function botBubble(m, last = false) {
   const row = document.createElement("div");
   row.className = "msg bot";
   const img = avatar(m ? m.mark : modelMark);
@@ -1601,6 +1675,7 @@ function botBubble(m) {
     markdown(a, m.content);
     a.dataset.raw = m.content;
     speedLine(row, m);
+    limitNote(row, m, last);
   }
   return row;
 }
@@ -1736,7 +1811,7 @@ function renderChat() {
     if (!source) e.append(emptyActions());
     box.append(e);
   }
-  for (const m of messages) box.append(m.role === "user" ? userBubble(m) : botBubble(m));
+  messages.forEach((m, i) => box.append(m.role === "user" ? userBubble(m) : botBubble(m, i === messages.length - 1)));
   box.scrollTop = box.scrollHeight;
   showHeader();
 }

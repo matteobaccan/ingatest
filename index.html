@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 <title>Inga (beta)</title>
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <!-- The commit of a published build (the Pages workflow writes it), for the report. -->
-<meta name="inga-build" content="1f19769 2026-10-16">
+<meta name="inga-build" content="b6936b1 2026-10-16">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
 <!-- Where "Report on GitHub" opens an issue, and with which issue form (empty: a plain issue with the
@@ -189,6 +189,12 @@ details.fold > summary .meta { font-weight: normal; }
 #chat .a { white-space: pre-wrap; word-break: break-word; background: var(--panel); border: 1px solid var(--line); padding: 8px 12px; border-radius: 4px 16px 16px 16px; }
 #chat .a:empty::before { content: "…"; color: var(--muted); }
 #chat .a.md { white-space: normal; }
+/* An answer that ran out of Max tokens, or had none after its reasoning: the note and its buttons. */
+.msg.bot .limit { margin-top: 6px; padding: 8px 12px; border: 1px solid var(--warn); border-radius: 12px; background: var(--panel); font-size: .9rem; }
+.msg.bot .limit p { margin: 0; overflow-wrap: anywhere; }
+.msg.bot .limit .row { margin-top: 8px; }
+.msg.bot .limit button { white-space: normal; text-align: left; }
+.msg.bot .limit:not(.empty) { border-color: var(--line); color: var(--muted); font-size: .8rem; padding: 4px 10px; }
 .msg.bot .speed { font-size: .75rem; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
 #chat .md p, #chat .md ul, #chat .md ol, #chat .md blockquote { margin: 6px 0; }
 #chat .md > :first-child { margin-top: 0; } #chat .md > :last-child { margin-bottom: 0; }
@@ -527,7 +533,8 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
       <div class="set"><label for="freq" data-i18n="set.freq">Frequency penalty</label><div><input type="number" id="freq" value="0" min="-2" max="2" step="0.1">
         <span class="meta">Subtracted for each time a token appeared: fewer repetitions (0: off).</span></div></div>
       <div class="set"><label for="max" data-i18n="set.max">Max tokens</label><div><input type="number" id="max" value="256" min="1">
-        <span class="meta">The longest answer, reasoning included.</span></div></div>
+        <span class="meta">The longest answer, reasoning included. Left at its default, a model that thinks gets at
+        least 2048 while Think is on (its reasoning alone often takes more than 256 tokens); a value you set is used as it is.</span></div></div>
     </section>
     <section class="card">
       <h2 data-i18n="set.conv">Conversation</h2>
