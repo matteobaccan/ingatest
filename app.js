@@ -55,6 +55,17 @@ let onGpu = false; // the loaded model runs on the GPU (WebGPU)
 let lastStats = null; // the last answer's statistics ("done"), for the beta's report
 let modelName = ""; // the loaded model's name, on its answers
 let loadedInfo = null; // the last "loaded" message: info, memory, gpu, note
+// Whether the loaded model can think (its chat template's marks, `info.thinks`; a module
+// that does not say counts as yes): Think shows, and `thinking` is sent, only then.
+const thinks = () => loadedInfo?.info?.thinks !== false;
+// The options without `thinking` for a model that cannot think.
+const thinkOpts = (opts) => {
+  if (thinks()) return opts;
+  const { thinking: _, ...rest } = opts;
+  return rest;
+};
+// Shows the Think switch for a model that can think, hides it otherwise.
+const drawThink = () => { $("think").closest("label").hidden = !thinks(); };
 // The public beta (GitHub Pages, docs/wasm-beta.md; `?beta` elsewhere): Device defaults to
 // the GPU where the browser has WebGPU, off iOS (report.js reads the page's state).
 const BETA = location.hostname.endsWith(".github.io") || new URLSearchParams(location.search).has("beta");
@@ -198,7 +209,7 @@ function countSoon(ms = COUNT_MS) {
     }
     // The panel open: its parts too, and what the next question would leave out.
     const open = !$("ctx-pop").hidden;
-    worker.postMessage({ type: "count", id: ++countId, messages: sent, opts: { thinking: $("think").checked },
+    worker.postMessage({ type: "count", id: ++countId, messages: sent, opts: thinkOpts({ thinking: $("think").checked }),
       detail: open, draft: !!draft, fit: open ? promptLimit(ctxSize(), maxTokens()) : undefined });
   }, ms);
 }
@@ -411,6 +422,7 @@ function handleMessage(m) {
       stopLoading();
       progress(0, 0);
       loadedInfo = m;
+      drawThink();
       ctxUsed = 0;
       ctxParts = null;
       const i = m.info;
@@ -994,7 +1006,7 @@ function ask(text, opts) {
   // them, ctx.js), the answer's room kept.
   trimmedNote = "";
   const fit = stdRunning ? undefined : promptLimit(ctxSize(), opts.max_tokens);
-  worker.postMessage({ type: "chat", messages: sent, opts, stop: stopFlag?.buffer, fit });
+  worker.postMessage({ type: "chat", messages: sent, opts: thinkOpts(opts), stop: stopFlag?.buffer, fit });
   armQuiet();
 }
 
