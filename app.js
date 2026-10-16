@@ -13,7 +13,7 @@ import * as chats from "./chats.js";
 import { t, setLang } from "./i18n.js";
 import { ask as askBox, setupAsk } from "./ask.js";
 import { fmt, createRate, downloadLine, estimate, lastSpeed, saveSpeed } from "./eta.js";
-import { gauge, gaugeTitle, promptLimit, detail } from "./ctx.js";
+import { gauge, gaugeTitle, promptLimit, detail, AUTO_FLOOR } from "./ctx.js";
 import { PRESET_FIELDS, catalogEntry, presetOf, presetValues, handFromSaved, describePreset } from "./preset.js";
 
 // The test models: a fixed list, so runs on different devices compare (the maintainer's
@@ -44,6 +44,7 @@ let messages = []; // the current conversation's messages ({role, content, ...}:
 let chat = null; // the current conversation (chats.js), null until its first message
 let answer = null; // the element of the answer streaming
 let answerBox = null; // its message (the bubble with the speed line)
+let answerSeed = null; // the seed it draws with
 let answerText = ""; // its raw text (what goes back to the model), rendered as Markdown
 let renderTimer = null; // a render of the answer pending (at most one every RENDER_MS)
 const RENDER_MS = 100;
@@ -125,18 +126,22 @@ let trimmedNote = ""; // the oldest messages left out of the answer running, sai
 let ctxParts = null; // the parts of the last count made with the panel open (ctx.js's breakdown); null: not counted
 const COUNT_MS = 400; // the pause in typing before the draft is counted
 
-// The context the loaded model has (its n_ctx), else the Settings' context.
+// The context the loaded model has (its n_ctx), else the Settings' context (Auto: the
+// least Auto gives).
 function ctxSize() {
-  return loadedInfo?.info?.ctx || ctx();
+  return loadedInfo?.info?.ctx || ctx() || AUTO_FLOOR;
 }
 
-// The Settings' Max tokens: what the answer may take.
+// The Settings' Max tokens: what the answer may take, 1024 by default (256 before:
+// testers kept hitting it). The room it keeps is at most half of the context (ctx.js's
+// answerRoom), so a default above the context's room never crowds the question out.
 // Left at its default (never changed by hand), it is at least THINK_MAX for a model that
-// thinks with Think on: its reasoning alone often takes more than 256 tokens.
+// thinks with Think on: its reasoning alone often takes more than 1024 tokens.
+const MAX_DEFAULT = 1024;
 const THINK_MAX = 2048;
 let maxHand = false; // Max tokens changed by hand (the Settings, or "Raise to …")
 function maxTokens() {
-  const v = Number($("max").value) || 256;
+  const v = Number($("max").value) || MAX_DEFAULT;
   return !maxHand && thinks() && $("think").checked ? Math.max(v, THINK_MAX) : v;
 }
 
@@ -147,7 +152,7 @@ function drawGauge() {
   el.hidden = !source || !g.show;
   $("ctx-ring").setAttribute("stroke-dasharray", g.pct.toFixed(1) + " 100");
   $("ctx-pct").textContent = g.shown + "%";
-  el.title = gaugeTitle(t, ctxUsed, size) + (ctxLine ? "\n" + ctxLine : "");
+  el.title = gaugeTitle(t, ctxUsed, size) + (autoLine ? "\n" + autoLine : "") + (ctxLine ? "\n" + ctxLine : "");
   el.setAttribute("aria-label", el.title);
   el.classList.toggle("warn", g.level === "warn");
   el.classList.toggle("full", g.level === "full");
@@ -190,6 +195,7 @@ function drawDetail() {
   pop.append(list);
   if (d.dropped) pop.append(el("div", "note warn", t(d.dropped === 1 ? "ctx.drop.one" : "ctx.drop", d.dropped)));
   pop.append(el("div", "note small", t("ctx.size", size, t(loadedInfo?.info?.ctx ? "ctx.src.model" : "ctx.src.set"))));
+  if (autoLine) pop.append(el("div", "note small", autoLine));
   if (ctxLine) pop.append(el("div", "note small warn", ctxLine));
   const want = Number($("ctx").value);
   if (loadedInfo?.ctx_asked && want && want !== loadedInfo.ctx_asked) pop.append(el("div", "note small", t("ctx.pending", want)));
@@ -466,10 +472,12 @@ function handleMessage(m) {
       if (m.note?.startsWith("On the CPU")) deviceUsed.label = deviceUsed.label.replace("device GPU (Auto", "device CPU, not the GPU (Auto");
       ctxLine = ctxNote(m);
       slowLine = slowNote(i);
+      autoLine = autoText(m.ctx_auto);
+      showAuto();
       status(`Loaded in ${m.secs.toFixed(1)} s: ${i.architecture}, ${i.layers} layers, ${fmt(i.bytes)} of weights, ` +
         `context ${i.ctx}, ${where}; WebAssembly memory ${fmt(m.memory)}${gpuBytes(m.gpu)}; ` +
         `${limitUsed}; ${deviceUsed.label}.` + (why ? ` ${why}.` : "") + streamNote(i) + draftNote(i) + (reloadWhy ? " " + t("reloaded", ...reloadWhy) : "") +
-        (ctxLine ? " " + ctxLine : "") + (slowLine ? " " + slowLine : ""));
+        (autoLine ? " " + autoLine + "." : "") + (ctxLine ? " " + ctxLine : "") + (slowLine ? " " + slowLine : ""));
       reloadWhy = null;
       $("wmem-hint").textContent = "";
       presetAfterLoad(i);
@@ -522,7 +530,7 @@ function handleMessage(m) {
       // and the speeds are kept for the page.
       const reasoning = thinking?.lastChild?.textContent || undefined;
       // How it ended (`max_tokens`: the limit) and the limit, for the note under it.
-      const said = { role: "assistant", content: answerText, reasoning, model: modelName, ...(modelMark ? { mark: modelMark } : {}), at: Date.now(),
+      const said = { role: "assistant", content: answerText, reasoning, model: modelName, ...(modelMark ? { mark: modelMark } : {}), at: Date.now(), seed: answerSeed,
         stop: s.stop, max: askedOpts?.max_tokens, ctx: ctxSize(), think: askedOpts?.thinking !== false && thinks(),
         stats: { prompt_tps: s.prompt_tps, gen_tps: s.gen_tps, prompt_tokens: s.prompt_tokens, gen_tokens: s.gen_tokens } };
       messages.push(said);
@@ -535,7 +543,7 @@ function handleMessage(m) {
       $("stats").textContent = `Prompt: ${s.prompt_tokens - s.cached_tokens} tokens at ${s.prompt_tps.toFixed(1)} tok/s` +
         ` (${s.cached_tokens} reused) · answer: ${s.gen_tokens} tokens at ${s.gen_tps.toFixed(1)} tok/s${r}` +
         ` · ${s.stop} · memory ${fmt(m.memory)}${gpuBytes(m.gpu)}` + readNote(s) + draftStats(s) +
-        (s.gpu_sampled ? ` · ${s.gpu_sampled} drawn on the GPU` : "") + (slowLine ? ` · ${slowLine}` : "");
+        (s.gpu_sampled ? ` · ${s.gpu_sampled} drawn on the GPU` : "") + ` · seed ${answerSeed}` + (slowLine ? ` · ${slowLine}` : "");
       status(trimmedNote ? "Ready. " + trimmedNote : "Ready.");
       trimmedNote = "";
       if (stdRunning) {
@@ -919,8 +927,11 @@ async function persist() {
   if (navigator.storage?.persist && !(await navigator.storage.persisted())) await navigator.storage.persist();
 }
 
+// The Settings' context window: a number set, or 0 for Auto (the field left empty:
+// the model's training context, lowered only when its KV cache does not fit; ctx.js's
+// autoContext, run by the worker on the model's header).
 function ctx() {
-  return Number($("ctx").value) || 2048;
+  return Math.max(0, Math.round(Number($("ctx").value) || 0));
 }
 
 // `from`: the catalog's model and variant the link is of, for a clearer message when
@@ -995,7 +1006,7 @@ async function loadStored(name) {
   // A draft model drafts on the CPU only: on the GPU the model answers without it.
   const draft = deviceUsed.device === "gpu" ? null : draftFor(name);
   if (deviceUsed.device === "gpu" && draftFor(name)) deviceUsed.label += "; no draft model on the GPU yet (Draft model ignored)";
-  lastLoad = { type: "load", name, ctx: ctx(), budget, draft, device: deviceUsed.device, gpuBudget: gpuBudget.bytes, gpuSeparate: separate, auto: !!deviceUsed.auto };
+  lastLoad = { type: "load", name, ctx: ctx(), kv: $("kv").value, budget, draft, device: deviceUsed.device, gpuBudget: gpuBudget.bytes, gpuSeparate: separate, auto: !!deviceUsed.auto };
   startLoading();
   worker.postMessage(lastLoad);
 }
@@ -1022,7 +1033,7 @@ async function loadFile(file) {
   limitUsed = budget == null ? "everything in memory (All in memory)" : "everything in memory (a file of this device smaller than the limit)";
   lastLoad = null;
   startLoading();
-  worker.postMessage({ type: "load", file, ctx: ctx(), device: "cpu" });
+  worker.postMessage({ type: "load", file, ctx: ctx(), kv: $("kv").value, device: "cpu" });
 }
 
 // The options of a question: Max tokens, the sampler's Settings, Think.
@@ -1033,7 +1044,16 @@ function sendOpts() {
     const v = $(id).value.trim();
     if (v !== "" && Number.isFinite(Number(v))) opts[key] = Number(v);
   }
+  // The seed: the Settings' (reproducible answers), or a fresh one per answer, so asking
+  // again (Regenerate too) draws again; the answer keeps it (its line, the export).
+  const seed = $("seed").value.trim();
+  opts.seed = /^\d+$/.test(seed) ? Number(seed) : randomSeed();
   return opts;
+}
+
+// A random seed for an answer: 32 bits.
+function randomSeed() {
+  return crypto.getRandomValues(new Uint32Array(1))[0];
 }
 
 function send() {
@@ -1096,6 +1116,9 @@ function ask(text, opts) {
   // them, ctx.js), the answer's room kept.
   trimmedNote = "";
   const fit = stdRunning ? undefined : promptLimit(ctxSize(), opts.max_tokens);
+  // The seed the answer draws with (the module's default, 0x5EED, without one: the
+  // Standard test's).
+  answerSeed = opts.seed ?? 0x5eed;
   worker.postMessage({ type: "chat", messages: sent, opts: thinkOpts(opts), stop: stopFlag?.buffer, fit });
   armQuiet();
 }
@@ -1359,6 +1382,26 @@ function streamNote(i) {
 // training context. "" when it is the one asked.
 let ctxLine = "";
 let slowLine = "";
+let autoLine = ""; // the context and KV cache the load chose (autoText)
+
+// The context and KV cache of a load (the worker's `ctx_auto`, ctx.js's autoContext):
+// "Auto: 32768 (model, KV Q8_0 2.13 GiB)", "Auto: 12288 (memory; model 131072, KV F16
+// 1.50 GiB)", or for a context set by hand "Context 4096 (set), KV F16 64.0 MiB"; with
+// a KV type other than f16 asked on the GPU, that the GPU keeps f16. "" without one.
+function autoText(a) {
+  if (!a) return "";
+  const kv = `KV ${a.kv.toUpperCase()} ${fmt(a.bytes)}`;
+  let s = a.why === "set" ? t("ctx.auto.set", a.ctx, kv)
+    : a.why === "memory" ? t("ctx.auto.mem", a.ctx, a.trained, kv) : t("ctx.auto.model", a.ctx, kv);
+  if (a.gpuF16) s += t("kv.gpuf16", ($("kv").value || "").toUpperCase());
+  return s;
+}
+
+// The Settings' context field and KV cache line: what Auto chose for the model loaded.
+function showAuto() {
+  $("ctx").placeholder = autoLine && !ctx() ? autoLine : t("ctx.auto");
+  $("kv-hint").textContent = loadedInfo?.ctx_auto ? t("kv.loaded", loadedInfo.ctx_auto.kv.toUpperCase()) : "";
+}
 function ctxNote(m) {
   const got = m.info?.ctx;
   const asked = m.ctx_asked;
@@ -1450,10 +1493,10 @@ function importFile(file) {
 
 // ---- Settings, kept in this browser (localStorage, when it allows) ----
 
-const SETTINGS = ["ctx", "max", "temp", "think", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct",
+const SETTINGS = ["ctx", "kv", "max", "temp", "seed", "think", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct",
   "topp", "topk", "minp", "rep", "pres", "freq", "sys-on", "sys", "past", "sendkey", "theme", "fontsize", "lang", "loglevel"];
 // The settings that are a choice among options, and those options.
-const CHOICES = { wmem: ["auto", "all", "mb"], device: ["cpu", "auto", "gpu"], gmem: ["auto", "mb"], gacct: ["auto", "one", "apart"],
+const CHOICES = { kv: ["auto", "f16", "q8_0", "q4_0"], wmem: ["auto", "all", "mb"], device: ["cpu", "auto", "gpu"], gmem: ["auto", "mb"], gacct: ["auto", "one", "apart"],
   sendkey: ["enter", "ctrl"], theme: ["auto", "light", "dark"], fontsize: ["small", "normal", "large", "xlarge"], lang: ["en", "it"],
   loglevel: ["all", "summary", "off"] };
 const SETTINGS_KEY = "inga.settings";
@@ -1471,6 +1514,10 @@ function saveSettings() {
   } catch {}
 }
 
+// The defaults before Max tokens 1024 and the Auto context (migrated when not set by hand).
+const OLD_MAX = "256";
+const OLD_CTX = "2048";
+
 function restoreSettings() {
   let v = null;
   try {
@@ -1483,9 +1530,15 @@ function restoreSettings() {
     return;
   }
   // A page saved before the presets: the fields not at their default were set by hand.
-  hand = Array.isArray(v.hand) ? new Set(v.hand.filter((id) => PRESET_FIELDS.includes(id))) : handFromSaved(v, PRESET_BASE);
-  // A page saved before: a Max tokens not at the default was set by hand.
-  maxHand = typeof v.maxHand === "boolean" ? v.maxHand : v.max != null && String(v.max) !== $("max").defaultValue;
+  // (Its context's default was 2048 then.)
+  hand = Array.isArray(v.hand) ? new Set(v.hand.filter((id) => PRESET_FIELDS.includes(id))) : handFromSaved(v, { ...PRESET_BASE, ctx: OLD_CTX });
+  // A page saved before: a Max tokens not at the default (1024, or 256 before) was set by hand.
+  maxHand = typeof v.maxHand === "boolean" ? v.maxHand : v.max != null && ![$("max").defaultValue, OLD_MAX].includes(String(v.max));
+  // The old defaults, never changed by hand, become the new ones: Max tokens 256 to
+  // 1024, the context 2048 to Auto (a context 2048 a model's preset wrote is the
+  // model's, and its preset writes it again at the next load).
+  if (!maxHand && String(v.max) === OLD_MAX) v.max = $("max").defaultValue;
+  if (!hand.has("ctx") && String(v.ctx) === OLD_CTX) v.ctx = "";
   for (const id of SETTINGS) {
     if (!(id in v)) continue;
     if (id === "draft") draftWanted = typeof v.draft === "string" ? v.draft : "";
@@ -1607,7 +1660,7 @@ for (const id of SETTINGS) {
     // The context, the memory limits, the draft and the device are a load's: say so
     // while a model is loaded.
     if (LOAD_IDS.includes(id)) loadTouched.add(id);
-    if (source && ["ctx", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct"].includes(id)) {
+    if (source && ["ctx", "kv", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct"].includes(id)) {
       $(id.startsWith("device") || id.startsWith("g") ? "device-hint" : "wmem-hint").textContent = t("set.reloadnote");
     }
   });
@@ -1749,11 +1802,13 @@ function limitNote(row, m, last) {
       row2.append(b);
     };
     if (full && !capped) btn("limit-ctx", t("limit.ctx.raise", 2 * size), () => raiseContext(2 * size));
-    if (cut) btn("limit-raise", t("limit.raise", 2 * n), () => {
-      $("max").value = String(2 * n);
+    // Raise: at least 1024, else double, at most the context of the model loaded.
+    const to = Math.min(Math.max(MAX_DEFAULT, 2 * n), loadedInfo?.info?.ctx || Infinity);
+    if (cut && to > n) btn("limit-raise", t("limit.raise", to), () => {
+      $("max").value = String(to);
       maxHand = true;
       saveSettings();
-      regenerate({ max_tokens: 2 * n });
+      regenerate({ max_tokens: to });
     });
     if (empty && m.think !== false && thinks()) btn("limit-nothink", t("limit.nothink"), () => regenerate({ thinking: false }), cut);
     if (row2.firstChild) box.append(row2);
@@ -1813,7 +1868,7 @@ function botBubble(m, last = false) {
 
 // ---- A load's settings: changed in Settings, the model reloads when Settings is left
 // (after the answer running, if one is); the sampler's settings never reload it ----
-const LOAD_IDS = ["device", "ctx", "wmem", "wmem-mb", "gmem", "gmem-mb", "gacct", "draft"];
+const LOAD_IDS = ["device", "ctx", "kv", "wmem", "wmem-mb", "gmem", "gmem-mb", "gacct", "draft"];
 let loadedWith = null; // the load settings of the model's load
 // The load settings changed by hand since (a change event): the page's own changes (a
 // model's preset) never reload.
@@ -1923,7 +1978,8 @@ function speedLine(row, m) {
   const el = row?.querySelector(".speed");
   if (!el || !m) return;
   const s = m.stats;
-  el.textContent = (s ? `Prefill: ${s.prompt_tps.toFixed(1)} tok/s, Decode: ${s.gen_tps.toFixed(1)} tok/s, ` : "") + when(m.at ?? Date.now());
+  el.textContent = (s ? `Prefill: ${s.prompt_tps.toFixed(1)} tok/s, Decode: ${s.gen_tps.toFixed(1)} tok/s, ` : "") +
+    (m.seed != null ? `seed ${m.seed}, ` : "") + when(m.at ?? Date.now());
 }
 
 function showHeader() {
@@ -2104,7 +2160,7 @@ $("conv-rename").onclick = async () => {
   chat.title = title.trim().slice(0, 120);
   await persistChat();
 };
-$("conv-export").onclick = () => chat && download(`${fileTitle()}.md`, "text/markdown", chats.markdown(chat));
+$("conv-export").onclick = () => chat && download(`${fileTitle()}.md`, "text/markdown", chats.markdown(chat, `Inga in the browser ${pageVersion()}`));
 $("conv-download").onclick = () => chat && download(`${fileTitle()}.json`, "application/json", JSON.stringify(chat, null, 1));
 
 // Every conversation at once (the side bar's archive button): a backup in JSON (the
@@ -2121,7 +2177,7 @@ $("convs-more").onclick = () => {
 async function exportAll(md) {
   const all = await chats.list().catch(() => []);
   if (!all.length) return;
-  if (md) download(`inga-chats-${stamp()}.md`, "text/markdown", chats.markdownAll(all));
+  if (md) download(`inga-chats-${stamp()}.md`, "text/markdown", chats.markdownAll(all, `Inga in the browser ${pageVersion()}`));
   else download(`inga-chats-${stamp()}.json`, "application/json", chats.backup(all));
   status(tn("convs.exported", all.length));
 }
@@ -2184,6 +2240,27 @@ $("log-toggle").onclick = () => {
   $("log-toggle").title = on ? "Hide the load log" : "Show the load log";
 };
 
+// ---- The page's version: Inga's (Cargo.toml) and the build's commit and UTC date ----
+
+// From the meta tags the Pages workflow writes ("0.31.0", "abc1234 2026-10-16"):
+// "v0.31.0 · 16 Oct 2026 · abc1234", the date in the page's language ("16 ott 2026" in
+// Italian); "dev" without them (a local page).
+function pageVersion() {
+  const meta = (n) => document.querySelector(`meta[name="${n}"]`)?.content?.trim() ?? "";
+  const v = meta("inga-version");
+  const m = /^([0-9a-f]{7,40})\s+(\d{4}-\d{2}-\d{2})/.exec(meta("inga-build"));
+  if (!v || v === "dev" || !m) return "dev";
+  const lang = $("lang")?.value === "it" ? "it-IT" : "en-GB";
+  const date = new Intl.DateTimeFormat(lang, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(m[2] + "T00:00:00Z"));
+  return `v${v} · ${date} · ${m[1]}`;
+}
+
+function showVersion() {
+  const v = pageVersion();
+  $("page-version").textContent = v;
+  $("about-version").textContent = v;
+}
+
 // ---- Appearance: theme, font size, language, the send key's hint ----
 
 function applyLook() {
@@ -2197,6 +2274,8 @@ function applyLook() {
   if (fs === "normal") delete document.documentElement.dataset.fs;
   else document.documentElement.dataset.fs = fs;
   setLang($("lang").value);
+  showVersion();
+  if (pageReady) showAuto();
   sendHint();
   if (!source) $("model-name").textContent = t("chat.nomodel");
   presetLine();
@@ -2243,6 +2322,7 @@ window.ingaState = () => ({
   memory: loadedInfo?.memory ?? null,
   device: deviceUsed.label,
   limit: limitUsed,
+  version: pageVersion(),
   stats: lastStats,
 });
 

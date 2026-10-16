@@ -10,8 +10,11 @@ SPDX-License-Identifier: MIT
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Inga (beta)</title>
 <link rel="icon" href="logo.svg" type="image/svg+xml">
-<!-- The commit of a published build (the Pages workflow writes it), for the report. -->
-<meta name="inga-build" content="fe3aa98 2026-10-16">
+<!-- The commit and UTC date of a published build ("abc1234 2026-10-16") and Inga's version
+(Cargo.toml), which the Pages workflow writes: the side bar, About and the report show them;
+"dev" here. -->
+<meta name="inga-build" content="ccff21c 2026-10-16">
+<meta name="inga-version" content="0.30.1">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
 <!-- Where "Report on GitHub" opens an issue, and with which issue form (empty: a plain issue with the
@@ -139,6 +142,7 @@ button.ghost.danger { color: var(--danger); }
 #side > * { flex-shrink: 0; } #side > #convs { flex-shrink: 1; }
 #side .foot { display: flex; gap: 4px; align-items: center; border-top: 1px solid var(--line); padding-top: 10px; }
 #side .foot #new-chat { margin-left: auto; }
+#side .ver { color: var(--muted); font-size: .7rem; padding: 0 6px; margin-top: -4px; overflow-wrap: anywhere; }
 #scrim { display: none; }
 
 /* The main pane: the conversation's header, the status line, a view. */
@@ -422,6 +426,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
     <a class="icon" href="https://github.com/matteobaccan/inga/blob/main/docs/wasm-beta.md" target="_blank" rel="noopener" title="The beta's guide" aria-label="The beta's guide" style="padding:6px;color:var(--muted)"><svg class="ic"><use href="#i-external"/></svg></a>
     <button id="new-chat" type="button"><svg class="ic"><use href="#i-plus"/></svg><span data-i18n="chat.new">New chat</span></button>
   </div>
+  <div id="page-version" class="ver">dev</div>
 </aside>
 <div id="scrim"></div>
 <div id="main">
@@ -534,9 +539,11 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
         <span class="meta">Subtracted from every token already in the answer: new topics (0: off).</span></div></div>
       <div class="set"><label for="freq" data-i18n="set.freq">Frequency penalty</label><div><input type="number" id="freq" value="0" min="-2" max="2" step="0.1">
         <span class="meta">Subtracted for each time a token appeared: fewer repetitions (0: off).</span></div></div>
-      <div class="set"><label for="max" data-i18n="set.max">Max tokens</label><div><input type="number" id="max" value="256" min="1">
-        <span class="meta">The longest answer, reasoning included. Left at its default, a model that thinks gets at
-        least 2048 while Think is on (its reasoning alone often takes more than 256 tokens); a value you set is used as it is.</span></div></div>
+      <div class="set"><label for="seed" data-i18n="set.seed">Seed</label><div><input type="number" id="seed" value="" min="0" step="1" placeholder="random">
+        <span class="meta">Empty: a new random seed for each answer, so asking again can answer differently. A number: the same seed every time (the same question and settings give the same answer). The seed of each answer is shown under it.</span></div></div>
+      <div class="set"><label for="max" data-i18n="set.max">Max tokens</label><div><input type="number" id="max" value="1024" min="1">
+        <span class="meta">The longest answer, reasoning included. 1024 by default; left at it, a model that thinks gets at
+        least 2048 while Think is on (its reasoning alone often takes more than 1024 tokens); a value you set is used as it is.</span></div></div>
     </section>
     <section class="card">
       <h2 data-i18n="set.conv">Conversation</h2>
@@ -550,9 +557,20 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
     </section>
     <section class="card">
       <h2 data-i18n="set.load">Model loading</h2>
-      <div class="set"><label for="ctx" data-i18n="set.ctx">Context window</label><div><input type="number" id="ctx" value="2048" min="64" step="64">
-        <span class="meta">Tokens the model keeps (the KV cache): the conversation, the question and the answer must fit.</span>
+      <div class="set"><label for="ctx" data-i18n="set.ctx">Context window</label><div><input type="number" id="ctx" value="" min="64" step="64" placeholder="Auto">
+        <span class="meta">Tokens the model keeps (the KV cache): the conversation, the question and the answer must fit.
+        Empty: Auto, the context the model was trained for (its GGUF's context length), lowered only when its KV
+        cache would take more than half of the memory the weights leave (the GPU memory limit on the GPU, else the
+        memory limit, at most WebAssembly's 4 GiB), and never below 2048 unless memory forces it; the field then
+        shows what Auto chose for the model loaded. A number set here wins.</span>
         <span class="meta reload-note" data-i18n="set.reloadnote">Applies when you leave Settings (the model reloads).</span></div></div>
+      <div class="set"><label for="kv" data-i18n="set.kv">KV cache</label><div>
+        <select id="kv"><option value="auto" selected data-i18n="opt.auto">Auto</option><option value="f16">F16</option><option value="q8_0">Q8_0</option><option value="q4_0">Q4_0</option></select>
+        <span class="meta" id="kv-hint"></span>
+        <span class="meta reload-note" data-i18n="set.reloadnote">Applies when you leave Settings (the model reloads).</span>
+        <span class="meta">How the KV cache stores keys and values: F16 (2 bytes a value), Q8_0 (about half),
+        Q4_0 (about a quarter, less exact). Auto: F16 when the model's whole context fits, else Q8_0, and only then a
+        shorter context. On the GPU the cache is F16 (its layers have no other); the CPU's layers use the type.</span></div></div>
       <div class="set"><label for="wmem" data-i18n="set.wmem">Memory for the model</label><div>
         <select id="wmem"><option value="auto" selected data-i18n="opt.auto">Auto</option><option value="all" data-i18n="opt.all">All in memory</option><option value="mb" data-i18n="opt.mb">Limit in MB</option></select>
         <input type="number" id="wmem-mb" value="1500" min="1" step="64" aria-label="Megabytes for the model">
@@ -694,6 +712,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
   <p data-i18n="about.what">Inga is a new local inference engine written in Rust, by Matteo Baccan, to be published soon.</p>
   <p data-i18n="about.beta">This page is its beta, running entirely in your browser (WebAssembly and WebGPU).</p>
   <p data-i18n="about.private">Nothing leaves this device except the model's download.</p>
+  <p class="meta"><span data-i18n="about.version">Version</span>: <span id="about-version">dev</span></p>
   <ul>
     <li><a href="https://github.com/matteobaccan" target="_blank" rel="noopener" data-i18n="about.profile">Matteo Baccan on GitHub</a></li>
     <li><a href="https://github.com/matteobaccan/ingatest/issues" target="_blank" rel="noopener" data-i18n="about.issues">The beta's issues</a></li>

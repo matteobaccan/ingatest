@@ -66,7 +66,7 @@ async function browserText() {
     const e = await n.storage?.estimate?.();
     if (e) lines.push(`Storage: ${mib(e.usage)} used of ${mib(e.quota)}`);
   } catch {}
-  lines.push(`Page: ${location.origin}${location.pathname}, build ${build()}`);
+  lines.push(`Page: ${location.origin}${location.pathname}, version ${document.querySelector('meta[name="inga-version"]')?.content || "dev"}, build ${build()}${st.version ? ` (${st.version})` : ""}`);
   return lines.join("\n");
 }
 

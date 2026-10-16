@@ -36,7 +36,8 @@
 // the GPU, `storageBuffers` lowering maxStorageBuffersPerShaderStage).
 // Messages out: {type: "ready"} | {type: "progress", what, done, total, start} (start: a
 // download's bytes already there when this session began) |
-// {type: "loaded", info, secs, memory, gpu, note, ctx_asked, ctx_cut} (ctx_cut: the
+// {type: "loaded", info, secs, memory, gpu, note, ctx_asked, ctx_cut, ctx_auto} (ctx_auto:
+// ctx.js's autoContext of the load, the context and KV cache chosen; ctx_cut: the
 // context was lowered from ctx_asked to the most the limits hold, {asked, got, budget,
 // gpuBudget, device}) | {type: "models", models} |
 // {type: "gpulost", reason, message} (the WebGPU device was lost: the model is gone) |
@@ -53,7 +54,7 @@
 // {type: "gpucheck", checked, total, failed, shader_f16, storage, storage_buffers,
 // most_storage_buffers}.
 
-import { fitMessages, breakdown } from "./ctx.js";
+import { fitMessages, breakdown, autoContext, kvShape } from "./ctx.js";
 
 const CHUNK = 8 << 20; // bytes read from a file per push
 const DIR = "models";
@@ -528,6 +529,25 @@ async function gpuProfile(tokens, mode) {
   }
 }
 
+// The Settings' KV cache of the load running ("auto", "f16", "q8_0", "q4_0").
+let kvAsked = "auto";
+const GIB = 2 ** 30;
+
+// The context and KV cache type of a load of the model `name` of `size` bytes that
+// `read(at, view)` reads (ctx.js's autoContext): its training context and KV bytes per
+// token from its header (planModel's `kv` at three contexts), against the memory it may
+// use: the GPU memory limit on the GPU, else the memory limit, at most WebAssembly's
+// 4 GiB. `ctx`: the Settings' (0: Auto). null when the module cannot tell (an older one).
+function sizeLoad(read, size, name, ctx, budget, gpuBudget, gpu) {
+  let shape = null;
+  try {
+    shape = kvShape((c) => JSON.parse(inga.planModel(name, size, read, -1, c)).kv ?? NaN);
+  } catch {}
+  if (!shape) return null;
+  const b = gpu && gpuBudget != null ? gpuBudget : Math.min(budget ?? 4 * GIB, 4 * GIB);
+  return autoContext({ ...shape, budget: b, weights: size, asked: ctx || 0, kv: kvAsked, gpu });
+}
+
 // Loads a Blob (a picked File, or a file of OPFS) into Inga chunk by chunk: each chunk
 // is copied once into its tensors in WebAssembly memory (or, on the GPU, its layers'
 // weights into GPU buffers), then dropped.
@@ -540,6 +560,19 @@ async function load(blob, name, ctx, device, note = null) {
     model = null;
   }
   const t0 = performance.now();
+  // Auto's context and KV cache, from the header read synchronously from the Blob.
+  let auto = null;
+  try {
+    const fr = new FileReaderSync();
+    const read = (at, view) => {
+      const b = new Uint8Array(fr.readAsArrayBuffer(blob.slice(at, at + view.length)));
+      view.set(b);
+      return b.length;
+    };
+    auto = sizeLoad(read, blob.size, name, ctx, null, null, device === "gpu");
+  } catch {}
+  const asked = auto?.ctx ?? (ctx || 2048);
+  if (auto) step(`context ${auto.ctx} (${auto.why}), KV cache ${auto.kv}`);
   mod = device === "gpu" ? await webgpu() : inga;
   const loader = device === "gpu" ? mod.Loader.withGpu(gpu) : new mod.Loader();
   for (let at = 0; at < blob.size; at += CHUNK) {
@@ -548,9 +581,9 @@ async function load(blob, name, ctx, device, note = null) {
     post({ type: "progress", what: "load", done: Math.min(at + CHUNK, blob.size), total: blob.size });
   }
   step("file read: building the model");
-  model = loader.finish(name, ctx || 0);
+  model = loader.finish(name, asked, auto?.kv);
   step("model ready: telling the page");
-  post({ type: "loaded", info: JSON.parse(model.info()), secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note, ctx_asked: ctx || 2048 });
+  post({ type: "loaded", info: JSON.parse(model.info()), secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note, ctx_asked: asked, ctx_auto: auto });
 }
 
 // The GPU's bytes, while the loaded model runs layers there.
@@ -587,6 +620,7 @@ async function handle(m) {
     case "load": {
       step(`load asked: ${m.name ?? m.file?.name}, device ${m.device ?? "cpu"}, limit ${m.budget == null ? "none" : Math.round(m.budget / 1048576) + " MiB"}`);
       closeStream();
+      kvAsked = m.kv || "auto";
       if ((m.budget != null || m.draft || m.device === "gpu") && !m.file) {
         await loadStreamed(m.name, m.budget, m.ctx, m.draft, m.device, m.gpuBudget, m.gpuOff, m.gpuSeparate, m.auto, m.note ?? null);
         break;
@@ -752,6 +786,22 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
   // rather than refusing the model. On the CPU it is found from the header
   // (planModel); on the GPU, whose layers hold their KV cache apart, by asking the GPU's
   // load again with half the context.
+  // Auto's context and KV cache (sizeLoad), from the header.
+  let sized = null;
+  {
+    const h = await open();
+    try {
+      sized = sizeLoad((at, view) => h.read(view, { at }), h.getSize(), name, ctx, budget, gpuBudget, device === "gpu");
+    } finally {
+      h.close();
+      streamHandle = streamName = null;
+    }
+  }
+  if (sized) {
+    ctx = sized.ctx;
+    step(`context ${sized.ctx} (${sized.why}), KV cache ${sized.kv}`);
+  }
+  const kv = sized?.kv;
   const asked = ctx || 2048;
   let ctxCut = null;
   const cutContext = async () => {
@@ -759,7 +809,7 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
     const h = await open();
     const fits = (c) => {
       try {
-        inga.planModel(name, h.getSize(), (at, view) => h.read(view, { at }), budget, c);
+        inga.planModel(name, h.getSize(), (at, view) => h.read(view, { at }), budget, c, kv);
         return true;
       } catch (e) {
         if (/smaller context/.test(String(e?.message ?? e))) return false;
@@ -815,7 +865,7 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
     const h = await open();
     let plan = null;
     try {
-      plan = JSON.parse(inga.planModel(name, h.getSize(), (at, view) => h.read(view, { at }), budget, ctx || 0));
+      plan = JSON.parse(inga.planModel(name, h.getSize(), (at, view) => h.read(view, { at }), budget, ctx || 0, kv));
     } catch {}
     h.close();
     streamHandle = streamName = null;
@@ -879,12 +929,12 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
     }
     step(`CPU: loading the weights (${Math.round(h.getSize() / 1048576)} MiB file)`);
     model = inga.openModel(name, h.getSize(), (at, view) => h.read(view, { at }), budget ?? -1, ctx || 0, progress,
-      d ? draft : undefined, d ? d.getSize() : undefined, d ? (at, view) => d.read(view, { at }) : undefined, undefined);
+      d ? draft : undefined, d ? d.getSize() : undefined, d ? (at, view) => d.read(view, { at }) : undefined, undefined, kv);
   }
   step("weights loaded: reading the model's description");
   const info = JSON.parse(model.info());
   step(`model ready (${Math.round(mod.memoryBytes() / 1048576)} MiB of WebAssembly memory): telling the page`);
-  post({ type: "loaded", info, secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note, ctx_asked: asked, ctx_cut: ctxCut });
+  post({ type: "loaded", info, secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note, ctx_asked: asked, ctx_cut: ctxCut, ctx_auto: sized });
 }
 
 // Free bytes in this site's storage, or null when the browser does not say.

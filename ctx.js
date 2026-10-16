@@ -92,3 +92,62 @@ export function detail(used, size, parts, max) {
   rows.push({ key: "room", n: room, w: w(room) });
   return { used: u, size: s, shown: gauge(u, s).shown, free: Math.max(0, s - u), rows, dropped: parts?.dropped || 0 };
 }
+
+// ---- Auto context and KV cache: what a load asks for when the Settings leave them ----
+
+// Bytes a KV cache type takes per f16 byte: f16 64 per 32 values, Q8_0 34, Q4_0 18.
+export const KV_SCALE = { f16: 1, q8_0: 34 / 64, q4_0: 18 / 64 };
+const STEP = 256;
+// The least Auto gives, unless the model was trained for less (the planner may still
+// lower it when even that does not fit: worker.js says why).
+export const AUTO_FLOOR = 2048;
+
+// The context and KV cache type of a load. `trained`: the model's training context
+// (its GGUF's `<arch>.context_length`); `kvPerToken`: its KV cache's bytes per token in
+// f16 (2 × layers × KV heads × (key + value widths)); `budget`: the memory the model
+// may use (the GPU memory limit on the GPU, else the memory limit, at most WebAssembly's
+// 4 GiB); `weights`: the model's bytes held (its file); `asked`: the Settings' context
+// (0: Auto); `kv`: the Settings' KV cache ("auto", "f16", "q8_0", "q4_0"); `gpu`: the
+// layers on the GPU, whose cache is f16 only.
+// The KV cache may take half of what the weights leave (a margin for the activations
+// and the browser): Auto's context is the training context when its cache fits that in
+// f16, else in Q8_0 (half the bytes; with KV Auto), and only then lower (a multiple of
+// 256, at least AUTO_FLOOR). Returns { ctx, kv, why ("model", "memory" or "set"),
+// trained, bytes (the KV cache's), gpuF16 (a type other than f16 asked on the GPU) }.
+export function autoContext({ trained, kvPerToken, budget, weights, asked = 0, kv = "auto", gpu = false }) {
+  const t = Math.max(16, Math.floor(Number(trained) || 0)) || AUTO_FLOOR;
+  const per = Math.max(1, Number(kvPerToken) || 1);
+  const room = Math.max(0, (Number(budget) || 0) - (Number(weights) || 0)) / 2;
+  const want = asked > 0 ? Math.min(asked, t) : t;
+  let type = kv in KV_SCALE ? kv : "auto";
+  let gpuF16 = false;
+  if (gpu && type !== "f16") {
+    gpuF16 = type !== "auto";
+    type = "f16";
+  } else if (type === "auto") type = want * per <= room ? "f16" : "q8_0";
+  const perType = per * KV_SCALE[type];
+  let ctx = want;
+  let why = asked > 0 ? "set" : "model";
+  if (!(asked > 0)) {
+    const fit = Math.floor(room / perType / STEP) * STEP;
+    if (fit < t) {
+      ctx = Math.max(Math.min(AUTO_FLOOR, t), fit);
+      why = "memory";
+    }
+  }
+  return { ctx, kv: type, why, trained: t, bytes: Math.round(ctx * perType), gpuF16 };
+}
+
+// The training context and the KV cache's f16 bytes per token of a model, from
+// `kvAt(ctx)`, its KV cache's bytes for a context of `ctx` (planModel's `kv`, which
+// counts at most the training context, 512 tokens at least): two contexts give the bytes per token, a very
+// long one the training context. null when it cannot tell.
+export function kvShape(kvAt) {
+  const a = kvAt(256);
+  const b = kvAt(512);
+  const per = (b - a) / 256;
+  if (!(per > 0)) return null;
+  const huge = kvAt(1 << 24);
+  const trained = Math.round(256 + (huge - a) / per);
+  return { trained, kvPerToken: per };
+}

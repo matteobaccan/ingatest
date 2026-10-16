@@ -65,11 +65,13 @@ export function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-// A conversation as Markdown: its title, then each message under its speaker.
-export function markdown(chat) {
-  const out = [`# ${chat.title}`, "", `${new Date(chat.created).toISOString()}${chat.model ? ` · ${chat.model}` : ""} · Inga in the browser`, ""];
+// A conversation as Markdown: its title, then each message under its speaker. `by`:
+// what made the file (the page's name and version).
+export function markdown(chat, by = "Inga in the browser") {
+  const out = [`# ${chat.title}`, "", `${new Date(chat.created).toISOString()}${chat.model ? ` · ${chat.model}` : ""} · ${by}`, ""];
   for (const m of chat.messages) {
-    out.push(`## ${m.role === "user" ? "You" : m.model || "Inga"}`, "");
+    // An answer's seed: the same seed, settings and conversation give it again.
+    out.push(`## ${m.role === "user" ? "You" : (m.model || "Inga") + (m.seed != null ? ` · seed ${m.seed}` : "")}`, "");
     if (m.reasoning) out.push("<details><summary>Thinking</summary>", "", m.reasoning.trim(), "", "</details>", "");
     out.push(m.content, "");
   }
@@ -89,8 +91,8 @@ export function backup(list) {
 }
 
 // Every conversation as one Markdown file, each under its title.
-export function markdownAll(list) {
-  return list.map(markdown).join("\n---\n\n");
+export function markdownAll(list, by) {
+  return list.map((c) => markdown(c, by)).join("\n---\n\n");
 }
 
 const num = (x) => typeof x === "number" && Number.isFinite(x);
@@ -108,6 +110,8 @@ function chatOf(x) {
     if (m.stats && num(m.stats.prompt_tps) && num(m.stats.gen_tps)) o.stats = m.stats;
     if (typeof m.model === "string" && m.model) o.model = m.model;
     if (num(m.at)) o.at = m.at;
+    // The seed it drew with: the same seed, settings and conversation give it again.
+    if (Number.isSafeInteger(m.seed) && m.seed >= 0) o.seed = m.seed;
     // Its model's mark (the avatar): an emoji, or a logo of the page's own icons/ only.
     const k = m.mark;
     if (k && typeof k === "object" && typeof k.icon === "string") {
