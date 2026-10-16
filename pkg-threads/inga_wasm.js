@@ -174,6 +174,24 @@ export class Model {
         }
     }
     /**
+     * How many tokens the chat `messages` (as [`Model::chat`]) takes in the context,
+     * rendered by the chat template with `opts`' `thinking`: the page's context gauge.
+     * @param {string} messages
+     * @param {string} opts
+     * @returns {number}
+     */
+    countChat(messages, opts) {
+        const ptr0 = passStringToWasm0(messages, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(opts, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.model_countChat(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
+    }
+    /**
      * What the model is, as JSON (name, architecture, layers, vocabulary, bytes,
      * context, instruction set, threads, chat template; the layers read from the file
      * while running, the output layer's parts, the tables read by row, the bytes read

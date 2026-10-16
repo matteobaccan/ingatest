@@ -18,7 +18,9 @@
 // reaches it between tokens).
 //
 // Messages in: {type: "download", url, name} | {type: "load", name | file, ctx, device} |
-// {type: "list"} | {type: "delete", name} | {type: "chat", messages, opts, stop} |
+// {type: "list"} | {type: "delete", name} | {type: "chat", messages, opts, stop, fit} (fit:
+// the prompt's most tokens; the oldest messages are left out until it fits, ctx.js) |
+// {type: "count", id, messages, opts} (the chat's tokens, for the context gauge) |
 // {type: "complete", text, opts} | {type: "reset"} | {type: "stop"} |
 // {type: "load", name, ctx, budget, draft, device, gpuBudget, gpuSeparate} (budget: bytes of memory for
 // the model, its KV cache and buffers included, the GPU's too; what does not fit is read
@@ -38,12 +40,16 @@
 // again with `device` in a fresh worker, `note` saying why) |
 // {type: "piece", text, reasoning} (reasoning: a thinking model's, apart from its answer) |
 // {type: "done", stats, memory, gpu} | {type: "error", message} |
+// {type: "count", id, tokens} (tokens null: no model, or a module without countChat) |
+// {type: "trimmed", dropped, tokens} (a chat's oldest messages left out to fit `fit`) |
 // {type: "disktest", bytes, write_mbs, read_mbs} |
 // {type: "gpubench", rows, done, tuning, shader_f16, subgroups, timestamp_query} (a row per
 // configuration as it ends) |
 // {type: "gpuprofile", mode, overhead_ms, tokens, wall_ms, rows, tuning, subgroups, timestamp_query} |
 // {type: "gpucheck", checked, total, failed, shader_f16, storage, storage_buffers,
 // most_storage_buffers}.
+
+import { fitMessages } from "./ctx.js";
 
 const CHUNK = 8 << 20; // bytes read from a file per push
 const DIR = "models";
@@ -56,6 +62,14 @@ let gpu = null; // the WebGPU device, made at the first GPU load
 let gpuInga = null; // ./pkg's module, which has WebGPU (the threaded one does not)
 let stopAsked = false;
 const post = (m) => self.postMessage(m);
+
+// The tokens of a chat as the model reads it (Model.countChat), or null when there is no
+// model or the module predates countChat.
+function countChat(messages, opts) {
+  if (!model || typeof model.countChat !== "function") return null;
+  return model.countChat(JSON.stringify(messages), opts);
+}
+
 // A step of a load, for the page's load log (what the worker is doing, so a load that
 // stops says where).
 const step = (text) => post({ type: "step", text, at: performance.now() });
@@ -576,9 +590,25 @@ async function handle(m) {
         return flag ? Atomics.load(flag, 0) !== 0 : false;
       };
       const opts = JSON.stringify(m.opts ?? {});
+      // A conversation longer than the context: its oldest messages are left out.
+      if (m.type === "chat" && m.fit && typeof model.countChat === "function") {
+        const fit = fitMessages(m.messages, (l) => countChat(l, opts), m.fit);
+        if (fit.dropped) {
+          m.messages = fit.messages;
+          post({ type: "trimmed", dropped: fit.dropped, tokens: fit.tokens });
+        }
+      }
       const stats = onGpu() ? await stepped(m, onPiece)
         : m.type === "chat" ? model.chat(JSON.stringify(m.messages), opts, onPiece) : model.complete(m.text, opts, onPiece);
       post({ type: "done", stats: JSON.parse(stats), memory: mod.memoryBytes(), gpu: gpuInfo() });
+      break;
+    }
+    case "count": {
+      let tokens = null;
+      try {
+        tokens = countChat(m.messages, JSON.stringify(m.opts ?? {}));
+      } catch {}
+      post({ type: "count", id: m.id, tokens });
       break;
     }
     case "reset":

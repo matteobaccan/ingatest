@@ -171,7 +171,8 @@ export function createPicker(opts) {
         const o = document.createElement("option");
         const f = fitOf(v.size, v.approx, env);
         o.value = String(i);
-        o.textContent = `${v.quant} · ${v.approx ? "~" : ""}${size(v.size)} ${f.icon}${stored[fileOf(v)] != null ? " · downloaded" : ""}`;
+        // Short (the line under the list says the rest): ✓ when downloaded.
+        o.textContent = `${v.quant} · ${v.approx ? "~" : ""}${size(v.size)} ${f.icon}${stored[fileOf(v)] != null ? " ✓" : ""}`;
         sel.append(o);
       });
       sel.value = String(chosen[m.id] ?? defaultVariant(m, env, stored));
@@ -204,7 +205,7 @@ export function createPicker(opts) {
         mark.title = f.why;
         const sz = document.createElement("span");
         sz.className = "size";
-        sz.textContent = ` · ${v.approx ? "about " : ""}${size(v.size)}${v.approx ? " (estimated, not yet checked)" : ""}`;
+        sz.textContent = ` · ${v.approx ? "about " : ""}${size(v.size)}${v.approx ? " (estimated, not yet checked)" : ""}${have ? " · downloaded" : ""}`;
         // Before a download: how long it would take at the last speed measured.
         const hint = have ? "" : opts.speedHint?.(v.size) ?? "";
         if (hint) {

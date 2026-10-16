@@ -12,6 +12,7 @@ import { createPicker } from "./picker.js";
 import * as chats from "./chats.js";
 import { t, setLang } from "./i18n.js";
 import { fmt, createRate, downloadLine, estimate, lastSpeed, saveSpeed } from "./eta.js";
+import { gauge, gaugeTitle, promptLimit } from "./ctx.js";
 
 // The test models: a fixed list, so runs on different devices compare (the maintainer's
 // matrix of models x CPU / GPU, with the Standard test). Sizes are approximate.
@@ -53,6 +54,7 @@ let deviceUsed = { device: "cpu", label: "" }; // the device chosen for it (choo
 let onGpu = false; // the loaded model runs on the GPU (WebGPU)
 let lastStats = null; // the last answer's statistics ("done"), for the beta's report
 let modelName = ""; // the loaded model's name, on its answers
+let loadedInfo = null; // the last "loaded" message: info, memory, gpu, note
 // The public beta (GitHub Pages, docs/wasm-beta.md; `?beta` elsewhere): Device defaults to
 // the GPU where the browser has WebGPU, off iOS (report.js reads the page's state).
 const BETA = location.hostname.endsWith(".github.io") || new URLSearchParams(location.search).has("beta");
@@ -88,6 +90,53 @@ function setBusy(b) {
   for (const x of document.querySelectorAll("#convs button")) x.disabled = b;
   $("gpubench").disabled = b || !loaded || !onGpu;
   $("gpuprofile").disabled = b || !loaded || !onGpu;
+  // Free again: the context gauge counts what the model would now read.
+  if (!b) countSoon(0);
+  else drawGauge();
+}
+
+// ---- The context gauge: the ring next to Send (ctx.js) ----
+
+let ctxUsed = 0; // the tokens of the conversation as the model reads it, the draft included
+let countId = 0; // the last count asked of the worker (older answers are ignored)
+let countTimer = null;
+let trimmedNote = ""; // the oldest messages left out of the answer running, said
+const COUNT_MS = 400; // the pause in typing before the draft is counted
+
+// The context the loaded model has (its n_ctx), else the Settings' context.
+function ctxSize() {
+  return loadedInfo?.info?.ctx || ctx();
+}
+
+function drawGauge() {
+  const size = ctxSize();
+  const g = gauge(ctxUsed, size);
+  const el = $("ctx-gauge");
+  el.hidden = !source || !g.show;
+  $("ctx-ring").setAttribute("stroke-dasharray", g.pct.toFixed(1) + " 100");
+  $("ctx-pct").textContent = g.shown + "%";
+  el.title = gaugeTitle(t, ctxUsed, size);
+  el.setAttribute("aria-label", el.title);
+  el.classList.toggle("warn", g.level === "warn");
+  el.classList.toggle("full", g.level === "full");
+}
+
+// Counts, after `ms`, the tokens of what the model would read now: the system prompt,
+// the messages "Past messages sent" keeps and the draft being written. Not while the
+// worker is busy (it counts after the answer).
+function countSoon(ms = COUNT_MS) {
+  clearTimeout(countTimer);
+  countTimer = setTimeout(() => {
+    countTimer = null;
+    if (!source || !worker || busy) return drawGauge();
+    const draft = $("prompt").value.trim();
+    const sent = wire(draft ? messages.concat({ role: "user", content: draft }) : messages);
+    if (!sent.length) {
+      ctxUsed = 0;
+      return drawGauge();
+    }
+    worker.postMessage({ type: "count", id: ++countId, messages: sent, opts: { thinking: $("think").checked } });
+  }, ms);
 }
 
 // Renders the answer streaming from its raw text: now, or (`soon`) within RENDER_MS,
@@ -298,6 +347,7 @@ function handleMessage(m) {
       stopLoading();
       progress(0, 0);
       loadedInfo = m;
+      ctxUsed = 0;
       const i = m.info;
       onGpu = i.device === "webgpu";
       modelName = i.name || source?.name || source?.file?.name || "model";
@@ -341,8 +391,19 @@ function handleMessage(m) {
         renderAnswer(true);
       }
       break;
+    case "count":
+      // A module without countChat: the gauge keeps the last answer's tokens.
+      if (m.id === countId && m.tokens != null) ctxUsed = m.tokens;
+      drawGauge();
+      break;
+    case "trimmed":
+      trimmedNote = t(m.dropped === 1 ? "ctx.trimmed.one" : "ctx.trimmed", m.dropped);
+      status("Answering… " + trimmedNote);
+      break;
     case "done": {
       const s = m.stats;
+      // What the conversation now takes: the prompt and the answer (counted exactly next).
+      ctxUsed = s.prompt_tokens + s.gen_tokens;
       lastStats = { ...s, memory: m.memory, gpu: m.gpu };
       // Only the answer goes back to the model, as in inga serve's web UI; the reasoning
       // and the speeds are kept for the page.
@@ -359,7 +420,8 @@ function handleMessage(m) {
         ` (${s.cached_tokens} reused) · answer: ${s.gen_tokens} tokens at ${s.gen_tps.toFixed(1)} tok/s${r}` +
         ` · ${s.stop} · memory ${fmt(m.memory)}${gpuBytes(m.gpu)}` + readNote(s) + draftStats(s) +
         (s.gpu_sampled ? ` · ${s.gpu_sampled} drawn on the GPU` : "");
-      status("Ready.");
+      status(trimmedNote ? "Ready. " + trimmedNote : "Ready.");
+      trimmedNote = "";
       if (stdRunning) {
         stdRunning = false;
         const line = standardLine(s, m);
@@ -553,7 +615,10 @@ function setupDevice() {
   const opt = $("device").querySelector("option[value=gpu]");
   if (!navigator.gpu) {
     opt.disabled = true;
-    opt.textContent += ": not available (this browser has no navigator.gpu)";
+    // A short label (the Device description says why); setLang keeps it.
+    opt.dataset.i18n = "opt.gpu.na";
+    opt.textContent = t("opt.gpu.na");
+    opt.title = "This browser has no WebGPU (navigator.gpu)";
     if ($("device").value === "gpu") $("device").value = "cpu";
   }
 }
@@ -857,7 +922,11 @@ function ask(text, opts) {
   stopFlag = self.crossOriginIsolated ? new Int32Array(new SharedArrayBuffer(4)) : null;
   // The Standard test sends its prompt alone, whatever the Settings.
   const sent = stdRunning ? messages.map((m) => ({ role: m.role, content: m.content })) : wire(messages);
-  worker.postMessage({ type: "chat", messages: sent, opts, stop: stopFlag?.buffer });
+  // A conversation longer than the context loses its oldest messages (the worker cuts
+  // them, ctx.js), the answer's room kept.
+  trimmedNote = "";
+  const fit = stdRunning ? undefined : promptLimit(ctxSize(), opts.max_tokens);
+  worker.postMessage({ type: "chat", messages: sent, opts, stop: stopFlag?.buffer, fit });
   armQuiet();
 }
 
@@ -867,7 +936,6 @@ const STD_PROMPT = "Ciao, presentati in tre frasi.";
 const STD_OPTS = { max_tokens: 64, temperature: 0, thinking: false };
 const STD_KEY = "inga.standard-tests";
 let stdRunning = false;
-let loadedInfo = null; // the last "loaded" message: info, memory, gpu, note
 
 function standardTest() {
   if (busy || !source) return;
@@ -1081,12 +1149,16 @@ function showDraftChoices() {
   sel.textContent = "";
   const none = document.createElement("option");
   none.value = "";
-  none.textContent = "None";
+  none.dataset.i18n = "opt.none";
+  none.textContent = t("opt.none");
   sel.append(none);
   for (const name of Object.keys(storedSize).sort()) {
     const o = document.createElement("option");
     o.value = name;
-    o.textContent = `${name} (${fmt(storedSize[name])})`;
+    // A short label (a long file name cut in the middle); the whole name in its tooltip.
+    const base = name.replace(/\.gguf$/i, "");
+    o.textContent = base.length > 24 ? `${base.slice(0, 12)}…${base.slice(-11)}` : base;
+    o.title = `${name} (${fmt(storedSize[name])})`;
     sel.append(o);
   }
   sel.value = storedSize[draftWanted] != null ? draftWanted : "";
@@ -1170,6 +1242,8 @@ for (const id of SETTINGS) {
     if (id === "wmem") $("wmem-mb").hidden = $("wmem").value !== "mb";
     if (id === "gmem") $("gmem-mb").hidden = $("gmem").value !== "mb";
     if (["theme", "fontsize", "lang", "sendkey"].includes(id)) applyLook();
+    // What the model reads, or the context it has: the gauge again.
+    if (["sys-on", "sys", "past", "ctx", "lang"].includes(id)) countSoon(0);
     // The context, the memory limits, the draft and the device are a load's: say so
     // while a model is loaded.
     if (source && ["ctx", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct"].includes(id)) {
@@ -1238,6 +1312,11 @@ $("new-chat").onclick = () => {
   newChat();
   showView("chat");
 };
+// The draft counts too, once the typing pauses.
+$("prompt").addEventListener("input", () => countSoon());
+$("think").addEventListener("change", () => countSoon(0));
+// A click (a touch screen has no tooltip) says the gauge's text in the status line.
+$("ctx-gauge").onclick = () => status($("ctx-gauge").title.replace("\n", " "));
 // The send key of the Settings: Enter (Shift+Enter a new line), or Ctrl / ⌘ + Enter
 // (Enter a new line). A composition (an IME) is never cut short.
 $("prompt").addEventListener("keydown", (e) => {
@@ -1341,6 +1420,8 @@ function newChat() {
   worker?.postMessage({ type: "reset" });
   renderChat();
   showConvs();
+  ctxUsed = 0;
+  countSoon(0);
 }
 
 // The first message of a new conversation creates it, titled after that message.
@@ -1376,6 +1457,7 @@ async function openChat(id) {
   renderChat();
   showConvs();
   showView("chat");
+  countSoon(0);
 }
 
 async function showConvs() {

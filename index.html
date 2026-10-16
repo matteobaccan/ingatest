@@ -8,10 +8,10 @@ SPDX-License-Identifier: MIT
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inga in the browser</title>
+<title>Inga (beta)</title>
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <!-- The commit of a published build (the Pages workflow writes it), for the report. -->
-<meta name="inga-build" content="88e604b 2026-10-16">
+<meta name="inga-build" content="a28ad97 2026-10-16">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
 <!-- Where "Report on GitHub" opens an issue, and with which issue form (empty: a plain issue with the
@@ -57,13 +57,15 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 1rem/1.45 var
 h1 { font-size: 1.05rem; margin: 0; }
 h2 { font-size: 1rem; margin: 0 0 8px; }
 h3 { font-size: .95rem; margin: 14px 0 6px; }
-p.note { color: var(--muted); margin: 0 0 12px; font-size: .9rem; }
-.meta { color: var(--muted); font-size: .85rem; }
+p.note { color: var(--muted); margin: 0 0 12px; font-size: .9rem; overflow-wrap: anywhere; }
+.meta { color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
 a { color: var(--accent); }
 section.card, .box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 0 0 12px; box-shadow: var(--shadow); }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 input[type=url], input[type=text], input[type=search], textarea { flex: 1 1 220px; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font: inherit; }
 select, input[type=number] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font: inherit; max-width: 100%; }
+/* A select as wide as its longest option at most, never wider than its column (a long one is cut). */
+select { min-width: 0; text-overflow: ellipsis; }
 input[type=number] { width: 6.5em; }
 textarea { width: 100%; resize: vertical; }
 button { display: inline-flex; gap: 6px; align-items: center; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font: inherit; cursor: pointer; }
@@ -82,7 +84,9 @@ details summary { cursor: pointer; color: var(--muted); }
 #side { width: var(--aside-w); flex: none; display: flex; flex-direction: column; gap: 10px; padding: 14px 10px; background: var(--panel); border-right: 1px solid var(--line); }
 #side .brand { display: flex; gap: 10px; align-items: center; padding: 0 6px; }
 #side .brand img { width: 38px; height: 38px; border-radius: 9px; }
-#side .brand .name { font-weight: 700; font-size: 1.15rem; }
+#side .brand .name { font-weight: 700; font-size: 1.15rem; display: flex; gap: 6px; align-items: center; }
+/* The beta's mark: a small pill in the accent. */
+.beta { font-size: .62rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 1; padding: 3px 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent); cursor: help; }
 #side .brand .sub { color: var(--muted); font-size: .8rem; }
 .navs { display: flex; flex-direction: column; gap: 2px; }
 .navb { display: flex; gap: 10px; align-items: center; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--text); text-align: left; }
@@ -155,14 +159,29 @@ details summary { cursor: pointer; color: var(--muted); }
 .chip.on { border-color: var(--accent); color: var(--accent); }
 #model-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14em; }
 label.chip input { margin: 0; }
+/* The context used, as a ring that closes as it fills (inga serve's web UI's): the
+   accent, amber past 75 %, red past 90 % (ctx.js). */
+#ctx-gauge { gap: 5px; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; cursor: help; }
+#ctx-gauge svg { width: 18px; height: 18px; transform: rotate(-90deg); }
+#ctx-gauge circle { fill: none; stroke-width: 3; }
+#ctx-gauge circle.track { stroke: var(--line); }
+#ctx-ring { stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray .4s; }
+#ctx-gauge.warn { color: var(--warn); }
+#ctx-gauge.warn #ctx-ring { stroke: var(--warn); }
+#ctx-gauge.full { color: var(--danger); }
+#ctx-gauge.full #ctx-ring { stroke: var(--danger); }
+@media (prefers-reduced-motion: reduce) { #ctx-ring { transition: none; } }
 #send-hint, #stats { max-width: var(--chat-w); margin: 4px auto 0; font-variant-numeric: tabular-nums; }
 
 /* Settings and the other views. */
-.set { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 6px 14px; align-items: start; padding: 8px 0; border-top: 1px solid var(--line); }
+/* minmax(0, 1fr), not 1fr: a column of 1fr is as wide as its widest content at least (a select's
+   longest option), which made the whole Settings view wider than a phone's screen. */
+.set { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); gap: 6px 14px; align-items: start; padding: 8px 0; border-top: 1px solid var(--line); }
+.set > * { min-width: 0; }
 .set:first-of-type { border-top: 0; }
 .set > label:first-child, .set > span:first-child { font-weight: 600; padding-top: 6px; }
 .set .meta { display: block; margin-top: 4px; }
-@media (max-width: 640px) { .set { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .set { grid-template-columns: minmax(0, 1fr); } }
 #bench, #kernels { overflow-x: auto; }
 #bench table, #kernels table { border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
 #bench th, #bench td, #kernels th, #kernels td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: right; white-space: nowrap; }
@@ -234,7 +253,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
 </svg>
 <div id="app">
 <aside id="side" aria-label="Inga">
-  <div class="brand"><img src="logo.svg" alt=""><div><div class="name">Inga</div><div class="sub" data-i18n="brand.sub">AI models running in your browser</div></div></div>
+  <div class="brand"><img src="logo.svg" alt=""><div><div class="name">Inga <span class="beta" title="Beta: Inga in the browser is experimental" data-i18n="brand.beta" data-i18n-title="brand.beta.t">Beta</span></div><div class="sub" data-i18n="brand.sub">AI models running in your browser</div></div></div>
   <nav class="navs" aria-label="Views">
     <button class="navb" id="nav-chat" data-view="chat" aria-current="page"><svg class="ic"><use href="#i-chat"/></svg><span data-i18n="nav.chat">Chat</span></button>
     <button class="navb" id="nav-models" data-view="models"><svg class="ic"><use href="#i-package"/></svg><span data-i18n="nav.models">Models</span></button>
@@ -277,6 +296,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
           <span class="grow"></span>
           <button id="reset" class="icon" type="button" title="New chat" disabled><svg class="ic"><use href="#i-plus"/></svg></button>
           <button id="stop" class="ghost" type="button" disabled><svg class="ic"><use href="#i-stop"/></svg><span data-i18n="chat.stop">Stop</span></button>
+          <button id="ctx-gauge" class="icon" type="button" hidden aria-label="Context used" title=""><svg viewBox="0 0 20 20" aria-hidden="true"><circle class="track" cx="10" cy="10" r="8"/><circle id="ctx-ring" cx="10" cy="10" r="8" pathLength="100" stroke-dasharray="0 100"/></svg><span id="ctx-pct">0%</span></button>
           <button id="send" type="button" disabled><span data-i18n="chat.send">Send</span></button>
         </div>
       </div>
@@ -368,14 +388,14 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
         <span class="meta">Given to the model before the conversation, through its chat template.</span></div></div>
       <div class="set"><label for="past" data-i18n="set.past">Past messages sent</label><div><input type="number" id="past" value="0" min="0" step="1">
         <span class="meta">How many of the conversation's last messages go with each question (0: all of them, as long as the context holds them).</span></div></div>
-      <div class="set"><label for="sendkey" data-i18n="set.sendkey">Send key</label><div><select id="sendkey"><option value="enter" selected>Enter</option><option value="ctrl">Ctrl+Enter (⌘+Enter)</option></select></div></div>
+      <div class="set"><label for="sendkey" data-i18n="set.sendkey">Send key</label><div><select id="sendkey"><option value="enter" selected data-i18n="opt.enter">Enter</option><option value="ctrl" data-i18n="opt.ctrl">Ctrl+Enter (⌘+Enter)</option></select></div></div>
     </section>
     <section class="card">
       <h2 data-i18n="set.load">Model loading</h2>
       <div class="set"><label for="ctx" data-i18n="set.ctx">Context window</label><div><input type="number" id="ctx" value="2048" min="64" step="64">
         <span class="meta">Tokens the model keeps (the KV cache): the conversation, the question and the answer must fit. Applies at the next load.</span></div></div>
       <div class="set"><label for="wmem">Memory for the model</label><div>
-        <select id="wmem"><option value="auto" selected>Auto</option><option value="all">All in memory</option><option value="mb">Limit in MB</option></select>
+        <select id="wmem"><option value="auto" selected data-i18n="opt.auto">Auto</option><option value="all" data-i18n="opt.all">All in memory</option><option value="mb" data-i18n="opt.mb">Limit in MB</option></select>
         <input type="number" id="wmem-mb" value="1500" min="1" step="64" aria-label="Megabytes for the model">
         <span class="meta" id="wmem-hint"></span>
         <span class="meta">Everything the model keeps in memory: its weights, its KV cache for the context, its
@@ -388,35 +408,35 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
         reads from storage; WebAssembly Memory64, in Chrome but not yet in Safari, would lift that). Kept in this
         browser.</span></div></div>
       <div class="set"><label for="device">Device</label><div>
-        <select id="device"><option value="cpu" selected>CPU</option><option value="auto">Auto</option><option value="gpu">GPU (WebGPU, experimental)</option></select>
+        <select id="device"><option value="cpu" selected>CPU</option><option value="auto" data-i18n="opt.auto">Auto</option><option value="gpu" data-i18n="opt.gpu">GPU (experimental)</option></select>
         <button id="gpu-info" class="ghost">GPU info</button>
         <span class="meta" id="device-hint"></span>
         <span class="meta" id="gpu-line"></span>
-        <span class="meta">CPU: WebAssembly SIMD on this device's cores. GPU: the layers through WebGPU, as
+        <span class="meta">CPU: WebAssembly SIMD on this device's cores. GPU (experimental): the layers through WebGPU, as
         many as fit "GPU memory", the rest on the CPU (read from this site's storage when the memory limit
         asks); a model whose layers or weight types the GPU does not run stays on the CPU, and the load line
         says why. Auto: the GPU only where it was measured faster than the CPU, and never for a model larger
         than "Memory for the model" (it would be read from storage, and the GPU's share leaves the CPU fewer
         weights); on the iPhone 16 Pro the GPU was not faster (Qwen3 0.6B: 16.3 tok/s on the GPU, 25 on the
-        CPU), so Auto picks the CPU for now.</span></div></div>
+        CPU), so Auto picks the CPU for now. In a browser without WebGPU (no navigator.gpu), GPU is not available.</span></div></div>
       <div class="set"><label for="gmem">GPU memory</label><div>
-        <select id="gmem"><option value="auto" selected>Auto</option><option value="mb">Limit in MB</option></select>
+        <select id="gmem"><option value="auto" selected data-i18n="opt.auto">Auto</option><option value="mb" data-i18n="opt.mb">Limit in MB</option></select>
         <input type="number" id="gmem-mb" value="1024" min="1" step="64" aria-label="Megabytes for the GPU">
         <span class="meta">What the GPU may hold: its layers' weights and KV cache, its working buffers. Auto:
         1024 MB on an iPhone or iPad (Llama 3.2 1B, 0.9 GiB on the GPU, is the largest model measured to load
         there); 3072 MB elsewhere, a guess: WebGPU does not tell a GPU's memory, and 3 GiB fits a 4 GB card
         (set it in MB for yours).</span></div></div>
       <div class="set"><label for="gacct">GPU memory accounting</label><div>
-        <select id="gacct"><option value="auto" selected>Auto</option><option value="one">One limit: the GPU's bytes counted in "Memory for the model"</option><option value="apart">Apart: the limit covers WebAssembly memory only</option></select>
-        <span class="meta">One limit adds the GPU's bytes to WebAssembly memory, in case the system counts a tab's
+        <select id="gacct"><option value="auto" selected data-i18n="opt.auto">Auto</option><option value="one" data-i18n="opt.one">One limit</option><option value="apart" data-i18n="opt.apart">Apart</option></select>
+        <span class="meta">One limit: the GPU's bytes are counted in "Memory for the model" (added to WebAssembly memory), in case the system counts a tab's
         GPU buffers with its memory, as iOS may; then a model that needs storage keeps fewer weights on the CPU
         and runs slower on the GPU than on the CPU alone (Qwen3-4B on an iPhone 16 Pro: 0.9 against 2.3 tok/s).
-        Apart: "Memory for the model" bounds WebAssembly memory only and "GPU memory" the GPU's bytes, as on a
+        Apart: the limit covers WebAssembly memory only; "Memory for the model" bounds WebAssembly memory and "GPU memory" the GPU's bytes, as on a
         desktop, whose graphics memory is not the tab's. Auto: one limit on an iPhone or iPad (until the test in
         the guide's step 7 shows that iOS does not count GPU buffers), apart elsewhere. The load line says which
         was used.</span></div></div>
       <div class="set"><label for="draft">Draft model</label><div>
-        <select id="draft"><option value="">None</option></select>
+        <select id="draft"><option value="" data-i18n="opt.none">None</option></select>
         <span class="meta">A smaller stored model with the same vocabulary (for Qwen3-4B, Qwen3-0.6B; for Llama
         3.2 3B, Llama 3.2 1B) guesses a few tokens, and the model checks them in one pass: a layer read from
         storage is read once for every token the pass accepts. It is held whole, out of the same memory
@@ -425,12 +445,12 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
     </section>
     <section class="card">
       <h2 data-i18n="set.look">Appearance</h2>
-      <div class="set"><label for="theme" data-i18n="set.theme">Theme</label><div><select id="theme"><option value="auto" selected>Auto (this device's)</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div>
-      <div class="set"><label for="fontsize" data-i18n="set.font">Font size</label><div><select id="fontsize"><option value="small">Small</option><option value="normal" selected>Normal</option><option value="large">Large</option><option value="xlarge">Larger</option></select></div></div>
+      <div class="set"><label for="theme" data-i18n="set.theme">Theme</label><div><select id="theme"><option value="auto" selected data-i18n="opt.theme.auto">Auto (this device's)</option><option value="light" data-i18n="opt.light">Light</option><option value="dark" data-i18n="opt.dark">Dark</option></select></div></div>
+      <div class="set"><label for="fontsize" data-i18n="set.font">Font size</label><div><select id="fontsize"><option value="small" data-i18n="opt.small">Small</option><option value="normal" selected data-i18n="opt.normal">Normal</option><option value="large" data-i18n="opt.large">Large</option><option value="xlarge" data-i18n="opt.xlarge">Larger</option></select></div></div>
       <div class="set"><label for="lang" data-i18n="set.lang">Language</label><div><select id="lang"><option value="en" selected>English</option><option value="it">Italiano</option></select>
         <span class="meta">The page's buttons, menus and headings; the longer explanations stay in English.</span></div></div>
-      <div class="set"><label for="loglevel" data-i18n="set.log">Load log</label><div><select id="loglevel"><option value="all" selected>Every step</option><option value="summary">The start, the end and errors</option><option value="off">Off</option></select>
-        <span class="meta">What the load log under the status line keeps (the report sends it).</span></div></div>
+      <div class="set"><label for="loglevel" data-i18n="set.log">Load log</label><div><select id="loglevel"><option value="all" selected data-i18n="opt.log.all">Every step</option><option value="summary" data-i18n="opt.log.summary">Start, end, errors</option><option value="off" data-i18n="opt.off">Off</option></select>
+        <span class="meta">What the load log under the status line keeps (the report sends it): every step, or only the start, the end and the errors, or nothing.</span></div></div>
     </section>
     <section class="card">
       <div class="row"><button id="settings-reset" class="ghost"><svg class="ic"><use href="#i-retry"/></svg><span data-i18n="set.reset">Reset all settings</span></button>
