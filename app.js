@@ -51,6 +51,7 @@ let thinking = null; // the <details> of its reasoning, once a thinking model re
 let used = false; // this worker has loaded a model: its WebAssembly memory never shrinks
 let stopFlag = null;
 let keepChat = false; // the model loads again after a stop: the chat stays
+let gpuUsed = ""; // the GPU memory limit of the load, as the load line says it
 let limitUsed = ""; // the memory limit the model being loaded was given, as the load line says it
 let deviceUsed = { device: "cpu", label: "" }; // the device chosen for it (chooseDevice)
 let onGpu = false; // the loaded model runs on the GPU (WebGPU)
@@ -146,7 +147,7 @@ function drawGauge() {
   el.hidden = !source || !g.show;
   $("ctx-ring").setAttribute("stroke-dasharray", g.pct.toFixed(1) + " 100");
   $("ctx-pct").textContent = g.shown + "%";
-  el.title = gaugeTitle(t, ctxUsed, size);
+  el.title = gaugeTitle(t, ctxUsed, size) + (ctxLine ? "\n" + ctxLine : "");
   el.setAttribute("aria-label", el.title);
   el.classList.toggle("warn", g.level === "warn");
   el.classList.toggle("full", g.level === "full");
@@ -189,6 +190,9 @@ function drawDetail() {
   pop.append(list);
   if (d.dropped) pop.append(el("div", "note warn", t(d.dropped === 1 ? "ctx.drop.one" : "ctx.drop", d.dropped)));
   pop.append(el("div", "note small", t("ctx.size", size, t(loadedInfo?.info?.ctx ? "ctx.src.model" : "ctx.src.set"))));
+  if (ctxLine) pop.append(el("div", "note small warn", ctxLine));
+  const want = Number($("ctx").value);
+  if (loadedInfo?.ctx_asked && want && want !== loadedInfo.ctx_asked) pop.append(el("div", "note small", t("ctx.pending", want)));
 }
 
 function openDetail() {
@@ -398,7 +402,7 @@ function handleMessage(m) {
     case "ready":
       // A worker started again to load a model: its progress follows.
       // An error shown (a worker lost) stays until the next action.
-      if (!busy && $("status").className !== "err") status("Ready: pick a model.");
+      if (!busy && !released && $("status").className !== "err") status("Ready: pick a model.");
       worker.postMessage({ type: "list" });
       break;
     case "progress": {
@@ -460,9 +464,12 @@ function handleMessage(m) {
       const why = [m.note, onGpu || deviceUsed.device === "gpu" ? i.gpu_note : "", accountingNote(i)].filter(Boolean).join(". ");
       // Auto chose the GPU, the worker the CPU (a model that needs storage).
       if (m.note?.startsWith("On the CPU")) deviceUsed.label = deviceUsed.label.replace("device GPU (Auto", "device CPU, not the GPU (Auto");
+      ctxLine = ctxNote(m);
+      slowLine = slowNote(i);
       status(`Loaded in ${m.secs.toFixed(1)} s: ${i.architecture}, ${i.layers} layers, ${fmt(i.bytes)} of weights, ` +
         `context ${i.ctx}, ${where}; WebAssembly memory ${fmt(m.memory)}${gpuBytes(m.gpu)}; ` +
-        `${limitUsed}; ${deviceUsed.label}.` + (why ? ` ${why}.` : "") + streamNote(i) + draftNote(i) + (reloadWhy ? " " + t("reloaded", ...reloadWhy) : ""));
+        `${limitUsed}; ${deviceUsed.label}.` + (why ? ` ${why}.` : "") + streamNote(i) + draftNote(i) + (reloadWhy ? " " + t("reloaded", ...reloadWhy) : "") +
+        (ctxLine ? " " + ctxLine : "") + (slowLine ? " " + slowLine : ""));
       reloadWhy = null;
       $("wmem-hint").textContent = "";
       presetAfterLoad(i);
@@ -473,6 +480,12 @@ function handleMessage(m) {
       showView("chat");
       $("prompt").focus();
       loadLog("ready to chat");
+      // "Raise the context and regenerate": the answer again, with the new context.
+      if (afterLoad) {
+        const f = afterLoad;
+        afterLoad = null;
+        f();
+      }
       break;
     }
     case "piece":
@@ -510,7 +523,7 @@ function handleMessage(m) {
       const reasoning = thinking?.lastChild?.textContent || undefined;
       // How it ended (`max_tokens`: the limit) and the limit, for the note under it.
       const said = { role: "assistant", content: answerText, reasoning, model: modelName, ...(modelMark ? { mark: modelMark } : {}), at: Date.now(),
-        stop: s.stop, max: askedOpts?.max_tokens, think: askedOpts?.thinking !== false && thinks(),
+        stop: s.stop, max: askedOpts?.max_tokens, ctx: ctxSize(), think: askedOpts?.thinking !== false && thinks(),
         stats: { prompt_tps: s.prompt_tps, gen_tps: s.gen_tps, prompt_tokens: s.prompt_tokens, gen_tokens: s.gen_tokens } };
       messages.push(said);
       speedLine(answerBox, said);
@@ -522,7 +535,7 @@ function handleMessage(m) {
       $("stats").textContent = `Prompt: ${s.prompt_tokens - s.cached_tokens} tokens at ${s.prompt_tps.toFixed(1)} tok/s` +
         ` (${s.cached_tokens} reused) · answer: ${s.gen_tokens} tokens at ${s.gen_tps.toFixed(1)} tok/s${r}` +
         ` · ${s.stop} · memory ${fmt(m.memory)}${gpuBytes(m.gpu)}` + readNote(s) + draftStats(s) +
-        (s.gpu_sampled ? ` · ${s.gpu_sampled} drawn on the GPU` : "");
+        (s.gpu_sampled ? ` · ${s.gpu_sampled} drawn on the GPU` : "") + (slowLine ? ` · ${slowLine}` : "");
       status(trimmedNote ? "Ready. " + trimmedNote : "Ready.");
       trimmedNote = "";
       if (stdRunning) {
@@ -558,7 +571,11 @@ function handleMessage(m) {
       status("Ready.");
       setBusy(false);
       break;
+    case "gpulost":
+      gpuLost(m);
+      break;
     case "error":
+      afterLoad = null;
       stopLoading();
       progress(0, 0);
       stdRunning = false;
@@ -749,6 +766,7 @@ async function chooseDevice() {
     adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
   } catch {}
   if (!adapter) return { device: "cpu", label: "device CPU: WebGPU offers no adapter here" };
+  await probeAdapter();
   const i = adapter.info || {};
   const name = [i.vendor, i.architecture, i.device, i.description].filter(Boolean).join(" ") || "unnamed adapter";
   if (asked === "gpu") return { device: "gpu", label: `device GPU (Device setting, adapter ${name})` };
@@ -972,6 +990,7 @@ async function loadStored(name) {
   deviceUsed = await chooseDevice();
   const gpuBudget = gpuLimit(budget);
   const separate = gpuSeparate();
+  gpuUsed = `${Math.round(gpuBudget.bytes / MB)} MB`;
   if (deviceUsed.device === "gpu") limitUsed += `, GPU memory ${gpuBudget.label}`;
   // A draft model drafts on the CPU only: on the GPU the model answers without it.
   const draft = deviceUsed.device === "gpu" ? null : draftFor(name);
@@ -1239,20 +1258,77 @@ function memoryLimit() {
 // within `budget`, the memory limit (bytes, null: none), which counts the GPU's bytes
 // too: Auto is 1024 MB on iOS (Llama 3.2 1B, about 0.9 GiB on the GPU, is the largest
 // model measured to load on an iPhone 16 Pro's GPU page), the memory limit elsewhere.
-// Elsewhere 3 GiB: a guess (WebGPU tells no GPU's memory), which a 4 GB card holds,
-// with the GPU's bytes apart from the memory limit (gpuSeparate): a 4B Q4_K_M model,
-// about 2.5 GB, then runs whole on the GPU of a 4 GB desktop card.
+// Elsewhere, with the GPU's bytes apart from the memory limit (gpuSeparate), it follows
+// the adapter (autoGpu): WebGPU tells no GPU's memory, so 3 GiB, which a 4 GB card
+// holds, unless the adapter says more (an Apple GPU shares the Mac's memory; a large
+// maxBufferSize, a large navigator.deviceMemory). 3 GiB on a 128 GB Mac left a 7B Q4
+// model (4.4 GB) a third of its layers on the CPU: 4 tok/s.
 const AUTO_GPU_OTHER = 3072 * MB;
 const AUTO_GPU_IOS = 1024 * MB;
+const GIB = 1024 * MB;
+const AUTO_GPU_MAX = 16 * GIB;
+let adapterFacts = null; // the adapter's vendor and limits, once asked (probeAdapter)
+
+// The WebGPU adapter's facts that Auto's GPU memory follows, asked once.
+async function probeAdapter() {
+  if (adapterFacts || !navigator.gpu) return adapterFacts;
+  try {
+    const a = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+    if (a) {
+      const i = a.info || {};
+      adapterFacts = {
+        vendor: i.vendor || "", architecture: i.architecture || "",
+        maxBufferSize: Number(a.limits?.maxBufferSize) || 0,
+        maxStorageBufferBindingSize: Number(a.limits?.maxStorageBufferBindingSize) || 0,
+      };
+    }
+  } catch {}
+  return adapterFacts;
+}
+
+// Auto's GPU memory off iOS, with the GPU's bytes apart: {bytes, why}. An Apple GPU
+// (unified memory: the Mac's memory is the GPU's) gets 3/4 of navigator.deviceMemory
+// (Chrome tells at most 8 GB, so 6 GB at least: a 7B Q4 model and its KV cache fit), or
+// the adapter's maxBufferSize when larger; another adapter whose maxBufferSize and
+// navigator.deviceMemory are large (4 GiB, 8 GB) gets 4 GiB; 16 GiB at most.
+function autoGpu(f = adapterFacts) {
+  const dm = Number(navigator.deviceMemory) || 0;
+  const buf = f?.maxBufferSize || 0;
+  const gb = (b) => `${Math.round(b / GIB * 10) / 10} GB`;
+  if (f && /apple/i.test(f.vendor)) {
+    const fromMem = Math.max(dm, 8) * 0.75 * GIB;
+    const bytes = Math.min(AUTO_GPU_MAX, Math.max(fromMem, buf > 4 * GIB ? buf : 0));
+    const src = bytes > fromMem
+      ? `the adapter's maxBufferSize ${gb(buf)}`
+      : `3/4 of navigator.deviceMemory ${dm ? dm + " GB" : "unknown, taken as 8 GB"}${dm === 8 ? " (Chrome tells at most 8)" : ""}`;
+    return { bytes, why: `an Apple GPU, which shares the Mac's memory: ${src}` };
+  }
+  if (buf >= 4 * GIB && dm >= 8) {
+    return { bytes: 4 * GIB, why: `the adapter's maxBufferSize ${gb(buf)} and navigator.deviceMemory ${dm} GB` };
+  }
+  return { bytes: AUTO_GPU_OTHER, why: "a guess, WebGPU does not tell the GPU's memory" };
+}
+
 function gpuLimit(budget) {
   if ($("gmem").value === "mb") {
     const mb = Math.max(1, Math.round(Number($("gmem-mb").value) || 0));
     return { bytes: mb * MB, label: `${mb} MB (Limit in MB)` };
   }
   if (isIOS()) return { bytes: AUTO_GPU_IOS, label: `${AUTO_GPU_IOS / MB} MB (Auto on iOS)` };
-  if (gpuSeparate()) return { bytes: AUTO_GPU_OTHER, label: `${AUTO_GPU_OTHER / MB} MB (Auto: a guess, WebGPU does not tell the GPU's memory; set it in MB)` };
+  if (gpuSeparate()) {
+    const a = autoGpu();
+    return { bytes: a.bytes, label: `${Math.round(a.bytes / MB)} MB (Auto: ${a.why}; set it in MB)` };
+  }
   const b = budget ?? 4096 * MB;
   return { bytes: b, label: `${Math.round(b / MB)} MB (Auto: the memory limit)` };
+}
+
+// The Settings' line under GPU memory: what Auto gives here, and why.
+async function gmemHint() {
+  const el = $("gmem-hint");
+  if (!el) return;
+  if (navigator.gpu) await probeAdapter();
+  el.textContent = $("gmem").value === "auto" && navigator.gpu ? t("gmem.auto", gpuLimit(memoryLimit().budget).label) : "";
 }
 
 // Whether the GPU's bytes are planned apart from "Memory for the model" (which then
@@ -1276,6 +1352,35 @@ function streamNote(i) {
   }
   if (rows) t += ` ${fmt(rows)} of embeddings read a row per token;`;
   return t + ` ${fmt(i.resident_weights)} of weights in memory, ${fmt(i.memory_planned)} planned with the KV cache and activations.`;
+}
+
+// The context loaded, said with its reason when it is less than asked: the memory
+// limit (the worker's `ctx_cut`: the largest its KV cache fits), or the model's
+// training context. "" when it is the one asked.
+let ctxLine = "";
+let slowLine = "";
+function ctxNote(m) {
+  const got = m.info?.ctx;
+  const asked = m.ctx_asked;
+  if (!got || !asked || got >= asked) return "";
+  const c = m.ctx_cut;
+  let why;
+  if (c?.device === "gpu") why = t("ctx.cut.gpu", fmt(c.gpuBudget ?? 0), fmt(c.budget ?? 0), got);
+  else if (c) why = t("ctx.cut.mem", fmt(c.budget), got);
+  else why = t("ctx.cut.train", got);
+  return t("ctx.cut", got, asked, why);
+}
+
+// Why the model answers slower than it could, said plainly: layers on the CPU because
+// the GPU's memory limit does not hold them, layers read from storage at every token.
+function slowNote(i) {
+  const out = [];
+  const g = lastLoad?.device === "gpu" && i.device === "webgpu";
+  if (g && i.gpu_layers < i.layers) out.push(t("slow.cpu", i.layers - i.gpu_layers, i.layers, gpuUsed));
+  if (i.streamed_layers) {
+    out.push(t("slow.stream", i.streamed_layers, i.layers, g ? t("slow.stream.gpu") : t("slow.stream.cpu", limitUsed.replace(/, GPU memory.*$/, ""))));
+  }
+  return out.join(" ");
 }
 
 function readNote(s) {
@@ -1493,6 +1598,7 @@ for (const id of SETTINGS) {
     saveSettings();
     if (id === "wmem") $("wmem-mb").hidden = $("wmem").value !== "mb";
     if (id === "gmem") $("gmem-mb").hidden = $("gmem").value !== "mb";
+    if (["gmem", "gacct", "wmem", "wmem-mb", "lang"].includes(id)) gmemHint();
     if (["theme", "fontsize", "lang", "sendkey"].includes(id)) applyLook();
     // What the model reads, or the context it has: the gauge again.
     if (["sys-on", "sys", "past", "ctx", "lang"].includes(id)) countSoon(0);
@@ -1609,14 +1715,23 @@ function userBubble(m) {
 function limitNote(row, m, last) {
   const empty = !m.content?.trim();
   const cut = m.stop === "max_tokens";
-  if (!cut && !(empty && m.reasoning)) return;
+  // The context filled before the answer ended: the question and the answer did not
+  // fit together.
+  const full = m.stop === "context_full";
+  if (!cut && !full && !(empty && m.reasoning)) return;
   row.querySelector(".limit")?.remove();
   const a = row.querySelector(".a");
   const n = m.max ?? maxTokens();
   const box = document.createElement("div");
   box.className = "limit" + (empty ? " empty" : "");
   const p = document.createElement("p");
-  p.textContent = empty ? (cut ? t("limit.think", n) : t("limit.noanswer")) : t("limit.max", n);
+  const size = m.ctx ?? ctxSize();
+  // A context lowered by the limits at the load: raising it would be lowered again, so
+  // the note says why instead (the limits to raise).
+  const capped = full && last && size === loadedInfo?.info?.ctx && ctxLine;
+  p.textContent = full ? t("limit.ctx", size, m.stats?.prompt_tokens ?? "?", m.stats?.gen_tokens ?? "?") + " " + (capped ? ctxLine : t("limit.ctx.more"))
+    : empty ? (cut ? t("limit.think", n) : t("limit.noanswer")) : t("limit.max", n);
+  if (full) box.classList.add("ctxfull");
   box.append(p);
   if (empty) a.hidden = true;
   if (last) {
@@ -1633,6 +1748,7 @@ function limitNote(row, m, last) {
       b.onclick = fn;
       row2.append(b);
     };
+    if (full && !capped) btn("limit-ctx", t("limit.ctx.raise", 2 * size), () => raiseContext(2 * size));
     if (cut) btn("limit-raise", t("limit.raise", 2 * n), () => {
       $("max").value = String(2 * n);
       maxHand = true;
@@ -1643,6 +1759,21 @@ function limitNote(row, m, last) {
     if (row2.firstChild) box.append(row2);
   }
   a.after(box);
+}
+
+// "Raise the context and regenerate": the Settings' context set (by hand), the model
+// loaded again with it, the conversation kept, then the last answer asked again.
+let afterLoad = null;
+function raiseContext(n) {
+  if (busy || !source) return;
+  $("ctx").value = String(n);
+  hand.add("ctx");
+  loadTouched.add("ctx");
+  saveSettings();
+  presetLine();
+  if (!changedLoad()) return;
+  afterLoad = () => regenerate();
+  reloadIfChanged();
 }
 
 function botBubble(m, last = false) {
@@ -1700,6 +1831,9 @@ function changedLoad() {
   return LOAD_IDS.find((id) => {
     if (!loadTouched.has(id)) return false;
     if (id.endsWith("-mb") && $(id.slice(0, -3)).value !== "mb" && loadedWith[id.slice(0, -3)] !== "mb") return false;
+    // The draft counts by the one the model would load with: none for the model itself
+    // (the draft chosen may be the model loaded), or on the GPU.
+    if (id === "draft") return source.name ? (lastLoad?.device === "gpu" ? false : draftFor(source.name) !== (lastLoad?.draft ?? null)) : !!draftFor(source.file?.name);
     return $(id).value !== loadedWith[id];
   }) ?? null;
 }
@@ -2112,6 +2246,73 @@ window.ingaState = () => ({
   stats: lastStats,
 });
 
+// ---- A hidden tab, and a GPU lost ----
+
+// While the page is idle it runs nothing: no interval, no animation frame, the mark's
+// loop only while busy, the timers one-shot (the context count, the render of an answer
+// streaming, the watchdogs of a load or an answer). Hidden, it also stops the mark and
+// the pending count; hidden for RELEASE_MS with a model on the GPU and nothing running,
+// it ends the model's worker (its WebAssembly memory and its WebGPU device, several GB
+// with a 7B model, go back to the system: a tab left for hours with them froze its
+// Chrome window on a Mac) and loads the model again when the tab is shown.
+// `?release_ms=N` in the page's address shortens it (the browser tests).
+const RELEASE_MS = Number(new URLSearchParams(location.search).get("release_ms")) || 10 * 60000;
+let releaseTimer = null;
+let released = null; // the model given back while hidden: {name} (stored) or {file}
+document.addEventListener("visibilitychange", () => {
+  const hidden = document.visibilityState === "hidden";
+  document.documentElement.classList.toggle("tab-hidden", hidden);
+  clearTimeout(releaseTimer);
+  releaseTimer = null;
+  if (hidden) {
+    clearTimeout(countTimer);
+    countTimer = null;
+    if (onGpu && source && !busy && !answer) releaseTimer = setTimeout(releaseModel, RELEASE_MS);
+  } else if (released) {
+    const r = released;
+    released = null;
+    keepChat = true;
+    if (r.name) loadStored(r.name);
+    else loadFile(r.file);
+    status(t("hidden.reload"));
+  }
+});
+
+function releaseModel() {
+  releaseTimer = null;
+  if (document.visibilityState !== "hidden" || busy || answer || !source) return;
+  released = source.name ? { name: source.name } : { file: source.file };
+  worker.terminate();
+  startWorker();
+  source = null;
+  loadedInfo = null;
+  onGpu = false;
+  setBusy(false);
+  status(t("hidden.released", Math.max(1, Math.round(RELEASE_MS / 60000))));
+}
+
+// The WebGPU device was lost (the worker's `gpulost`: the GPU reset, the driver
+// restarted, the system took its memory back): the model on it is gone. Said once,
+// nothing retried: the user loads the model again.
+function gpuLost(m) {
+  afterLoad = null;
+  stopLoading();
+  progress(0, 0);
+  stdRunning = false;
+  if (answer) {
+    endAnswer();
+    messages.pop();
+  }
+  source = null;
+  loadedInfo = null;
+  onGpu = false;
+  worker.terminate();
+  startWorker();
+  $("stop").disabled = true;
+  setBusy(false);
+  status(t("gpu.lost", m.message || m.reason || "no reason given"), true);
+}
+
 // ---- The model picker (picker.js): the catalog, and what fits this browser ----
 
 // What the picker judges each variant against: the memory limit of the Settings, the
@@ -2131,6 +2332,7 @@ async function deviceEnv() {
       const a = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
       if (a) {
         const i = a.info || {};
+        await probeAdapter();
         const g = gpuLimit(budget);
         env.gpu = {
           name: [i.vendor, i.architecture, i.device, i.description].filter(Boolean).join(" ") || "unnamed adapter",
@@ -2177,6 +2379,7 @@ pageReady = true;
 
 showSuggested();
 setupDevice();
+gmemHint();
 renderChat();
 setBusy(false);
 chats.open().then(showConvs);

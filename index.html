@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 <title>Inga (beta)</title>
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <!-- The commit of a published build (the Pages workflow writes it), for the report. -->
-<meta name="inga-build" content="b6936b1 2026-10-16">
+<meta name="inga-build" content="fe3aa98 2026-10-16">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
 <!-- Where "Report on GitHub" opens an issue, and with which issue form (empty: a plain issue with the
@@ -91,6 +91,8 @@ details summary { cursor: pointer; color: var(--muted); }
    prefers-reduced-motion (the SVG's own rule). */
 #brand-mark:not(.busy) .ia-piece, #brand-mark:not(.busy) .ia-whole, #brand-mark:not(.busy) .ia-flash, #brand-mark:not(.busy) .ia-spark { animation: none; }
 #brand-mark.busy svg { --ia-cycle: 1.4s; }
+/* A hidden tab animates nothing (app.js's visibilitychange). */
+.tab-hidden #brand-mark svg * { animation: none !important; }
 #side .brand .name { font-weight: 700; font-size: 1.15rem; display: flex; gap: 6px; align-items: center; }
 /* The beta's mark: a small pill in the accent. */
 .beta { font-size: .62rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 1; padding: 3px 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent); cursor: help; }
@@ -581,11 +583,16 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
       <div class="set"><label for="gmem" data-i18n="set.gmem">GPU memory</label><div>
         <select id="gmem"><option value="auto" selected data-i18n="opt.auto">Auto</option><option value="mb" data-i18n="opt.mb">Limit in MB</option></select>
         <input type="number" id="gmem-mb" value="1024" min="1" step="64" aria-label="Megabytes for the GPU">
+        <span class="meta" id="gmem-hint"></span>
         <span class="meta reload-note" data-i18n="set.reloadnote">Applies when you leave Settings (the model reloads).</span>
         <span class="meta">What the GPU may hold: its layers' weights and KV cache, its working buffers. Auto:
         1024 MB on an iPhone or iPad (Llama 3.2 1B, 0.9 GiB on the GPU, is the largest model measured to load
-        there); 3072 MB elsewhere, a guess: WebGPU does not tell a GPU's memory, and 3 GiB fits a 4 GB card
-        (set it in MB for yours).</span></div></div>
+        there). Elsewhere it follows the adapter, since WebGPU does not tell a GPU's memory: an Apple GPU
+        shares the Mac's memory, so 3/4 of what the browser reports (Chrome reports at most 8 GB: 6144 MB,
+        which holds a 7B Q4 model and its KV cache), or the adapter's maxBufferSize when larger; another GPU 4096 MB when its
+        maxBufferSize and the device's memory are large, else 3072 MB, which fits a 4 GB card; 16 GB at most
+        (set it in MB for yours). The line above says what Auto gives here and why. The layers that do not
+        fit run on the CPU, much slower: the load line says how many.</span></div></div>
       <div class="set"><label for="gacct" data-i18n="set.gacct">GPU memory accounting</label><div>
         <select id="gacct"><option value="auto" selected data-i18n="opt.auto">Auto</option><option value="one" data-i18n="opt.one">One limit</option><option value="apart" data-i18n="opt.apart">Apart</option></select>
         <span class="meta reload-note" data-i18n="set.reloadnote">Applies when you leave Settings (the model reloads).</span>

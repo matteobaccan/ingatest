@@ -36,7 +36,10 @@
 // the GPU, `storageBuffers` lowering maxStorageBuffersPerShaderStage).
 // Messages out: {type: "ready"} | {type: "progress", what, done, total, start} (start: a
 // download's bytes already there when this session began) |
-// {type: "loaded", info, secs, memory, gpu, note} | {type: "models", models} |
+// {type: "loaded", info, secs, memory, gpu, note, ctx_asked, ctx_cut} (ctx_cut: the
+// context was lowered from ctx_asked to the most the limits hold, {asked, got, budget,
+// gpuBudget, device}) | {type: "models", models} |
+// {type: "gpulost", reason, message} (the WebGPU device was lost: the model is gone) |
 // {type: "retry", device, note} (the GPU refused the model while it loaded: load it
 // again with `device` in a fresh worker, `note` saying why) |
 // {type: "piece", text, reasoning} (reasoning: a thinking model's, apart from its answer) |
@@ -325,10 +328,28 @@ function requestSubgroups() {
   const patched = function (desc = {}) {
     const want = [...(desc.requiredFeatures ?? [])];
     if (this.features?.has("subgroups") && !want.includes("subgroups")) want.push("subgroups");
-    return original.call(this, { ...desc, requiredFeatures: want });
+    return original.call(this, { ...desc, requiredFeatures: want }).then((device) => {
+      watchLost(device);
+      return device;
+    });
   };
   patched.ingaSubgroups = true;
   proto.requestDevice = patched;
+}
+
+// A WebGPU device lost (GPUDevice.lost) other than by this worker's destroy(): the GPU
+// was reset, its driver restarted, or the system took its memory back. The model on it
+// cannot run any more (an answer waiting for it may never resume); the page is told
+// once (`gpulost`), ends this worker and asks for a new load:
+// nothing here tries the device again, so a GPU that keeps failing is not driven in a
+// loop.
+function watchLost(device) {
+  device?.lost?.then((info) => {
+    if (info?.reason === "destroyed") return;
+    const message = String(info?.message || "").trim();
+    // The page ends this worker (its memory with it) and starts a fresh one.
+    post({ type: "gpulost", reason: info?.reason ?? "unknown", message });
+  });
 }
 
 // ./pkg's module and the WebGPU device, made once.
@@ -529,7 +550,7 @@ async function load(blob, name, ctx, device, note = null) {
   step("file read: building the model");
   model = loader.finish(name, ctx || 0);
   step("model ready: telling the page");
-  post({ type: "loaded", info: JSON.parse(model.info()), secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note });
+  post({ type: "loaded", info: JSON.parse(model.info()), secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note, ctx_asked: ctx || 2048 });
 }
 
 // The GPU's bytes, while the loaded model runs layers there.
@@ -725,6 +746,48 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
     [streamHandle, streamName] = [h, name];
     return h;
   };
+  // The context asked, and, when the memory limit cannot hold its KV cache even with
+  // everything else read from storage (the plan's "smaller context"), the largest that
+  // it holds (a multiple of 256): loaded with that one, the page says why (`ctx_cut`),
+  // rather than refusing the model. On the CPU it is found from the header
+  // (planModel); on the GPU, whose layers hold their KV cache apart, by asking the GPU's
+  // load again with half the context.
+  const asked = ctx || 2048;
+  let ctxCut = null;
+  const cutContext = async () => {
+    if (budget == null) return;
+    const h = await open();
+    const fits = (c) => {
+      try {
+        inga.planModel(name, h.getSize(), (at, view) => h.read(view, { at }), budget, c);
+        return true;
+      } catch (e) {
+        if (/smaller context/.test(String(e?.message ?? e))) return false;
+        throw e;
+      }
+    };
+    try {
+      if (!fits(asked)) {
+        // In 256s: `lo` fits (0: none does), `hi` does not.
+        let [lo, hi] = [0, Math.floor(asked / 256)];
+        while (hi - lo > 1) {
+          const mid = (lo + hi) >> 1;
+          if (fits(mid * 256)) lo = mid;
+          else hi = mid;
+        }
+        if (lo > 0) {
+          ctx = lo * 256;
+          ctxCut = { asked, got: ctx, budget, device: "cpu" };
+          step(`context: ${ctx} of the ${asked} asked, the most the memory limit (${mib(budget)}) holds`);
+        }
+      }
+    } catch {
+      // The plan cannot tell: the load says why, if it fails.
+    } finally {
+      h.close();
+      streamHandle = streamName = null;
+    }
+  };
   if (device === "gpu") {
     let plan = null;
     try {
@@ -773,7 +836,19 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
       step("GPU: opening the model file");
       h = await open();
       step("GPU: loading the weights");
-      model = mod.openModelGpu(gpu, name, h.getSize(), (at, view) => h.read(view, { at }), budget ?? -1, gpuBudget ?? -1, ctx || 0, progress, !!gpuSeparate);
+      for (;;) {
+        try {
+          model = mod.openModelGpu(gpu, name, h.getSize(), (at, view) => h.read(view, { at }), budget ?? -1, gpuBudget ?? -1, ctx || 0, progress, !!gpuSeparate);
+          break;
+        } catch (e) {
+          // The limits cannot hold this context's KV cache: half of it, down to 256.
+          const half = Math.floor((ctx || 2048) / 512) * 256;
+          if (!/smaller context/.test(String(e?.message ?? e)) || half < 256) throw e;
+          ctx = half;
+          ctxCut = { asked, got: ctx, budget, gpuBudget, device: "gpu" };
+          step(`GPU: the limits do not hold a context of ${ctx * 2} tokens; trying ${ctx}`);
+        }
+      }
     } catch (e) {
       const why = String(e?.message ?? e);
       // A module that panicked is gone; a model that does not fit the limit does not
@@ -794,6 +869,7 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
   }
   if (!model) {
     mod = inga;
+    await cutContext();
     step("CPU: opening the model file");
     const h = await open();
     let d = null;
@@ -808,7 +884,7 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
   step("weights loaded: reading the model's description");
   const info = JSON.parse(model.info());
   step(`model ready (${Math.round(mod.memoryBytes() / 1048576)} MiB of WebAssembly memory): telling the page`);
-  post({ type: "loaded", info, secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note });
+  post({ type: "loaded", info, secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note, ctx_asked: asked, ctx_cut: ctxCut });
 }
 
 // Free bytes in this site's storage, or null when the browser does not say.
