@@ -31,7 +31,8 @@
 // BENCH's kernel choices) | {type: "gpuprofile", tokens, mode} (the kernel times of
 // `tokens` decode steps, Gpu.profileStart's mode) | {type: "gpucheck", storageBuffers} (every kernel compiled on
 // the GPU, `storageBuffers` lowering maxStorageBuffersPerShaderStage).
-// Messages out: {type: "ready"} | {type: "progress", what, done, total} |
+// Messages out: {type: "ready"} | {type: "progress", what, done, total, start} (start: a
+// download's bytes already there when this session began) |
 // {type: "loaded", info, secs, memory, gpu, note} | {type: "models", models} |
 // {type: "retry", device, note} (the GPU refused the model while it loaded: load it
 // again with `device` in a fresh worker, `note` saying why) |
@@ -222,7 +223,13 @@ async function download(url, name) {
       meta.size = total || null;
       await writeMeta(dir, name, meta);
       const reader = resp.body.getReader();
-      let last = 0;
+      // `start`: what an earlier session left, so the page's speed counts this one's
+      // bytes only. A word at least every 250 ms while bytes arrive (the page's speed
+      // and time left), flushed every 4 MiB.
+      const start = at;
+      let last = at;
+      let lastPost = performance.now();
+      post({ type: "progress", what: "download", done: at, total, start });
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -231,7 +238,11 @@ async function download(url, name) {
         if (at - last > 4 << 20) {
           last = at;
           handle.flush();
-          post({ type: "progress", what: "download", done: at, total });
+        }
+        const now = performance.now();
+        if (now - lastPost >= 250) {
+          lastPost = now;
+          post({ type: "progress", what: "download", done: at, total, start });
         }
       }
       handle.flush();

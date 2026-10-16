@@ -4,7 +4,8 @@
 
 // The page's words in English and Italian: the side bar, the headings, the buttons and
 // the labels (the elements with data-i18n, data-i18n-title, data-i18n-ph) and the few
-// strings app.js writes; the longer explanations and the status line stay in English.
+// strings app.js writes (a download's progress among them); the longer explanations and
+// the rest of the status line stay in English.
 
 const STRINGS = {
   en: {
@@ -25,6 +26,8 @@ const STRINGS = {
     "set.look": "Appearance", "set.theme": "Theme", "set.font": "Font size", "set.lang": "Language", "set.log": "Load log",
     "set.reset": "Reset all settings",
     "diag.std": "Standard test", "diag.gpu": "GPU", "diag.disk": "Storage speed", "diag.report": "Report",
+    "dl.of": "Downloading: {0} of {1} ({2} %)", "dl.got": "Downloading: {0}", "dl.speed": "{0} MB/s",
+    "dl.estimating": "estimating…", "dl.left": "about {0} left", "dl.pick": "{0} at your last measured speed",
   },
   it: {
     "brand.sub": "Modelli di IA nel tuo browser",
@@ -44,6 +47,8 @@ const STRINGS = {
     "set.look": "Aspetto", "set.theme": "Tema", "set.font": "Dimensione del testo", "set.lang": "Lingua", "set.log": "Registro di caricamento",
     "set.reset": "Ripristina tutte le impostazioni",
     "diag.std": "Test standard", "diag.gpu": "GPU", "diag.disk": "Velocità della memoria", "diag.report": "Segnalazione",
+    "dl.of": "Download: {0} di {1} ({2} %)", "dl.got": "Download: {0}", "dl.speed": "{0} MB/s",
+    "dl.estimating": "stima in corso…", "dl.left": "mancano circa {0}", "dl.pick": "{0} alla velocità misurata l'ultima volta",
   },
 };
 

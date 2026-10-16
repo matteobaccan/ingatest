@@ -92,7 +92,8 @@ function defaultVariant(m, env, stored) {
 }
 
 // The dialog. `opts`: {dialog, url, getEnv(): Promise<env>, getStored(): {file: bytes},
-// onLoad(model, variant, url), onDelete(file)}.
+// speedHint(bytes): the time a download would take ("" when unknown), onLoad(model,
+// variant, url), onDelete(file)}.
 export function createPicker(opts) {
   const d = opts.dialog;
   const $ = (sel) => d.querySelector(sel);
@@ -204,6 +205,14 @@ export function createPicker(opts) {
         const sz = document.createElement("span");
         sz.className = "size";
         sz.textContent = ` · ${v.approx ? "about " : ""}${size(v.size)}${v.approx ? " (estimated, not yet checked)" : ""}`;
+        // Before a download: how long it would take at the last speed measured.
+        const hint = have ? "" : opts.speedHint?.(v.size) ?? "";
+        if (hint) {
+          const eta = document.createElement("span");
+          eta.className = "eta";
+          eta.textContent = ` · ${hint}`;
+          sz.append(eta);
+        }
         info.append(mark, sz);
         if (have) {
           const dl = document.createElement("span");

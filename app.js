@@ -11,6 +11,7 @@ import { markdown } from "./md.js";
 import { createPicker } from "./picker.js";
 import * as chats from "./chats.js";
 import { t, setLang } from "./i18n.js";
+import { fmt, createRate, downloadLine, estimate, lastSpeed, saveSpeed } from "./eta.js";
 
 // The test models: a fixed list, so runs on different devices compare (the maintainer's
 // matrix of models x CPU / GPU, with the Standard test). Sizes are approximate.
@@ -31,7 +32,6 @@ const SUGGESTED = [
 ];
 
 const $ = (id) => document.getElementById(id);
-const fmt = (b) => (b >= 1 << 30 ? (b / (1 << 30)).toFixed(2) + " GiB" : (b / (1 << 20)).toFixed(1) + " MiB");
 const fileName = (url) => decodeURIComponent(new URL(url).pathname.split("/").pop() || "model.gguf");
 
 let worker = null;
@@ -62,14 +62,18 @@ function status(text, err = false) {
   $("status").className = err ? "err" : "";
 }
 
-function progress(done, total) {
+function progress(done, total, text = "") {
   const p = $("progress");
   p.hidden = !total;
+  p.title = text;
   if (total) {
     p.max = total;
     p.value = done;
   }
 }
+
+// The download running (fromUrl): its smoothed rate (eta.js), on this session's bytes.
+let dlRate = null;
 
 function setBusy(b) {
   busy = b;
@@ -259,6 +263,15 @@ function handleMessage(m) {
       worker.postMessage({ type: "list" });
       break;
     case "progress": {
+      if (m.what === "download") {
+        // Downloaded of the whole file, the speed and the time left (eta.js).
+        dlRate ??= createRate();
+        dlRate.update(m.done - (m.start ?? 0), performance.now() / 1000);
+        const line = downloadLine({ done: m.done, total: m.total, rate: dlRate.rate }, t);
+        status(line);
+        progress(m.done, m.total, line);
+        break;
+      }
       const what = { download: "Downloading", copy: "Copying into this site's storage", disktest: "Disk speed test" }[m.what] ?? "Loading";
       status(`${what}: ${fmt(m.done)}${m.total ? " of " + fmt(m.total) : ""}`);
       progress(m.done, m.total);
@@ -730,8 +743,13 @@ async function fromUrl(url, from = null) {
       }
     };
   });
+  dlRate = null;
   worker.postMessage({ type: "download", url, name });
-  if (await done) loadStored(name);
+  const ok = await done;
+  // The speed measured, for the picker's estimate of the next download.
+  if (ok && dlRate?.rate) saveSpeed(dlRate.rate);
+  dlRate = null;
+  if (ok) loadStored(name);
   else if (from && /HTTP (404|401|403)/.test($("status").textContent)) {
     status(`${$("status").textContent}. This is the model catalog's ${from.model.name}, ${from.variant.quant}: the file is not ` +
       `(or no longer) where the catalog says${from.variant.approx ? " (the catalog has not been checked against Hugging Face yet)" : ""}. ` +
@@ -1544,6 +1562,11 @@ const picker = createPicker({
   url: "catalog.json",
   getEnv: deviceEnv,
   getStored: () => storedSize,
+  // "~N min at your last measured speed", once a download measured one.
+  speedHint: (bytes) => {
+    const r = lastSpeed();
+    return r ? t("dl.pick", estimate(bytes, r)) : "";
+  },
   afterRender: () => setBusy(busy),
   onLoad: (model, variant, url) => {
     const name = url.split("/").pop().split("?")[0];
