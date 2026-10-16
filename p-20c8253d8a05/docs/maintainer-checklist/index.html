@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en" dir="ltr" data-theme="dark" data-has-toc data-has-sidebar class="astro-g5ptsecz"><head><meta name="robots" content="noindex, nofollow"><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>The maintainer's checklist | Inga</title><link rel="canonical" href="https://matteobaccan.github.io/ingatest/p-20c8253d8a05/docs/maintainer-checklist/"/><link rel="sitemap" href="/ingatest/p-20c8253d8a05/sitemap-index.xml"/><link rel="shortcut icon" href="/ingatest/p-20c8253d8a05/brand/favicon.svg" type="image/svg+xml"/><meta name="generator" content="Astro v7.3.8"/><meta name="generator" content="Starlight v0.42.6"/><meta property="og:title" content="The maintainer's checklist"/><meta property="og:type" content="article"/><meta property="og:url" content="https://matteobaccan.github.io/ingatest/p-20c8253d8a05/docs/maintainer-checklist/"/><meta property="og:locale" content="en"/><meta property="og:description" content="What only the maintainer can check: the real-world checks of TODO.md (&quot;Real-world checks&quot;, groups A–E and H). The bullets tagged [runner] run on his self-hosted runner through one workflow; the…"/><meta property="og:site_name" content="Inga"/><meta name="twitter:card" content="summary_large_image"/><meta name="description" content="What only the maintainer can check: the real-world checks of TODO.md (&quot;Real-world checks&quot;, groups A–E and H). The bullets tagged [runner] run on his self-hosted runner through one workflow; the…"/><meta name="theme-color" content="#4f46e5"/><script>
+<!DOCTYPE html><html lang="en" dir="ltr" data-theme="dark" data-has-toc data-has-sidebar class="astro-g5ptsecz"><head><meta name="robots" content="noindex, nofollow"><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>The maintainer's checklist | Inga</title><link rel="canonical" href="https://matteobaccan.github.io/ingatest/p-20c8253d8a05/docs/maintainer-checklist/"/><link rel="sitemap" href="/ingatest/p-20c8253d8a05/sitemap-index.xml"/><link rel="shortcut icon" href="/ingatest/p-20c8253d8a05/brand/favicon.svg" type="image/svg+xml"/><meta name="generator" content="Astro v7.4.0"/><meta name="generator" content="Starlight v0.42.6"/><meta property="og:title" content="The maintainer's checklist"/><meta property="og:type" content="article"/><meta property="og:url" content="https://matteobaccan.github.io/ingatest/p-20c8253d8a05/docs/maintainer-checklist/"/><meta property="og:locale" content="en"/><meta property="og:description" content="What only the maintainer can check: the real-world checks of TODO.md (&quot;Real-world checks&quot;, groups A–E and H). The bullets tagged [runner] run on his self-hosted runner through one workflow; the…"/><meta property="og:site_name" content="Inga"/><meta name="twitter:card" content="summary_large_image"/><meta name="description" content="What only the maintainer can check: the real-world checks of TODO.md (&quot;Real-world checks&quot;, groups A–E and H). The bullets tagged [runner] run on his self-hosted runner through one workflow; the…"/><meta name="theme-color" content="#4f46e5"/><meta property="og:image" content="https://matteobaccan.github.io/ingatest/p-20c8253d8a05/social-preview.png"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta name="twitter:image" content="https://matteobaccan.github.io/ingatest/p-20c8253d8a05/social-preview.png"/><script>
 	window.StarlightThemeProvider = (() => {
 		const storedTheme =
 			typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme');
@@ -24,7 +24,7 @@
 			},
 		};
 	})();
-</script><template id="theme-icons"><svg aria-hidden="true" class="light astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M5 12a1 1 0 0 0-1-1H3a1 1 0 0 0 0 2h1a1 1 0 0 0 1-1Zm.64 5-.71.71a1 1 0 0 0 0 1.41 1 1 0 0 0 1.41 0l.71-.71A1 1 0 0 0 5.64 17ZM12 5a1 1 0 0 0 1-1V3a1 1 0 0 0-2 0v1a1 1 0 0 0 1 1Zm5.66 2.34a1 1 0 0 0 .7-.29l.71-.71a1 1 0 1 0-1.41-1.41l-.66.71a1 1 0 0 0 0 1.41 1 1 0 0 0 .66.29Zm-12-.29a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.71-.71a1.004 1.004 0 1 0-1.43 1.41l.73.71ZM21 11h-1a1 1 0 0 0 0 2h1a1 1 0 0 0 0-2Zm-2.64 6A1 1 0 0 0 17 18.36l.71.71a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.76-.66ZM12 6.5a5.5 5.5 0 1 0 5.5 5.5A5.51 5.51 0 0 0 12 6.5Zm0 9a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm0 3.5a1 1 0 0 0-1 1v1a1 1 0 0 0 2 0v-1a1 1 0 0 0-1-1Z"/></svg><svg aria-hidden="true" class="dark astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.64 13a1 1 0 0 0-1.05-.14 8.049 8.049 0 0 1-3.37.73 8.15 8.15 0 0 1-8.14-8.1 8.59 8.59 0 0 1 .25-2A1 1 0 0 0 8 2.36a10.14 10.14 0 1 0 14 11.69 1 1 0 0 0-.36-1.05Zm-9.5 6.69A8.14 8.14 0 0 1 7.08 5.22v.27a10.15 10.15 0 0 0 10.14 10.14 9.784 9.784 0 0 0 2.1-.22 8.11 8.11 0 0 1-7.18 4.32v-.04Z"/></svg><svg aria-hidden="true" class="auto astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg></template><link rel="stylesheet" href="/ingatest/p-20c8253d8a05/_astro/print.ehPL0gv-.css" media="print"><link rel="stylesheet" href="/ingatest/p-20c8253d8a05/_astro/common.6begOzOP.css"><script type="module" src="/ingatest/p-20c8253d8a05/_astro/page.Dwipeu-R.js"></script></head><body class="astro-g5ptsecz"><a class="sl-skip-link astro-qb7clj6f" href="#_top">Skip to content</a><div class="page sl-flex astro-yntsjkba"><header class="header astro-yntsjkba"><div class="header astro-by6fddyj"><div class="title-wrapper sl-flex astro-by6fddyj"><a href="/ingatest/p-20c8253d8a05/" class="site-title sl-flex astro-6rvad3va"><img class="astro-6rvad3va" alt="Inga" src="/ingatest/p-20c8253d8a05/_astro/logo-mark.GyN-MezV.svg" width="512" height="512"><span class="astro-6rvad3va" translate="no">Inga</span></a></div><div class="sl-flex print:hidden astro-by6fddyj"><site-search class="astro-by6fddyj astro-b5kgnn7o" data-translations="{&quot;placeholder&quot;:&quot;Search&quot;}"><button data-open-modal disabled aria-label="Search" aria-keyshortcuts="Control+K" class="astro-b5kgnn7o"><svg aria-hidden="true" class="astro-b5kgnn7o astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.71 20.29 18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.39ZM11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg><span class="sl-hidden md:sl-block astro-b5kgnn7o" aria-hidden="true">Search</span><kbd class="sl-hidden md:sl-flex astro-b5kgnn7o" style="display: none;"><kbd class="astro-b5kgnn7o">Ctrl</kbd><kbd class="astro-b5kgnn7o">K</kbd></kbd></button><dialog style="padding:0" aria-label="Search" class="astro-b5kgnn7o"><div class="dialog-frame sl-flex astro-b5kgnn7o"><button data-close-modal class="sl-flex md:sl-hidden astro-b5kgnn7o">Cancel</button><div class="search-container astro-b5kgnn7o"><div id="starlight__search" class="astro-b5kgnn7o"></div></div></div></dialog></site-search><script>
+</script><template id="theme-icons"><svg aria-hidden="true" class="light astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M5 12a1 1 0 0 0-1-1H3a1 1 0 0 0 0 2h1a1 1 0 0 0 1-1Zm.64 5-.71.71a1 1 0 0 0 0 1.41 1 1 0 0 0 1.41 0l.71-.71A1 1 0 0 0 5.64 17ZM12 5a1 1 0 0 0 1-1V3a1 1 0 0 0-2 0v1a1 1 0 0 0 1 1Zm5.66 2.34a1 1 0 0 0 .7-.29l.71-.71a1 1 0 1 0-1.41-1.41l-.66.71a1 1 0 0 0 0 1.41 1 1 0 0 0 .66.29Zm-12-.29a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.71-.71a1.004 1.004 0 1 0-1.43 1.41l.73.71ZM21 11h-1a1 1 0 0 0 0 2h1a1 1 0 0 0 0-2Zm-2.64 6A1 1 0 0 0 17 18.36l.71.71a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.76-.66ZM12 6.5a5.5 5.5 0 1 0 5.5 5.5A5.51 5.51 0 0 0 12 6.5Zm0 9a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm0 3.5a1 1 0 0 0-1 1v1a1 1 0 0 0 2 0v-1a1 1 0 0 0-1-1Z"/></svg><svg aria-hidden="true" class="dark astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.64 13a1 1 0 0 0-1.05-.14 8.049 8.049 0 0 1-3.37.73 8.15 8.15 0 0 1-8.14-8.1 8.59 8.59 0 0 1 .25-2A1 1 0 0 0 8 2.36a10.14 10.14 0 1 0 14 11.69 1 1 0 0 0-.36-1.05Zm-9.5 6.69A8.14 8.14 0 0 1 7.08 5.22v.27a10.15 10.15 0 0 0 10.14 10.14 9.784 9.784 0 0 0 2.1-.22 8.11 8.11 0 0 1-7.18 4.32v-.04Z"/></svg><svg aria-hidden="true" class="auto astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg></template><link rel="stylesheet" href="/ingatest/p-20c8253d8a05/_astro/print.ehPL0gv-.css" media="print"><link rel="stylesheet" href="/ingatest/p-20c8253d8a05/_astro/common.6begOzOP.css"><script type="module" src="/ingatest/p-20c8253d8a05/_astro/page.cNngjUgL.js"></script></head><body class="astro-g5ptsecz"><a class="sl-skip-link astro-qb7clj6f" href="#_top">Skip to content</a><div class="page sl-flex astro-yntsjkba"><header class="header astro-yntsjkba"><div class="header astro-by6fddyj"><div class="title-wrapper sl-flex astro-by6fddyj"><a href="/ingatest/p-20c8253d8a05/" class="site-title sl-flex astro-6rvad3va"><img class="astro-6rvad3va" alt="Inga" src="/ingatest/p-20c8253d8a05/_astro/logo-mark.GyN-MezV.svg" width="512" height="512"><span class="astro-6rvad3va" translate="no">Inga</span></a></div><div class="sl-flex print:hidden astro-by6fddyj"><site-search class="astro-by6fddyj astro-b5kgnn7o" data-translations="{&quot;placeholder&quot;:&quot;Search&quot;}"><button data-open-modal disabled aria-label="Search" aria-keyshortcuts="Control+K" class="astro-b5kgnn7o"><svg aria-hidden="true" class="astro-b5kgnn7o astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.71 20.29 18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.39ZM11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg><span class="sl-hidden md:sl-block astro-b5kgnn7o" aria-hidden="true">Search</span><kbd class="sl-hidden md:sl-flex astro-b5kgnn7o" style="display: none;"><kbd class="astro-b5kgnn7o">Ctrl</kbd><kbd class="astro-b5kgnn7o">K</kbd></kbd></button><dialog style="padding:0" aria-label="Search" class="astro-b5kgnn7o"><div class="dialog-frame sl-flex astro-b5kgnn7o"><button data-close-modal class="sl-flex md:sl-hidden astro-b5kgnn7o">Cancel</button><div class="search-container astro-b5kgnn7o"><div id="starlight__search" class="astro-b5kgnn7o"></div></div></div></dialog></site-search><script>
 	(() => {
 		const openBtn = document.querySelector('button[data-open-modal]');
 		const shortcut = openBtn?.querySelector('kbd');
@@ -36,7 +36,7 @@
 		}
 		shortcut.style.display = '';
 	})();
-</script><script type="module" src="/ingatest/p-20c8253d8a05/_astro/Search.astro_astro_type_script_index_0_lang.DLvI_k91.js"></script></div><div class="sl-hidden md:sl-flex print:hidden right-group astro-by6fddyj"><div class="sl-flex social-icons astro-by6fddyj"><a href="https://github.com/matteobaccan/inga" rel="me" class="sl-flex astro-n2mnl6yq"><span class="sr-only astro-n2mnl6yq">GitHub</span><svg aria-hidden="true" class="astro-n2mnl6yq astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-2z5xp7gb"><span class="sr-only astro-2z5xp7gb">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-2z5xp7gb"><option value="dark" class="astro-2z5xp7gb">Dark</option><option value="light" class="astro-2z5xp7gb">Light</option><option value="auto" selected class="astro-2z5xp7gb">Auto</option></select><svg aria-hidden="true" class="icon caret astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+</script><script type="module" src="/ingatest/p-20c8253d8a05/_astro/Search.astro_astro_type_script_index_0_lang.Be-SDO1t.js"></script></div><div class="sl-hidden md:sl-flex print:hidden right-group astro-by6fddyj"><div class="sl-flex social-icons astro-by6fddyj"><a href="https://github.com/matteobaccan/inga" rel="me" class="sl-flex astro-n2mnl6yq"><span class="sr-only astro-n2mnl6yq">GitHub</span><svg aria-hidden="true" class="astro-n2mnl6yq astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-2z5xp7gb"><span class="sr-only astro-2z5xp7gb">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-2z5xp7gb"><option value="dark" class="astro-2z5xp7gb">Dark</option><option value="light" class="astro-2z5xp7gb">Light</option><option value="auto" selected class="astro-2z5xp7gb">Auto</option></select><svg aria-hidden="true" class="icon caret astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
 	StarlightThemeProvider.updatePickers();
 </script><script type="module">var e=`starlight-theme`,t=e=>e===`auto`||e===`dark`||e===`light`?e:`auto`,n=()=>t(typeof localStorage<`u`&&localStorage.getItem(e));function r(t){typeof localStorage<`u`&&localStorage.setItem(e,t===`light`||t===`dark`?t:``)}var i=()=>matchMedia(`(prefers-color-scheme: light)`).matches?`light`:`dark`;function a(e){StarlightThemeProvider.updatePickers(e),document.documentElement.dataset.theme=e===`auto`?i():e,r(e)}matchMedia(`(prefers-color-scheme: light)`).addEventListener(`change`,()=>{n()===`auto`&&a(`auto`)});var o=class extends HTMLElement{constructor(){super(),a(n()),this.querySelector(`select`)?.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&a(t(e.currentTarget.value))})}};customElements.define(`starlight-theme-select`,o);</script><script type="module">var e=class extends HTMLElement{constructor(){super();let e=this.querySelector(`select`);e&&(e.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&(window.location.pathname=e.currentTarget.value)}),window.addEventListener(`pageshow`,t=>{if(!t.persisted)return;let n=e.querySelector(`option[selected]`)?.index;n!==e.selectedIndex&&(e.selectedIndex=n??0)}))}};customElements.define(`starlight-lang-select`,e);</script></div></div></header><nav class="sidebar print:hidden astro-yntsjkba" aria-label="Main"><button popovertarget="starlight__sidebar" class="sl-menu-button sl-flex md:sl-hidden print:hidden astro-r2osgdlg"><svg aria-hidden="true" class="open-menu astro-r2osgdlg astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M3 8h18a1 1 0 1 0 0-2H3a1 1 0 0 0 0 2Zm18 8H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Zm0-5H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Z"/></svg><svg aria-hidden="true" class="close-menu astro-r2osgdlg astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="m13.41 12 6.3-6.29a1.004 1.004 0 1 0-1.42-1.42L12 10.59l-6.29-6.3a1.004 1.004 0 0 0-1.42 1.42l6.3 6.29-6.3 6.29a1 1 0 0 0 0 1.42.998.998 0 0 0 1.42 0l6.29-6.3 6.29 6.3a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.42L13.41 12Z"/></svg><span class="sr-only astro-r2osgdlg">Menu</span></button><script type="module">var e=class extends HTMLElement{constructor(){super();let e=matchMedia(`(min-width: 50em)`),t=()=>{this.popover=e.matches?null:`auto`};t(),e.addEventListener(`change`,()=>t()),this.addEventListener(`toggle`,({newState:e})=>this.trapFocus(e===`open`))}trapFocus(e){document.querySelectorAll(`.main-frame, .sl-skip-link`).forEach(t=>{t.toggleAttribute(`inert`,e)})}};customElements.define(`sl-sidebar-pane`,e);</script><sl-sidebar-pane popover id="starlight__sidebar" class="sidebar-pane astro-yntsjkba"><div class="sidebar-content sl-flex astro-yntsjkba"><sl-sidebar-state-persist data-hash="1m6sog7" class="astro-ipdry5cl"><script aria-hidden="true">
 		(() => {
@@ -235,14 +235,17 @@ The run’s artifacts <code dir="auto">report-A</code> … <code dir="auto">repo
 <div class="sl-heading-wrapper level-h2"><h2 id="the-nightly-real-file-rotation">The nightly real-file rotation</h2><a class="sl-anchor-link" href="#the-nightly-real-file-rotation"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “The nightly real-file rotation”</span></a></div>
 <p><a href="https://github.com/matteobaccan/inga/blob/main/.github/workflows/real-nightly.yml"><code dir="auto">real-nightly.yml</code></a> runs by itself at 01:23 UTC
 on the same runner (free minutes on GitHub’s Free plan; only the small job that
-rewrites the issue runs on a hosted runner, about a minute a night). Each night one
-slot of <a href="https://github.com/matteobaccan/inga/blob/main/tools/real-checks/rotation.json"><code dir="auto">tools/real-checks/rotation.json</code></a>, by the
-UTC weekday, plus a canary (SmolLM2-135M):</p>
+rewrites the issue runs on a hosted runner, about a minute a night). Each night the
+slots of <a href="https://github.com/matteobaccan/inga/blob/main/tools/real-checks/rotation.json"><code dir="auto">tools/real-checks/rotation.json</code></a> of the
+UTC weekday, plus a canary (SmolLM2-135M). The PC is switched on only now and then, so
+a slot is meant to end within about 45 minutes: each group of the rotation is cut into
+slots, one job each, run in turn:</p>
 <table>
 <thead>
 <tr>
 <th>Day</th>
-<th>Slot</th>
+<th>Group</th>
+<th>Slots</th>
 <th>What</th>
 </tr>
 </thead>
@@ -250,66 +253,104 @@ UTC weekday, plus a canary (SmolLM2-135M):</p>
 <tr>
 <td>Mon</td>
 <td><code dir="auto">dense-text</code></td>
-<td>Qwen2.5-0.5B, TinyLlama, LFM2-350M, EXAONE 3.5, SmolLM3, Qwen3.5-0.8B</td>
+<td><code dir="auto">dense-text-1</code>, <code dir="auto">dense-text-2</code></td>
+<td>Qwen2.5-0.5B, TinyLlama, LFM2-350M; EXAONE 3.5, SmolLM3, Qwen3.5-0.8B</td>
 </tr>
 <tr>
 <td>Tue</td>
 <td><code dir="auto">gemma-phi</code></td>
-<td>Gemma 3 1B, Gemma 2 2B, Gemma 3n E2B, Phi-3-mini, Phi-4-mini, Gemma 2B</td>
+<td><code dir="auto">gemma-phi-1</code>, <code dir="auto">gemma-phi-2</code></td>
+<td>Gemma 3 1B, Gemma 2 2B, Gemma 2B; Gemma 3n E2B, Phi-3-mini, Phi-4-mini</td>
 </tr>
 <tr>
 <td>Wed</td>
 <td><code dir="auto">weight-types</code></td>
-<td>Qwen3-0.6B F16 made into every type by <code dir="auto">llama-quantize</code> (and <code dir="auto">llama-imatrix</code>): perplexity of each against <code dir="auto">llama-perplexity</code>, <code dir="auto">inga quantize</code>’s bytes against <code dir="auto">llama-quantize</code>’s</td>
+<td><code dir="auto">weight-types-k</code>, <code dir="auto">weight-types-legacy</code>, <code dir="auto">weight-types-iq4-3</code>, <code dir="auto">weight-types-iq2-1</code></td>
+<td>Qwen3-0.6B F16 made into every type by <code dir="auto">llama-quantize</code> (and <code dir="auto">llama-imatrix</code>), a quarter of the types each (the entry’s <code dir="auto">types</code>): perplexity of each against <code dir="auto">llama-perplexity</code>, <code dir="auto">inga quantize</code>’s bytes against <code dir="auto">llama-quantize</code>’s</td>
 </tr>
 <tr>
 <td>Thu</td>
 <td><code dir="auto">vision</code></td>
-<td>SmolVLM-256M, Gemma 3 4B, Qwen2.5-VL-3B, Qwen3-VL-2B (images), Ultravox (audio)</td>
+<td><code dir="auto">vision-1</code>, <code dir="auto">vision-2</code></td>
+<td>SmolVLM-256M, Gemma 3 4B; Qwen2.5-VL-3B, Qwen3-VL-2B (images), Ultravox (audio)</td>
 </tr>
 <tr>
 <td>Fri</td>
+<td><code dir="auto">speech</code></td>
 <td><code dir="auto">speech</code></td>
 <td>Whisper tiny.en / base.en / tiny-q5_1, <code dir="auto">openai/whisper-tiny</code> against <code dir="auto">ggml-tiny.bin</code>, Silero v5.1.2, Parakeet v3, OuteTTS + WavTokenizer</td>
 </tr>
 <tr>
 <td>Sat</td>
 <td><code dir="auto">encoders-hf-spec</code></td>
-<td>nomic-embed, bge-small, bge-m3, a reranker; Qwen3-0.6B safetensors, MLX 4-bit, GPTQ, AWQ; Qwen3-1.7B with a Qwen3-0.6B draft</td>
+<td><code dir="auto">encoders-spec</code>, <code dir="auto">hf-formats</code></td>
+<td>nomic-embed, bge-small, bge-m3, a reranker, Qwen3-1.7B with a Qwen3-0.6B draft; Qwen3-0.6B safetensors, MLX 4-bit, GPTQ, AWQ</td>
 </tr>
 <tr>
 <td>Sun</td>
 <td><code dir="auto">big</code></td>
-<td>a four-week cycle of larger files: gpt-oss-20b; Mamba-Codestral-7B and LFM2-8B-A1B; SD 1.5; OLMoE and LLaDA-8B</td>
+<td><code dir="auto">big-1</code>, <code dir="auto">big-2</code></td>
+<td>a four-week cycle of larger files: gpt-oss-20b; Mamba-Codestral-7B and LFM2-8B-A1B; SD 1.5; OLMoE and LLaDA-8B (<code dir="auto">big-2</code> runs in weeks 2 and 4 only)</td>
 </tr>
 </tbody>
 </table>
 <ul>
-<li><strong>The disk.</strong> Downloads go to a folder of their own (the tool cache’s
+<li>
+<p><strong>The jobs.</strong> <code dir="auto">plan</code> (a hosted runner) picks the night’s slots and, from the tracking
+issue’s state, the entries that passed on this commit already; <code dir="auto">references</code> builds
+Inga and the reference programs (llama.cpp, whisper.cpp, stable-diffusion.cpp,
+transcribe.cpp), each once per commit and kept in the runner’s tool cache, so their
+first build (an hour or more) is not counted in a slot’s time; then one job per slot
+(limit 75 minutes), and <code dir="auto">issue</code> (a hosted runner), which writes every slot’s results,
+also when a slot failed or the run was cancelled. A slot that failed is run again
+alone with <strong>Re-run failed jobs</strong>.</p>
+</li>
+<li>
+<p><strong>Resume.</strong> An entry that passed on the same commit is not run again: the plan reads
+each entry’s last commit from the tracking issue, and the runner keeps a journal of
+the entries of the current commit (<code dir="auto">nightly-journal.json</code> in its tool cache), so a slot
+stopped by a shutdown before its results reached the issue goes on from where it
+stopped the next time, and reports the entries it had passed. A slot whose entries
+all passed is not run; <code dir="auto">rerun</code> (Run workflow) runs them again anyway. A new commit of
+<code dir="auto">main</code> runs everything again.</p>
+</li>
+<li>
+<p><strong>The disk.</strong> Downloads go to a folder of their own (the tool cache’s
 <code dir="auto">inga-real-checks\nightly-hf</code>), emptied at the start and after each model: download,
 check, delete. Before each download the free space of that drive is measured: a
 model whose files (the Hub’s sizes) and scratch space do not fit is skipped, the row
 saying how much it needs and how much is free. A model already in the runner’s own
-Hugging Face cache (<code dir="auto">HF_HUB_CACHE</code>) is read there and never written or deleted.</li>
-<li><strong>Entries to verify.</strong> Entries of confidence M or U (<code dir="auto">"verify": true</code>) are file names
+Hugging Face cache (<code dir="auto">HF_HUB_CACHE</code>) is read there and never written or deleted.</p>
+</li>
+<li>
+<p><strong>Entries to verify.</strong> Entries of confidence M or U (<code dir="auto">"verify": true</code>) are file names
 not confirmed yet: their first run reports what the Hub has (in the issue’s “Entries to
 verify”); a missing file is a skip there, not a failure. Fix <code dir="auto">rotation.json</code> from it
-and drop the flag.</li>
-<li><strong>The results</strong> go to one issue, <strong>“Real-file checks — tracking”</strong>: its body (the
+and drop the flag.</p>
+</li>
+<li>
+<p><strong>The results</strong> go to one issue, <strong>“Real-file checks — tracking”</strong>: its body (the
 coverage matrix: each entry’s last result, last pass and last failure with commit and
-run) is rewritten each night; a comment is added only when an entry flips between pass
-and fail. The per-date issues of the workflow above stay for the manual groups.</li>
-<li><strong>Skipped nights.</strong> A scheduled night whose slot already ran on the same commit of
-<code dir="auto">main</code> is skipped (the state is kept in the tracking issue). Nights queued while the
-PC is off do not pile up: the newest cancels the one waiting.</li>
-<li><strong>On demand:</strong> Actions → <strong>Real-file nightly</strong> → Run workflow with a <code dir="auto">slot</code> (and a
-<code dir="auto">week</code> for <code dir="auto">big</code>), or <code dir="auto">gh workflow run real-nightly.yml -f slot=speech</code>. The
-<code dir="auto">Real-world checks</code> workflow runs a slot too, as group <strong>N</strong> (<code dir="auto">-f groups=N -f slot=vision</code>): its results go to that run’s dated issue, not to the tracking issue.</li>
-<li><strong>The test switches</strong> the checks set for the ignored tests (not settings of Inga; <a href="/ingatest/p-20c8253d8a05/docs/development/"><code dir="auto">development.md</code></a> lists them):
+run) is rewritten after each slot; a comment is added only when an entry flips between pass
+and fail. The per-date issues of the workflow above stay for the manual groups.</p>
+</li>
+<li>
+<p><strong>Queued nights.</strong> Nights queued while the PC is off do not pile up: the newest
+cancels the one waiting (the slots it finished still reach the issue).</p>
+</li>
+<li>
+<p><strong>On demand:</strong> Actions → <strong>Real-file nightly</strong> → Run workflow with a <code dir="auto">slot</code> (a slot
+or a whole group; and a <code dir="auto">week</code> for <code dir="auto">big</code>), or
+<code dir="auto">gh workflow run real-nightly.yml -f slot=weight-types-k</code>. The
+<code dir="auto">Real-world checks</code> workflow runs a slot too, as group <strong>N</strong> (<code dir="auto">-f groups=N -f slot=vision</code>): its results go to that run’s dated issue, not to the tracking issue.</p>
+</li>
+<li>
+<p><strong>The test switches</strong> the checks set for the ignored tests (not settings of Inga; <a href="/ingatest/p-20c8253d8a05/docs/development/"><code dir="auto">development.md</code></a> lists them):
 <code dir="auto">REAL_CHECKS_LOGITS_MODEL</code>, <code dir="auto">REAL_CHECKS_LOGITS_TOKENS</code>, <code dir="auto">REAL_CHECKS_LOGITS_REF</code>
 (<code dir="auto">crates/inga-engine/tests/real_logits.rs</code>), <code dir="auto">REAL_CHECKS_SILERO_REF</code>,
 <code dir="auto">REAL_CHECKS_SILERO_SAMPLES</code> with <code dir="auto">INGA_SILERO</code> (<code dir="auto">crates/inga-vision/tests/vad.rs</code>),
-and <code dir="auto">INGA_MODELS</code> for <code dir="auto">mlx.rs</code>.</li>
+and <code dir="auto">INGA_MODELS</code> for <code dir="auto">mlx.rs</code>.</p>
+</li>
 </ul>
 <div class="sl-heading-wrapper level-h2"><h2 id="2-by-hand-on-the-runners-pc-windows">2. By hand, on the runner’s PC (Windows)</h2><a class="sl-anchor-link" href="#2-by-hand-on-the-runners-pc-windows"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “2. By hand, on the runner’s PC (Windows)”</span></a></div>
 <p>One sitting, with <code dir="auto">inga serve</code> running a real chat model (Qwen3-4B or larger for the
