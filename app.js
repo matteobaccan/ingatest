@@ -2513,8 +2513,13 @@ $("info-copy").onclick = async () => {
 // device loaded as it is (source.file) is never given back: it runs on the CPU (a file
 // for the GPU is copied into OPFS first, and then has a name), and the page could not
 // be sure to read it again once its worker ended (the user would have to pick it again).
-// `?release_ms=N` in the page's address shortens it (the browser tests).
-const RELEASE_MS = Number(new URLSearchParams(location.search).get("release_ms")) || 10 * 60000;
+// The browser tests shorten it: a script run before the page's own (Playwright's
+// addInitScript) sets `window.__ingaReleaseMs`. Never read from the page's address, and
+// whatever it holds, a whole number of milliseconds from 1 s to 1 h (10 min by default).
+const RELEASE_MS = (() => {
+  const n = Number.parseInt(String(globalThis.__ingaReleaseMs ?? ""), 10);
+  return Number.isSafeInteger(n) ? Math.min(Math.max(n, 1000), 3600000) : 10 * 60000;
+})();
 let releaseTimer = null;
 let released = null; // the model given back while hidden: {name}, stored in OPFS
 document.addEventListener("visibilitychange", () => {
@@ -2525,7 +2530,7 @@ document.addEventListener("visibilitychange", () => {
   if (hidden) {
     clearTimeout(countTimer);
     countTimer = null;
-    if (onGpu && source?.name && !busy && !answer) releaseTimer = setTimeout(releaseModel, RELEASE_MS);
+    if (onGpu && source?.name && !busy && !answer) releaseTimer = setTimeout(() => releaseModel(), RELEASE_MS);
   } else if (released) {
     const r = released;
     released = null;
