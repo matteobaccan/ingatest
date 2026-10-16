@@ -1,0 +1,246 @@
+<!doctype html>
+<!--
+Inga -- Local LLM inference engine in Rust.
+Copyright (c) Matteo Baccan -- https://github.com/matteobaccan/inga
+SPDX-License-Identifier: MIT
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inga in the browser</title>
+<!-- The commit of a published build (the Pages workflow writes it), for the report. -->
+<meta name="inga-build" content="56f8cde 2026-10-16">
+<!-- Where "Report on GitHub" opens an issue, and with which issue form (empty: a plain issue with the
+report as its text); the beta's guide. The Pages workflow sets them for the public build. -->
+<meta name="inga-report-repo" content="matteobaccan/ingatest">
+<meta name="inga-report-template" content="">
+<meta name="inga-guide" content="https://github.com/matteobaccan/ingatest#readme">
+<!-- Cross-origin isolation on GitHub Pages (the beta): a service worker, before app.js. -->
+<script src="coi.js"></script>
+<style>
+:root {
+  --bg: #fafaf9; --fg: #1c1917; --muted: #57534e; --line: #d6d3d1; --card: #ffffff;
+  --accent: #0f766e; --accent-fg: #ffffff; --warn: #b45309; --err: #b91c1c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1917; --fg: #f5f5f4; --muted: #a8a29e; --line: #44403c; --card: #292524;
+    --accent: #2dd4bf; --accent-fg: #042f2e; --warn: #fbbf24; --err: #f87171;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, -apple-system, sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.35rem; margin: 0 0 4px; }
+h2 { font-size: 1rem; margin: 0 0 8px; }
+p.note { color: var(--muted); margin: 0 0 12px; font-size: 0.9rem; }
+section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 0 0 12px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+input[type=url], input[type=text], textarea { flex: 1 1 220px; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
+select { padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; max-width: 100%; }
+input[type=number] { width: 6.5em; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
+textarea { width: 100%; min-height: 4.5em; resize: vertical; }
+button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-fg); font: inherit; cursor: pointer; }
+button.ghost { background: transparent; color: var(--accent); }
+button:disabled { opacity: 0.45; cursor: default; }
+ul.list { list-style: none; padding: 0; margin: 0; }
+ul.list li { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line); }
+ul.list li:first-child { border-top: 0; }
+.meta { color: var(--muted); font-size: 0.85rem; }
+#status { font-size: 0.9rem; color: var(--muted); min-height: 1.4em; word-break: break-word; }
+#status.err { color: var(--err); }
+progress { width: 100%; height: 8px; }
+#chat { white-space: pre-wrap; word-break: break-word; }
+#chat .u { font-weight: 600; margin-top: 10px; }
+#chat .a { margin-top: 4px; }
+#chat .a.md { white-space: normal; }
+#chat .md p, #chat .md ul, #chat .md ol, #chat .md blockquote { margin: 6px 0; }
+#chat .md ul, #chat .md ol { padding-left: 22px; }
+#chat .md blockquote { padding-left: 8px; border-left: 3px solid var(--line); color: var(--muted); }
+#chat .md h3, #chat .md h4, #chat .md h5, #chat .md h6 { margin: 10px 0 4px; font-size: 1rem; }
+#chat .md code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em; background: var(--card); padding: 0 3px; border-radius: 4px; }
+#chat .md .code { position: relative; margin: 6px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+#chat .md .code .lang { position: absolute; left: 8px; top: 4px; font-size: 0.75rem; color: var(--muted); }
+#chat .md .code .copy { position: absolute; right: 4px; top: 4px; padding: 2px 8px; font-size: 0.75rem; }
+#chat .md pre { margin: 0; padding: 24px 10px 8px; overflow-x: auto; white-space: pre; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; }
+#chat .md a { color: var(--accent); }
+#stats { font-variant-numeric: tabular-nums; }
+details summary { cursor: pointer; color: var(--muted); }
+#chat details.think { margin-top: 4px; padding: 4px 8px; border-left: 3px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+#chat details.think .body { margin-top: 4px; }
+select { padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
+label.check { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex-basis: 100%; }
+#bench, #kernels { overflow-x: auto; }
+#bench table, #kernels table { border-collapse: collapse; font-size: 0.85rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
+#bench th, #bench td, #kernels th, #kernels td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: right; white-space: nowrap; }
+#bench th:first-child, #bench td:first-child, #kernels th:first-child, #kernels td:first-child { text-align: left; white-space: normal; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Inga in the browser</h1>
+  <p class="note" id="beta-note" hidden><strong>Beta.</strong> A first public test of Inga in the browser:
+  pick a model, chat, run the Standard test, then press "Report on GitHub" at the bottom (what works and what
+  does not: <a id="beta-guide" href="https://github.com/matteobaccan/inga/blob/main/docs/wasm-beta.md">the beta's guide</a>).</p>
+  <p class="note">An experiment: Inga compiled to WebAssembly, running on this device's CPU (WebAssembly
+  SIMD; one thread, or every core when the page is cross-origin isolated), or with its layers on the GPU
+  through WebGPU (Settings, Device: experimental). A model larger than the tab's memory runs with part of it
+  read from this site's storage at every token. Nothing is sent anywhere: the model runs in this page. Tested in
+  headless Chromium on Linux and in Safari on an iPhone 16 Pro.</p>
+
+  <section style="position:sticky;top:0;z-index:1">
+    <div id="status">Starting…</div>
+    <progress id="progress" max="1" value="0" hidden></progress>
+  </section>
+
+  <section>
+    <h2>Test models</h2>
+    <p class="note">A fixed list, for runs that compare: downloaded once from Hugging Face into this site's
+    private storage (OPFS); an interrupted download resumes. Where "Get" is blocked (a preview frame), "Save
+    file" saves it and option 2 below loads it: a picked file is stored under its own name, which must be the
+    list's file name for "stored ✓" to show.</p>
+    <ul class="list" id="suggested"></ul>
+  </section>
+
+  <section>
+    <h2>Load a model</h2>
+    <div class="row" style="margin-bottom:10px">
+      <label for="url" class="meta" style="flex-basis:100%">1. From a link to a GGUF file (it must allow cross-origin downloads, as Hugging Face does)</label>
+      <input type="url" id="url" placeholder="https://huggingface.co/…/resolve/main/model-Q8_0.gguf">
+      <button id="url-go">Download and load</button>
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <label for="file" class="meta" style="flex-basis:100%">2. From a file on this device (on an iPhone or iPad it opens the Files app)</label>
+      <input type="file" id="file" accept=".gguf,application/octet-stream">
+    </div>
+    <div class="row">
+      <span class="meta" style="flex-basis:100%">3. From an <code>inga serve</code> on your network: not available yet. The server
+      does not hand out its model files today; until it does, any web server on your network
+      that sends the GGUF file with CORS headers works through option 1 (over HTTPS, since
+      this page is HTTPS).</span>
+    </div>
+    <details style="margin-top:10px">
+      <summary>Settings</summary>
+      <div class="row" style="margin-top:8px">
+        <label>Context <input type="number" id="ctx" value="2048" min="64" step="64"></label>
+        <label>Max tokens <input type="number" id="max" value="256" min="1"></label>
+        <label>Temperature <input type="number" id="temp" value="0.7" min="0" step="0.1"></label>
+        <label class="check"><input type="checkbox" id="think" checked> Think before answering
+          <span class="meta">(thinking models such as Qwen3; unchecked, they answer at once)</span></label>
+        <label class="check">Memory for the model
+          <select id="wmem"><option value="auto" selected>Auto</option><option value="all">All in memory</option><option value="mb">Limit in MB</option></select>
+          <input type="number" id="wmem-mb" value="1500" min="1" step="64" aria-label="Megabytes for the model">
+          <span class="meta" id="wmem-hint"></span>
+          <span class="meta">Everything the model keeps in memory: its weights, its KV cache for the context, its
+          working buffers. What does not fit is read from this site's storage while it runs (the embeddings a row
+          per token, the output layer and the last layers whole at every token): much slower, but a model larger
+          than the tab's memory runs; one that cannot fit is refused. A longer context leaves less for the
+          weights. Auto: 1600 MB on an iPhone or iPad, under the measured ceiling (Safari kept the tab at 1.75 GiB on an iPhone 16 Pro and
+          ended it at 2000 MB; a phone with less memory may need less), 3584 MB elsewhere (under the 4 GiB a
+          WebAssembly module can address: a model's part in memory is capped near 4 GB, so a larger model always
+          reads from storage; WebAssembly Memory64, in Chrome but not yet in Safari, would lift that). Kept in this
+          browser.</span></label>
+        <label class="check">Device
+          <select id="device"><option value="cpu" selected>CPU</option><option value="auto">Auto</option><option value="gpu">GPU (WebGPU, experimental)</option></select>
+          <button id="gpu-info" class="ghost">GPU info</button>
+          <span class="meta" id="device-hint"></span>
+          <span class="meta">CPU: WebAssembly SIMD on this device's cores. GPU: the layers through WebGPU, as
+          many as fit "GPU memory", the rest on the CPU (read from this site's storage when the memory limit
+          asks); a model whose layers or weight types the GPU does not run stays on the CPU, and the load line
+          says why. Auto: the GPU only where it was measured faster than the CPU, and never for a model larger
+          than "Memory for the model" (it would be read from storage, and the GPU's share leaves the CPU fewer
+          weights); on the iPhone 16 Pro the GPU was not faster (Qwen3 0.6B: 16.3 tok/s on the GPU, 25 on the
+          CPU), so Auto picks the CPU for now.</span></label>
+        <label class="check">GPU memory
+          <select id="gmem"><option value="auto" selected>Auto</option><option value="mb">Limit in MB</option></select>
+          <input type="number" id="gmem-mb" value="1024" min="1" step="64" aria-label="Megabytes for the GPU">
+          <span class="meta">What the GPU may hold: its layers' weights and KV cache, its working buffers. Auto:
+          1024 MB on an iPhone or iPad (Llama 3.2 1B, 0.9 GiB on the GPU, is the largest model measured to load
+          there); 3072 MB elsewhere, a guess: WebGPU does not tell a GPU's memory, and 3 GiB fits a 4 GB card
+          (set it in MB for yours).</span></label>
+        <label class="check">GPU memory accounting
+          <select id="gacct"><option value="auto" selected>Auto</option><option value="one">One limit: the GPU's bytes counted in "Memory for the model"</option><option value="apart">Apart: the limit covers WebAssembly memory only</option></select>
+          <span class="meta">One limit adds the GPU's bytes to WebAssembly memory, in case the system counts a tab's
+          GPU buffers with its memory, as iOS may; then a model that needs storage keeps fewer weights on the CPU
+          and runs slower on the GPU than on the CPU alone (Qwen3-4B on an iPhone 16 Pro: 0.9 against 2.3 tok/s).
+          Apart: "Memory for the model" bounds WebAssembly memory only and "GPU memory" the GPU's bytes, as on a
+          desktop, whose graphics memory is not the tab's. Auto: one limit on an iPhone or iPad (until the test in
+          the guide's step 7 shows that iOS does not count GPU buffers), apart elsewhere. The load line says which
+          was used.</span></label>
+        <label class="check">Draft model
+          <select id="draft"><option value="">None</option></select>
+          <span class="meta">A smaller stored model with the same vocabulary (for Qwen3-4B, Qwen3-0.6B; for Llama
+          3.2 3B, Llama 3.2 1B) guesses a few tokens, and the model checks them in one pass: a layer read from
+          storage is read once for every token the pass accepts. It is held whole, out of the same memory
+          limit, so the model keeps less in memory; it turns itself off while it does not make the answers
+          faster. Kept in this browser.</span></label>
+      </div>
+      <p class="meta" id="gpu-line"></p>
+    </details>
+  </section>
+
+  <section>
+    <h2>Stored models</h2>
+    <ul class="list" id="stored"></ul>
+    <p class="meta" id="storage"></p>
+    <div class="row" style="margin-bottom:8px"><button id="wipe" class="ghost" data-act="1">Delete all stored data</button>
+      <span id="wipe-confirm" hidden><span class="meta">Delete every model and file this site stores? This cannot be undone.</span>
+        <button id="wipe-yes">Delete all</button><button id="wipe-no" class="ghost">Cancel</button></span></div>
+    <div class="row"><button id="disktest" class="ghost" data-act="1">Disk speed test</button>
+      <span class="meta" id="disktest-out">Writes 256 MiB here, reads it back, deletes it.</span></div>
+  </section>
+
+  <section>
+    <h2 id="model-name">Chat</h2>
+    <div id="chat"></div>
+    <div class="row" style="margin-top:10px">
+      <textarea id="prompt" placeholder="Write a message" disabled></textarea>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="send" disabled>Send</button>
+      <button id="stop" class="ghost" disabled>Stop</button>
+      <button id="reset" class="ghost" disabled>New chat</button>
+      <button id="gpubench" class="ghost" disabled title="Runs the loaded GPU model on a fixed prompt and 32 tokens under several kernel choices">GPU benchmark</button>
+      <button id="gpuprofile" class="ghost" disabled title="Times every kernel of the loaded GPU model's decode steps (timestamp-query where the GPU has it)">Kernel times</button>
+    </div>
+    <p class="meta" id="stats"></p>
+    <div class="row" style="margin-top:8px">
+      <button id="stdtest" class="ghost" data-act="1" disabled title="Ciao, presentati in tre frasi. — thinking off, temperature 0, 64 tokens, a fresh chat">Standard test</button>
+      <span class="meta">A fixed, comparable run on the loaded model, whatever the Settings: the prompt "Ciao,
+      presentati in tre frasi.", thinking off, temperature 0, at most 64 tokens, a fresh chat.</span>
+    </div>
+    <div class="row" id="std-out" hidden style="margin-top:6px">
+      <code id="std-line" style="flex:1 1 100%;white-space:pre-wrap;word-break:break-word;font-size:0.8rem"></code>
+      <button id="std-copy" class="ghost">Copy</button>
+    </div>
+    <details id="std-all" style="margin-top:8px">
+      <summary>Standard test results in this browser (<span id="std-count">0</span>)</summary>
+      <pre id="std-list" style="white-space:pre-wrap;word-break:break-word;font-size:0.8rem"></pre>
+      <div class="row"><button id="std-copy-all" class="ghost">Copy all</button><button id="std-clear" class="ghost">Clear</button></div>
+    </details>
+    <div id="bench" class="meta"></div>
+    <div id="kernels" class="meta"></div>
+  </section>
+
+  <section>
+    <h2>Report</h2>
+    <p class="note">Opens GitHub's issue form for this beta with what the page knows filled in: this browser and
+    its GPU adapter, the model and how it loaded, the speeds (the last answer, the Standard test, the GPU
+    benchmark and kernel times if you ran them), the load log and the errors the page saw. Nothing is sent from
+    here: you read it on GitHub, add what you did, and submit it (a GitHub account is needed).</p>
+    <div class="row">
+      <button id="report-go">Report on GitHub</button>
+      <button id="report-copy" class="ghost">Copy report</button>
+      <span class="meta" id="report-out"></span>
+    </div>
+    <details style="margin-top:8px">
+      <summary>What the report contains</summary>
+      <pre id="report-text" style="white-space:pre-wrap;word-break:break-word;font-size:0.8rem"></pre>
+    </details>
+  </section>
+</main>
+<script type="module" src="app.js"></script>
+<script type="module" src="report.js"></script>
+</body>
+</html>
