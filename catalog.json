@@ -68,6 +68,12 @@
    "label": "LFM",
    "icon": "💧",
    "about": "Liquid AI's LFM2"
+  },
+  {
+   "id": "try",
+   "label": "To try",
+   "icon": "🧪",
+   "about": "Community models to try (Emma-6, an Italian Llama fine-tune)"
   }
  ],
  "models": [
@@ -1873,6 +1879,27 @@
      "quant": "Q8_0",
      "file": "LFM2-350M-Q8_0.gguf",
      "size": 376000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "emma-6",
+   "name": "Emma-6",
+   "family": "try",
+   "arch": "llama",
+   "params": 1.55,
+   "licence": "see the model card",
+   "repo": "PaoloneSborracchione/emma-6-GGUF",
+   "tags": [
+    "chat",
+    "italian"
+   ],
+   "variants": [
+    {
+     "quant": "Q8_0",
+     "file": "emma-6-Q8_0.gguf",
+     "size": 1642824253,
      "approx": true
     }
    ]
