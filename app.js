@@ -8,6 +8,9 @@
 // anywhere (HTTPS needed for OPFS and workers off localhost).
 
 import { markdown } from "./md.js";
+import { createPicker } from "./picker.js";
+import * as chats from "./chats.js";
+import { t, setLang } from "./i18n.js";
 
 // The test models: a fixed list, so runs on different devices compare (the maintainer's
 // matrix of models x CPU / GPU, with the Standard test). Sizes are approximate.
@@ -34,8 +37,10 @@ const fileName = (url) => decodeURIComponent(new URL(url).pathname.split("/").po
 let worker = null;
 let source = null; // what the loaded model came from: {name} (OPFS) or {file}
 let busy = false;
-let messages = [];
+let messages = []; // the current conversation's messages ({role, content, ...}: chats.js)
+let chat = null; // the current conversation (chats.js), null until its first message
 let answer = null; // the element of the answer streaming
+let answerBox = null; // its message (the bubble with the speed line)
 let answerText = ""; // its raw text (what goes back to the model), rendered as Markdown
 let renderTimer = null; // a render of the answer pending (at most one every RENDER_MS)
 const RENDER_MS = 100;
@@ -47,6 +52,7 @@ let limitUsed = ""; // the memory limit the model being loaded was given, as the
 let deviceUsed = { device: "cpu", label: "" }; // the device chosen for it (chooseDevice)
 let onGpu = false; // the loaded model runs on the GPU (WebGPU)
 let lastStats = null; // the last answer's statistics ("done"), for the beta's report
+let modelName = ""; // the loaded model's name, on its answers
 // The public beta (GitHub Pages, docs/wasm-beta.md; `?beta` elsewhere): Device defaults to
 // the GPU where the browser has WebGPU, off iOS (report.js reads the page's state).
 const BETA = location.hostname.endsWith(".github.io") || new URLSearchParams(location.search).has("beta");
@@ -73,7 +79,9 @@ function setBusy(b) {
   $("send").disabled = b || !loaded;
   $("stdtest").disabled = b || !loaded;
   $("prompt").disabled = !loaded;
-  $("reset").disabled = b || !loaded;
+  $("reset").disabled = b;
+  $("new-chat").disabled = b;
+  for (const x of document.querySelectorAll("#convs button")) x.disabled = b;
   $("gpubench").disabled = b || !loaded || !onGpu;
   $("gpuprofile").disabled = b || !loaded || !onGpu;
 }
@@ -84,16 +92,24 @@ function renderAnswer(soon) {
   if (soon) {
     renderTimer ??= setTimeout(() => {
       renderTimer = null;
-      if (answer) markdown(answer, answerText);
+      if (answer) {
+        const box = $("chat");
+        const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+        markdown(answer, answerText);
+        if (atEnd) box.scrollTop = box.scrollHeight;
+      }
     }, RENDER_MS);
     return;
   }
   clearTimeout(renderTimer);
   renderTimer = null;
   if (answer) {
+    const box = $("chat");
+    const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
     markdown(answer, answerText);
     // The text as the model wrote it, for the browser tests (the rendering drops marks).
     answer.dataset.raw = answerText;
+    if (atEnd) box.scrollTop = box.scrollHeight;
   }
 }
 
@@ -192,9 +208,13 @@ function workerLost(why) {
 }
 
 // The load log: each step the worker reports, with its time, shown under the status
-// line (a load that stops says where; Copy it into a report).
+// line (a load that stops says where; Copy it into a report). The Settings' "Load log"
+// keeps every step, only the start, the end and the errors, or nothing.
 let logT0 = null;
+const LOG_SUMMARY = /^(load asked|ready to chat|page error|No word|the page received)/;
 function loadLog(text, reset = false) {
+  const level = $("loglevel")?.value ?? "all";
+  if (level === "off" || (level === "summary" && !LOG_SUMMARY.test(text) && !/error|fail|refus|stopp/i.test(text))) return;
   let el = document.getElementById("load-log");
   if (!el) {
     el = document.createElement("pre");
@@ -267,7 +287,9 @@ function handleMessage(m) {
       loadedInfo = m;
       const i = m.info;
       onGpu = i.device === "webgpu";
-      $("model-name").textContent = i.name || source?.name || source?.file?.name || "Chat";
+      modelName = i.name || source?.name || source?.file?.name || "model";
+      $("model-name").textContent = modelName;
+      $("model-chip").title = `${source?.name ?? source?.file?.name ?? ""}: ${i.architecture}, ${i.layers} layers; click for another model`;
       const cpu = `${i.isa} kernels on ${i.threads} thread${i.threads === 1 ? "" : "s"}`;
       let where = cpu;
       if (onGpu) {
@@ -284,12 +306,11 @@ function handleMessage(m) {
         `context ${i.ctx}, ${where}; WebAssembly memory ${fmt(m.memory)}${gpuBytes(m.gpu)}; ` +
         `${limitUsed}; ${deviceUsed.label}.` + (why ? ` ${why}.` : "") + streamNote(i) + draftNote(i));
       $("wmem-hint").textContent = "";
-      if (!keepChat) {
-        messages = [];
-        $("chat").textContent = "";
-      }
+      // A model loaded: a new conversation (the earlier ones stay in the side bar).
+      if (!keepChat) newChat();
       keepChat = false;
       setBusy(false);
+      showView("chat");
       $("prompt").focus();
       loadLog("ready to chat");
       break;
@@ -310,9 +331,15 @@ function handleMessage(m) {
     case "done": {
       const s = m.stats;
       lastStats = { ...s, memory: m.memory, gpu: m.gpu };
-      // Only the answer goes back to the model, as in inga serve's web UI.
-      messages.push({ role: "assistant", content: answerText });
+      // Only the answer goes back to the model, as in inga serve's web UI; the reasoning
+      // and the speeds are kept for the page.
+      const reasoning = thinking?.lastChild?.textContent || undefined;
+      const said = { role: "assistant", content: answerText, reasoning, model: modelName, at: Date.now(),
+        stats: { prompt_tps: s.prompt_tps, gen_tps: s.gen_tps, prompt_tokens: s.prompt_tokens, gen_tokens: s.gen_tokens } };
+      messages.push(said);
+      speedLine(answerBox, said);
       endAnswer();
+      persistChat();
       $("stop").disabled = true;
       const r = s.reasoning_tokens ? ` (${s.reasoning_tokens} of them thinking)` : "";
       $("stats").textContent = `Prompt: ${s.prompt_tokens - s.cached_tokens} tokens at ${s.prompt_tps.toFixed(1)} tok/s` +
@@ -335,8 +362,7 @@ function handleMessage(m) {
       showKernels(m);
       $("stop").disabled = true;
       status("Ready. Kernel times done: the table is below. The prompt is not part of the chat: the chat starts again.");
-      messages = [];
-      $("chat").textContent = "";
+      newChat();
       setBusy(false);
       break;
     case "gpubench":
@@ -344,8 +370,7 @@ function handleMessage(m) {
       if (m.done) {
         $("stop").disabled = true;
         status("Ready. The benchmark's prompt is not part of the chat: the chat starts again.");
-        messages = [];
-        $("chat").textContent = "";
+        newChat();
         setBusy(false);
       }
       break;
@@ -615,14 +640,15 @@ function showSuggested() {
 function showStored(models) {
   const ul = $("stored");
   ul.textContent = "";
-  if (!models.length) {
-    ul.innerHTML = `<li class="meta">None yet.</li>`;
-    return;
-  }
   for (const k of Object.keys(storedSize)) delete storedSize[k];
   for (const m of models) if (m.model && m.complete !== false && !m.error) storedSize[m.name] = m.size;
   showDraftChoices();
   showSuggested();
+  picker.render();
+  if (!models.length) {
+    ul.innerHTML = `<li class="meta">None yet.</li>`;
+    return;
+  }
   for (const m of models) {
     const li = document.createElement("li");
     const d = document.createElement("div");
@@ -679,7 +705,10 @@ function ctx() {
   return Number($("ctx").value) || 2048;
 }
 
-async function fromUrl(url) {
+// `from`: the catalog's model and variant the link is of, for a clearer message when
+// the file is not there (the catalog is checked by tools/wasm-catalog.py, but a
+// repository may move after).
+async function fromUrl(url, from = null) {
   try {
     url = new URL(url, location.href).href;
   } catch {
@@ -703,6 +732,11 @@ async function fromUrl(url) {
   });
   worker.postMessage({ type: "download", url, name });
   if (await done) loadStored(name);
+  else if (from && /HTTP (404|401|403)/.test($("status").textContent)) {
+    status(`${$("status").textContent}. This is the model catalog's ${from.model.name}, ${from.variant.quant}: the file is not ` +
+      `(or no longer) where the catalog says${from.variant.approx ? " (the catalog has not been checked against Hugging Face yet)" : ""}. ` +
+      "Pick another variant or model, or paste a link to the file (option 1).", true);
+  }
 }
 
 // WebAssembly memory only grows: a model loaded after another would keep the first
@@ -766,24 +800,46 @@ function send() {
   if (!text || busy || !source) return;
   $("prompt").value = "";
   const opts = { max_tokens: Number($("max").value) || 256, temperature: Number($("temp").value), thinking: $("think").checked };
+  // The sampler's Settings: each one sent when it is a number (empty: Inga's default).
+  for (const [id, key] of [["topp", "top_p"], ["topk", "top_k"], ["minp", "min_p"], ["rep", "repeat_penalty"], ["pres", "presence_penalty"], ["freq", "frequency_penalty"]]) {
+    const v = $(id).value.trim();
+    if (v !== "" && Number.isFinite(Number(v))) opts[key] = Number(v);
+  }
   ask(text, opts);
+}
+
+// What the model is sent: the system prompt (Settings), then the conversation's last
+// messages ("Past messages sent", 0 for all), as {role, content}.
+function wire(list) {
+  const past = Math.max(0, Math.round(Number($("past").value) || 0));
+  // The last question always goes, and the cut never starts on an answer.
+  let msgs = past ? list.slice(-past) : list;
+  while (msgs.length > 1 && msgs[0].role !== "user") msgs = msgs.slice(1);
+  const out = msgs.map((m) => ({ role: m.role, content: m.content }));
+  const sys = $("sys").value.trim();
+  if ($("sys-on").checked && sys) out.unshift({ role: "system", content: sys });
+  return out;
 }
 
 // Sends `text` as the user's next message with `opts`.
 function ask(text, opts) {
-  messages.push({ role: "user", content: text });
-  const u = document.createElement("div");
-  u.className = "u";
-  u.textContent = text;
-  answer = document.createElement("div");
-  answer.className = "a md";
+  const mine = { role: "user", content: text, at: Date.now() };
+  messages.push(mine);
+  startChat(text);
+  $("chat").querySelector(".empty")?.remove();
+  $("chat").append(userBubble(mine));
+  answerBox = botBubble(null);
+  answer = answerBox.querySelector(".a");
   answerText = "";
-  $("chat").append(u, answer);
+  $("chat").append(answerBox);
+  answerBox.scrollIntoView({ block: "end" });
   setBusy(true);
   $("stop").disabled = false;
   status("Answering…");
   stopFlag = self.crossOriginIsolated ? new Int32Array(new SharedArrayBuffer(4)) : null;
-  worker.postMessage({ type: "chat", messages, opts, stop: stopFlag?.buffer });
+  // The Standard test sends its prompt alone, whatever the Settings.
+  const sent = stdRunning ? messages.map((m) => ({ role: m.role, content: m.content })) : wire(messages);
+  worker.postMessage({ type: "chat", messages: sent, opts, stop: stopFlag?.buffer });
   armQuiet();
 }
 
@@ -797,9 +853,9 @@ let loadedInfo = null; // the last "loaded" message: info, memory, gpu, note
 
 function standardTest() {
   if (busy || !source) return;
-  // A fresh chat: the worker's conversation too.
-  messages = [];
-  $("chat").textContent = "";
+  // A new conversation: the worker's too. The Settings' system prompt and past
+  // messages do not apply (`stdRunning`).
+  newChat();
   $("stats").textContent = "";
   worker.postMessage({ type: "reset" });
   stdRunning = true;
@@ -893,8 +949,9 @@ function stop() {
   // Without cross-origin isolation the worker cannot be told while it computes: it is
   // ended, and the model loaded again (from OPFS or the same file).
   worker.terminate();
-  if (answer) messages.push({ role: "assistant", content: answerText });
+  if (answer) messages.push({ role: "assistant", content: answerText, model: modelName, at: Date.now() });
   endAnswer();
+  persistChat();
   $("stop").disabled = true;
   keepChat = true;
   startWorker();
@@ -949,6 +1006,7 @@ function memoryLimit() {
 // with the GPU's bytes apart from the memory limit (gpuSeparate): a 4B Q4_K_M model,
 // about 2.5 GB, then runs whole on the GPU of a 4 GB desktop card.
 const AUTO_GPU_OTHER = 3072 * MB;
+const AUTO_GPU_IOS = 1024 * MB;
 function gpuLimit(budget) {
   if ($("gmem").value === "mb") {
     const mb = Math.max(1, Math.round(Number($("gmem-mb").value) || 0));
@@ -1046,9 +1104,12 @@ function importFile(file) {
 
 // ---- Settings, kept in this browser (localStorage, when it allows) ----
 
-const SETTINGS = ["ctx", "max", "temp", "think", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct"];
+const SETTINGS = ["ctx", "max", "temp", "think", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct",
+  "topp", "topk", "minp", "rep", "pres", "freq", "sys-on", "sys", "past", "sendkey", "theme", "fontsize", "lang", "loglevel"];
 // The settings that are a choice among options, and those options.
-const CHOICES = { wmem: ["auto", "all", "mb"], device: ["cpu", "auto", "gpu"], gmem: ["auto", "mb"], gacct: ["auto", "one", "apart"] };
+const CHOICES = { wmem: ["auto", "all", "mb"], device: ["cpu", "auto", "gpu"], gmem: ["auto", "mb"], gacct: ["auto", "one", "apart"],
+  sendkey: ["enter", "ctrl"], theme: ["auto", "light", "dark"], fontsize: ["small", "normal", "large", "xlarge"], lang: ["en", "it"],
+  loglevel: ["all", "summary", "off"] };
 const SETTINGS_KEY = "inga.settings";
 
 function saveSettings() {
@@ -1081,6 +1142,7 @@ function restoreSettings() {
 }
 
 restoreSettings();
+applyLook();
 $("wmem-mb").hidden = $("wmem").value !== "mb";
 $("gmem-mb").hidden = $("gmem").value !== "mb";
 for (const id of SETTINGS) {
@@ -1089,6 +1151,7 @@ for (const id of SETTINGS) {
     saveSettings();
     if (id === "wmem") $("wmem-mb").hidden = $("wmem").value !== "mb";
     if (id === "gmem") $("gmem-mb").hidden = $("gmem").value !== "mb";
+    if (["theme", "fontsize", "lang", "sendkey"].includes(id)) applyLook();
     // The context, the memory limits, the draft and the device are a load's: say so
     // while a model is loaded.
     if (source && ["ctx", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct"].includes(id)) {
@@ -1112,6 +1175,11 @@ $("wipe-yes").onclick = () => {
   if (source?.name) source = null;
   setBusy(true);
   status("Deleting all stored data…");
+  // The conversations too (IndexedDB).
+  chats.clear().catch(() => {}).then(() => {
+    newChat();
+    showConvs();
+  });
   const prev = worker.onmessage;
   worker.onmessage = ({ data: m }) => {
     onMessage(m);
@@ -1147,18 +1215,283 @@ $("std-clear").onclick = () => {
 };
 showResults();
 $("stop").onclick = stop;
-$("reset").onclick = () => {
-  messages = [];
-  $("chat").textContent = "";
-  $("stats").textContent = "";
-  worker.postMessage({ type: "reset" });
+$("reset").onclick = () => newChat();
+$("new-chat").onclick = () => {
+  newChat();
+  showView("chat");
 };
+// The send key of the Settings: Enter (Shift+Enter a new line), or Ctrl / ⌘ + Enter
+// (Enter a new line). A composition (an IME) is never cut short.
 $("prompt").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
+  if (e.key !== "Enter" || e.isComposing) return;
+  const ctrl = $("sendkey").value === "ctrl";
+  if (ctrl ? e.ctrlKey || e.metaKey : !e.shiftKey && !e.ctrlKey && !e.metaKey) {
     e.preventDefault();
     send();
   }
 });
+
+// ---- Conversations (chats.js): the side bar's list, kept in this browser ----
+
+const when = (ms) => new Date(ms).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+
+function userBubble(m) {
+  const row = document.createElement("div");
+  row.className = "msg me";
+  const u = document.createElement("div");
+  u.className = "u";
+  u.textContent = m.content;
+  row.append(u);
+  return row;
+}
+
+// An answer's message: Inga's mark, the model's name, its text (Markdown), its speeds.
+// `m` null: the answer about to stream.
+function botBubble(m) {
+  const row = document.createElement("div");
+  row.className = "msg bot";
+  const img = document.createElement("img");
+  img.className = "avatar";
+  img.src = "logo.svg";
+  img.alt = "";
+  const col = document.createElement("div");
+  col.className = "col";
+  const who = document.createElement("div");
+  who.className = "who";
+  who.textContent = m?.model || modelName || "Inga";
+  const a = document.createElement("div");
+  a.className = "a md";
+  const speed = document.createElement("div");
+  speed.className = "speed";
+  col.append(who, a, speed);
+  row.append(img, col);
+  if (m) {
+    if (m.reasoning) {
+      const d = document.createElement("details");
+      d.className = "think";
+      const s = document.createElement("summary");
+      s.textContent = "Thinking";
+      const body = document.createElement("div");
+      body.className = "body";
+      body.textContent = m.reasoning;
+      d.append(s, body);
+      a.before(d);
+    }
+    markdown(a, m.content);
+    a.dataset.raw = m.content;
+    speedLine(row, m);
+  }
+  return row;
+}
+
+// The line under an answer: its prompt (prefill) and answer (decode) speeds and its time.
+function speedLine(row, m) {
+  const el = row?.querySelector(".speed");
+  if (!el || !m) return;
+  const s = m.stats;
+  el.textContent = (s ? `Prefill: ${s.prompt_tps.toFixed(1)} tok/s, Decode: ${s.gen_tps.toFixed(1)} tok/s, ` : "") + when(m.at ?? Date.now());
+}
+
+function showHeader() {
+  $("conv-title").textContent = chat?.title ?? t("chat.new");
+  const n = messages.length;
+  $("conv-count").textContent = n === 1 ? t("conv.count.one") : t("conv.count", n);
+  for (const id of ["conv-rename", "conv-export", "conv-download"]) $(id).disabled = !chat;
+}
+
+function renderChat() {
+  const box = $("chat");
+  box.textContent = "";
+  if (!messages.length) {
+    const e = document.createElement("div");
+    e.className = "empty";
+    e.innerHTML = `<img src="logo.svg" alt=""><p></p>`;
+    e.lastChild.textContent = t("chat.empty");
+    box.append(e);
+  }
+  for (const m of messages) box.append(m.role === "user" ? userBubble(m) : botBubble(m));
+  box.scrollTop = box.scrollHeight;
+  showHeader();
+}
+
+// A new conversation: nothing stored until its first message.
+function newChat() {
+  if (answer) return;
+  chat = null;
+  messages = [];
+  $("stats").textContent = "";
+  worker?.postMessage({ type: "reset" });
+  renderChat();
+  showConvs();
+}
+
+// The first message of a new conversation creates it, titled after that message.
+function startChat(text) {
+  if (chat) return;
+  const title = text.replace(/\s+/g, " ").trim();
+  chat = { id: chats.newId(), title: title.length > 48 ? title.slice(0, 47) + "…" : title || t("chat.new"), created: Date.now(), updated: Date.now(), model: modelName, messages };
+}
+
+async function persistChat() {
+  if (!chat) return;
+  chat.messages = messages;
+  chat.updated = Date.now();
+  chat.model = modelName || chat.model;
+  showHeader();
+  try {
+    await chats.save(chat);
+  } catch (e) {
+    loadLog(`the conversation could not be saved: ${e?.message ?? e}`);
+  }
+  showConvs();
+}
+
+async function openChat(id) {
+  if (busy) return;
+  const c = (await chats.list()).find((x) => x.id === id);
+  if (!c) return;
+  chat = c;
+  messages = c.messages;
+  // The worker's conversation starts again from these messages at the next question.
+  worker?.postMessage({ type: "reset" });
+  $("stats").textContent = "";
+  renderChat();
+  showConvs();
+  showView("chat");
+}
+
+async function showConvs() {
+  const ul = $("convs");
+  let all = [];
+  try {
+    all = await chats.list();
+  } catch {}
+  ul.textContent = "";
+  if (!all.length) {
+    const li = document.createElement("li");
+    li.className = "meta";
+    li.style.padding = "6px 10px";
+    li.textContent = t("conv.none") + (chats.persistent ? "" : " (this browser keeps no conversations: private window?)");
+    ul.append(li);
+  }
+  for (const c of all) {
+    const li = document.createElement("li");
+    li.dataset.id = c.id;
+    li.setAttribute("aria-current", String(c.id === chat?.id));
+    const open = document.createElement("button");
+    open.className = "open";
+    open.type = "button";
+    open.innerHTML = `<span class="t"></span><span class="m"></span>`;
+    open.firstChild.textContent = c.title;
+    const n = c.messages.length;
+    open.lastChild.textContent = `${n === 1 ? t("conv.count.one") : t("conv.count", n)} · ${when(c.updated)}`;
+    open.onclick = () => openChat(c.id);
+    const del = document.createElement("button");
+    del.className = "icon del";
+    del.type = "button";
+    del.title = t("conv.delete");
+    del.innerHTML = `<svg class="ic"><use href="#i-trash"/></svg>`;
+    del.onclick = async () => {
+      await chats.remove(c.id).catch(() => {});
+      if (chat?.id === c.id) newChat();
+      else showConvs();
+    };
+    li.append(open, del);
+    ul.append(li);
+  }
+  setBusy(busy);
+}
+
+// Downloads `text` as a file named `name`.
+function download(name, type, text) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const fileTitle = () => (chat?.title || "chat").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").slice(0, 40) || "chat";
+
+$("conv-rename").onclick = async () => {
+  if (!chat) return;
+  const title = prompt(t("conv.renameask"), chat.title);
+  if (title == null || !title.trim()) return;
+  chat.title = title.trim().slice(0, 120);
+  await persistChat();
+};
+$("conv-export").onclick = () => chat && download(`${fileTitle()}.md`, "text/markdown", chats.markdown(chat));
+$("conv-download").onclick = () => chat && download(`${fileTitle()}.json`, "application/json", JSON.stringify(chat, null, 1));
+if (!document.fullscreenEnabled) $("fullscreen").hidden = true;
+$("fullscreen").onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {});
+
+// ---- The views (Chat, Models, Settings, Tests and report) and the side bar's drawer ----
+
+function showView(name) {
+  for (const v of ["chat", "models", "settings", "diag"]) {
+    $("view-" + v).hidden = v !== name;
+    if (v === name) $("nav-" + v).setAttribute("aria-current", "page");
+    else $("nav-" + v).removeAttribute("aria-current");
+  }
+  $("app").classList.remove("drawer");
+}
+for (const b of document.querySelectorAll(".navb")) b.onclick = () => showView(b.dataset.view);
+$("menu").onclick = () => $("app").classList.toggle("drawer");
+$("scrim").onclick = () => $("app").classList.remove("drawer");
+$("model-chip").onclick = () => picker.open();
+$("log-toggle").onclick = () => {
+  const on = $("statusbar").classList.toggle("log");
+  $("log-toggle").setAttribute("aria-expanded", String(on));
+  $("log-toggle").title = on ? "Hide the load log" : "Show the load log";
+};
+
+// ---- Appearance: theme, font size, language, the send key's hint ----
+
+function applyLook() {
+  const THEME_ICON = { auto: "i-theme-auto", light: "i-sun", dark: "i-moon" };
+  const th = $("theme").value;
+  if (th === "auto") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = th;
+  $("theme-btn").innerHTML = `<svg class="ic"><use href="#${THEME_ICON[th]}"/></svg>`;
+  $("theme-btn").title = `Theme: ${th}`;
+  const fs = $("fontsize").value;
+  if (fs === "normal") delete document.documentElement.dataset.fs;
+  else document.documentElement.dataset.fs = fs;
+  setLang($("lang").value);
+  $("send-hint").textContent = t($("sendkey").value === "ctrl" ? "hint.ctrl" : "hint.enter");
+  if (!source) $("model-name").textContent = t("chat.nomodel");
+  showHeader();
+  if (!messages.length) renderChat();
+}
+$("theme-btn").onclick = () => {
+  const order = ["auto", "light", "dark"];
+  $("theme").value = order[(order.indexOf($("theme").value) + 1) % 3];
+  saveSettings();
+  applyLook();
+};
+
+// "Reset all settings": every setting back to its default (the page's own markup).
+$("settings-reset").onclick = () => {
+  try {
+    localStorage.removeItem(SETTINGS_KEY);
+  } catch {}
+  location.reload();
+};
+
+// "Delete model files": every stored model and its download record; conversations,
+// settings and other files stay.
+$("wipe-models").onclick = () => {
+  const names = Object.keys(storedSize);
+  if (!names.length) {
+    status("No model files are stored.");
+    return;
+  }
+  if (source?.name && names.includes(source.name)) source = null;
+  for (const name of names) worker.postMessage({ type: "delete", name });
+  status(`Deleted ${names.length} model file${names.length === 1 ? "" : "s"}.`);
+  setBusy(false);
+};
 
 // What the beta's report button (report.js) adds to its issue: the load and the last answer.
 window.ingaState = () => ({
@@ -1172,8 +1505,63 @@ window.ingaState = () => ({
   stats: lastStats,
 });
 
+// ---- The model picker (picker.js): the catalog, and what fits this browser ----
+
+// What the picker judges each variant against: the memory limit of the Settings, the
+// 4 GiB of a wasm32 module (the build does not use Memory64), navigator.deviceMemory,
+// the storage left, and, when the Device setting may use the GPU, the adapter's limits
+// and the "GPU memory" setting.
+async function deviceEnv() {
+  const { budget } = memoryLimit();
+  const env = { memory: budget, wasmMax: 4096 * MB, deviceMemory: navigator.deviceMemory || null, gpu: null, free: null };
+  try {
+    const e = await navigator.storage?.estimate?.();
+    // A file already stored (partly) is counted as free: its download resumes over it.
+    if (e?.quota) env.free = Math.max(0, e.quota - (e.usage || 0));
+  } catch {}
+  if ($("device").value !== "cpu" && navigator.gpu) {
+    try {
+      const a = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+      if (a) {
+        const i = a.info || {};
+        const g = gpuLimit(budget);
+        env.gpu = {
+          name: [i.vendor, i.architecture, i.device, i.description].filter(Boolean).join(" ") || "unnamed adapter",
+          budget: g.bytes,
+          guess: $("gmem").value !== "mb",
+          separate: gpuSeparate(),
+          maxBufferSize: a.limits.maxBufferSize,
+          maxStorageBufferBindingSize: a.limits.maxStorageBufferBindingSize,
+        };
+      }
+    } catch {}
+  }
+  return env;
+}
+
+const picker = createPicker({
+  dialog: $("picker"),
+  url: "catalog.json",
+  getEnv: deviceEnv,
+  getStored: () => storedSize,
+  afterRender: () => setBusy(busy),
+  onLoad: (model, variant, url) => {
+    const name = url.split("/").pop().split("?")[0];
+    const file = decodeURIComponent(name);
+    if (storedSize[file] != null) loadStored(file);
+    else fromUrl(url, { model, variant });
+  },
+  onDelete: (file) => {
+    if (source?.name === file) source = null;
+    worker.postMessage({ type: "delete", name: file });
+  },
+});
+$("picker-open").onclick = () => picker.open();
+
 showSuggested();
 setupDevice();
+renderChat();
 setBusy(false);
+chats.open().then(showConvs);
 if (!navigator.storage?.getDirectory) status("This browser has no Origin Private File System: only files of this device can be loaded.", true);
 startWorker();

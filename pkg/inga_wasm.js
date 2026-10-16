@@ -255,7 +255,8 @@ export class Model {
     /**
      * Answers a chat: `messages` is a JSON list of `{role, content}`, rendered by the
      * model's chat template; `opts` a JSON object (`max_tokens`, `temperature`,
-     * `top_k`, `top_p`, `min_p`, `repeat_penalty`, `seed`, and `thinking`, a boolean
+     * `top_k`, `top_p`, `min_p`, `repeat_penalty`, `presence_penalty`,
+     * `frequency_penalty`, `seed`, and `thinking`, a boolean
      * the template receives as `enable_thinking`). `on_piece(text, reasoning)` receives
      * the answer as it is decoded, `reasoning` true for a thinking model's reasoning
      * (told apart as `inga serve` does), and stops it by returning `true`. Returns the

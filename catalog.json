@@ -1,0 +1,1881 @@
+{
+ "_comment": "Inga -- Local LLM inference engine in Rust. Copyright (c) Matteo Baccan -- https://github.com/matteobaccan/inga. SPDX-License-Identifier: MIT. The browser page's model catalog (docs/wasm-beta.md): GGUF files on Hugging Face whose architecture Inga runs. A variant with \"approx\": true has a size estimated from the parameters and the quantization, its path not yet checked against Hugging Face: python3 tools/wasm-catalog.py --write checks every file and writes the exact sizes.",
+ "version": 1,
+ "checked": null,
+ "families": [
+  {
+   "id": "llama",
+   "label": "Llama",
+   "icon": "🦙",
+   "about": "Meta's Llama 3.x and Llama 2"
+  },
+  {
+   "id": "deepseek",
+   "label": "DeepSeek",
+   "icon": "🐋",
+   "about": "DeepSeek R1's distilled reasoning models"
+  },
+  {
+   "id": "qwen",
+   "label": "Qwen",
+   "icon": "🐉",
+   "about": "Alibaba's Qwen3, Qwen2.5 (Coder) and Qwen2 (Math)"
+  },
+  {
+   "id": "gemma",
+   "label": "Gemma",
+   "icon": "💎",
+   "about": "Google's Gemma 2, 3 and 4"
+  },
+  {
+   "id": "phi",
+   "label": "Phi",
+   "icon": "Φ",
+   "about": "Microsoft's Phi-3, Phi-3.5 and Phi-4 mini"
+  },
+  {
+   "id": "mistral",
+   "label": "Mistral",
+   "icon": "🌬️",
+   "about": "Mistral 7B Instruct"
+  },
+  {
+   "id": "hermes",
+   "label": "Hermes",
+   "icon": "🪽",
+   "about": "Nous Research's Hermes and its relatives (Llama, Mistral fine-tunes)"
+  },
+  {
+   "id": "smollm",
+   "label": "SmolLM",
+   "icon": "🤏",
+   "about": "Hugging Face's small models"
+  },
+  {
+   "id": "tinyllama",
+   "label": "TinyLlama",
+   "icon": "🐣",
+   "about": "TinyLlama 1.1B"
+  },
+  {
+   "id": "wizardmath",
+   "label": "WizardMath",
+   "icon": "🧙",
+   "about": "WizardMath (a Mistral fine-tune for maths)"
+  },
+  {
+   "id": "lfm",
+   "label": "LFM",
+   "icon": "💧",
+   "about": "Liquid AI's LFM2"
+  }
+ ],
+ "models": [
+  {
+   "id": "llama-3.2-1b-instruct",
+   "name": "Llama 3.2 1B Instruct",
+   "family": "llama",
+   "arch": "llama",
+   "params": 1.24,
+   "licence": "Llama 3.2 Community License",
+   "repo": "bartowski/Llama-3.2-1B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+     "size": 752000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "Llama-3.2-1B-Instruct-Q6_K.gguf",
+     "size": 1023000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Llama-3.2-1B-Instruct-Q8_0.gguf",
+     "size": 1318000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "llama-3.2-3b-instruct",
+   "name": "Llama 3.2 3B Instruct",
+   "family": "llama",
+   "arch": "llama",
+   "params": 3.21,
+   "licence": "Llama 3.2 Community License",
+   "repo": "bartowski/Llama-3.2-3B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+     "size": 1946000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Llama-3.2-3B-Instruct-Q5_K_M.gguf",
+     "size": 2287000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "Llama-3.2-3B-Instruct-Q6_K.gguf",
+     "size": 2648000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Llama-3.2-3B-Instruct-Q8_0.gguf",
+     "size": 3411000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "llama-3.1-8b-instruct",
+   "name": "Llama 3.1 8B Instruct",
+   "family": "llama",
+   "arch": "llama",
+   "params": 8.03,
+   "licence": "Llama 3.1 Community License",
+   "repo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "Meta-Llama-3.1-8B-Instruct-Q3_K_M.gguf",
+     "size": 3915000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+     "size": 4868000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf",
+     "size": 5721000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf",
+     "size": 8532000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "llama-3.1-70b-instruct",
+   "name": "Llama 3.1 70B Instruct",
+   "family": "llama",
+   "arch": "llama",
+   "params": 70.6,
+   "licence": "Llama 3.1 Community License",
+   "repo": "bartowski/Meta-Llama-3.1-70B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q2_K",
+     "file": "Meta-Llama-3.1-70B-Instruct-Q2_K.gguf",
+     "size": 26475000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "Meta-Llama-3.1-70B-Instruct-Q4_K_M.gguf",
+     "size": 42801000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "llama-3-8b-instruct",
+   "name": "Llama 3 8B Instruct",
+   "family": "llama",
+   "arch": "llama",
+   "params": 8.03,
+   "licence": "Llama 3 Community License",
+   "repo": "bartowski/Meta-Llama-3-8B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "Meta-Llama-3-8B-Instruct-Q3_K_M.gguf",
+     "size": 3915000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "Meta-Llama-3-8B-Instruct-Q4_K_M.gguf",
+     "size": 4868000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Meta-Llama-3-8B-Instruct-Q5_K_M.gguf",
+     "size": 5721000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Meta-Llama-3-8B-Instruct-Q8_0.gguf",
+     "size": 8532000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "llama-3-70b-instruct",
+   "name": "Llama 3 70B Instruct",
+   "family": "llama",
+   "arch": "llama",
+   "params": 70.6,
+   "licence": "Llama 3 Community License",
+   "repo": "bartowski/Meta-Llama-3-70B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q2_K",
+     "file": "Meta-Llama-3-70B-Instruct-Q2_K.gguf",
+     "size": 26475000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "Meta-Llama-3-70B-Instruct-Q4_K_M.gguf",
+     "size": 42801000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "llama-2-7b-chat",
+   "name": "Llama 2 7B Chat",
+   "family": "llama",
+   "arch": "llama",
+   "params": 6.74,
+   "licence": "Llama 2 Community License",
+   "repo": "TheBloke/Llama-2-7B-Chat-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "llama-2-7b-chat.Q3_K_M.gguf",
+     "size": 3286000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "llama-2-7b-chat.Q4_K_M.gguf",
+     "size": 4086000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "llama-2-7b-chat.Q5_K_M.gguf",
+     "size": 4802000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "llama-2-7b-chat.Q8_0.gguf",
+     "size": 7161000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "llama-2-13b-chat",
+   "name": "Llama 2 13B Chat",
+   "family": "llama",
+   "arch": "llama",
+   "params": 13.0,
+   "licence": "Llama 2 Community License",
+   "repo": "TheBloke/Llama-2-13B-chat-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "llama-2-13b-chat.Q3_K_M.gguf",
+     "size": 6338000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "llama-2-13b-chat.Q4_K_M.gguf",
+     "size": 7881000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "deepseek-r1-distill-qwen-1.5b",
+   "name": "DeepSeek R1 Distill Qwen 1.5B",
+   "family": "deepseek",
+   "arch": "qwen2",
+   "params": 1.78,
+   "licence": "MIT",
+   "repo": "bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF",
+   "tags": [
+    "reasoning"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf",
+     "size": 1079000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "DeepSeek-R1-Distill-Qwen-1.5B-Q6_K.gguf",
+     "size": 1469000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "DeepSeek-R1-Distill-Qwen-1.5B-Q8_0.gguf",
+     "size": 1891000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "deepseek-r1-distill-qwen-7b",
+   "name": "DeepSeek R1 Distill Qwen 7B",
+   "family": "deepseek",
+   "arch": "qwen2",
+   "params": 7.62,
+   "licence": "MIT",
+   "repo": "bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF",
+   "tags": [
+    "reasoning"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "DeepSeek-R1-Distill-Qwen-7B-Q3_K_M.gguf",
+     "size": 3715000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf",
+     "size": 4620000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "DeepSeek-R1-Distill-Qwen-7B-Q5_K_M.gguf",
+     "size": 5429000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "DeepSeek-R1-Distill-Qwen-7B-Q8_0.gguf",
+     "size": 8096000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "deepseek-r1-distill-llama-8b",
+   "name": "DeepSeek R1 Distill Llama 8B",
+   "family": "deepseek",
+   "arch": "llama",
+   "params": 8.03,
+   "licence": "MIT (and the Llama 3.1 Community License)",
+   "repo": "bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF",
+   "tags": [
+    "reasoning"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "DeepSeek-R1-Distill-Llama-8B-Q3_K_M.gguf",
+     "size": 3915000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "DeepSeek-R1-Distill-Llama-8B-Q4_K_M.gguf",
+     "size": 4868000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "DeepSeek-R1-Distill-Llama-8B-Q5_K_M.gguf",
+     "size": 5721000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "DeepSeek-R1-Distill-Llama-8B-Q8_0.gguf",
+     "size": 8532000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen3-0.6b",
+   "name": "Qwen3 0.6B",
+   "family": "qwen",
+   "arch": "qwen3",
+   "params": 0.6,
+   "licence": "Apache-2.0",
+   "repo": "unsloth/Qwen3-0.6B-GGUF",
+   "tags": [
+    "chat",
+    "reasoning"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen3-0.6B-Q4_K_M.gguf",
+     "size": 364000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen3-0.6B-Q8_0.gguf",
+     "size": 638000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen3-1.7b",
+   "name": "Qwen3 1.7B",
+   "family": "qwen",
+   "arch": "qwen3",
+   "params": 2.03,
+   "licence": "Apache-2.0",
+   "repo": "unsloth/Qwen3-1.7B-GGUF",
+   "tags": [
+    "chat",
+    "reasoning"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen3-1.7B-Q4_K_M.gguf",
+     "size": 1231000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Qwen3-1.7B-Q5_K_M.gguf",
+     "size": 1446000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "Qwen3-1.7B-Q6_K.gguf",
+     "size": 1675000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen3-1.7B-Q8_0.gguf",
+     "size": 2157000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen3-4b",
+   "name": "Qwen3 4B",
+   "family": "qwen",
+   "arch": "qwen3",
+   "params": 4.02,
+   "licence": "Apache-2.0",
+   "repo": "unsloth/Qwen3-4B-GGUF",
+   "tags": [
+    "chat",
+    "reasoning"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen3-4B-Q4_K_M.gguf",
+     "size": 2437000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Qwen3-4B-Q5_K_M.gguf",
+     "size": 2864000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "Qwen3-4B-Q6_K.gguf",
+     "size": 3316000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen3-4B-Q8_0.gguf",
+     "size": 4271000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen3-8b",
+   "name": "Qwen3 8B",
+   "family": "qwen",
+   "arch": "qwen3",
+   "params": 8.19,
+   "licence": "Apache-2.0",
+   "repo": "unsloth/Qwen3-8B-GGUF",
+   "tags": [
+    "chat",
+    "reasoning"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "Qwen3-8B-Q3_K_M.gguf",
+     "size": 3993000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen3-8B-Q4_K_M.gguf",
+     "size": 4965000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Qwen3-8B-Q5_K_M.gguf",
+     "size": 5835000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen3-8B-Q8_0.gguf",
+     "size": 8702000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2.5-0.5b-instruct",
+   "name": "Qwen2.5 0.5B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 0.49,
+   "licence": "Apache-2.0",
+   "repo": "bartowski/Qwen2.5-0.5B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf",
+     "size": 297000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+     "size": 521000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2.5-1.5b-instruct",
+   "name": "Qwen2.5 1.5B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 1.54,
+   "licence": "Apache-2.0",
+   "repo": "bartowski/Qwen2.5-1.5B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen2.5-1.5B-Instruct-Q4_K_M.gguf",
+     "size": 934000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "Qwen2.5-1.5B-Instruct-Q6_K.gguf",
+     "size": 1271000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen2.5-1.5B-Instruct-Q8_0.gguf",
+     "size": 1636000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2.5-3b-instruct",
+   "name": "Qwen2.5 3B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 3.09,
+   "licence": "Qwen Research License",
+   "repo": "bartowski/Qwen2.5-3B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen2.5-3B-Instruct-Q4_K_M.gguf",
+     "size": 1873000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Qwen2.5-3B-Instruct-Q5_K_M.gguf",
+     "size": 2202000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "Qwen2.5-3B-Instruct-Q6_K.gguf",
+     "size": 2549000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen2.5-3B-Instruct-Q8_0.gguf",
+     "size": 3283000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2.5-7b-instruct",
+   "name": "Qwen2.5 7B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 7.62,
+   "licence": "Apache-2.0",
+   "repo": "bartowski/Qwen2.5-7B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "Qwen2.5-7B-Instruct-Q3_K_M.gguf",
+     "size": 3715000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+     "size": 4620000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Qwen2.5-7B-Instruct-Q5_K_M.gguf",
+     "size": 5429000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen2.5-7B-Instruct-Q8_0.gguf",
+     "size": 8096000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2.5-coder-0.5b-instruct",
+   "name": "Qwen2.5 Coder 0.5B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 0.49,
+   "licence": "Apache-2.0",
+   "repo": "bartowski/Qwen2.5-Coder-0.5B-Instruct-GGUF",
+   "tags": [
+    "code"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen2.5-Coder-0.5B-Instruct-Q4_K_M.gguf",
+     "size": 297000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen2.5-Coder-0.5B-Instruct-Q8_0.gguf",
+     "size": 521000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2.5-coder-1.5b-instruct",
+   "name": "Qwen2.5 Coder 1.5B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 1.54,
+   "licence": "Apache-2.0",
+   "repo": "bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF",
+   "tags": [
+    "code"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf",
+     "size": 934000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "Qwen2.5-Coder-1.5B-Instruct-Q6_K.gguf",
+     "size": 1271000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen2.5-Coder-1.5B-Instruct-Q8_0.gguf",
+     "size": 1636000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2.5-coder-3b-instruct",
+   "name": "Qwen2.5 Coder 3B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 3.09,
+   "licence": "Qwen Research License",
+   "repo": "bartowski/Qwen2.5-Coder-3B-Instruct-GGUF",
+   "tags": [
+    "code"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf",
+     "size": 1873000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Qwen2.5-Coder-3B-Instruct-Q5_K_M.gguf",
+     "size": 2202000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "Qwen2.5-Coder-3B-Instruct-Q6_K.gguf",
+     "size": 2549000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen2.5-Coder-3B-Instruct-Q8_0.gguf",
+     "size": 3283000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2.5-coder-7b-instruct",
+   "name": "Qwen2.5 Coder 7B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 7.62,
+   "licence": "Apache-2.0",
+   "repo": "bartowski/Qwen2.5-Coder-7B-Instruct-GGUF",
+   "tags": [
+    "code"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "Qwen2.5-Coder-7B-Instruct-Q3_K_M.gguf",
+     "size": 3715000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf",
+     "size": 4620000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Qwen2.5-Coder-7B-Instruct-Q5_K_M.gguf",
+     "size": 5429000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen2.5-Coder-7B-Instruct-Q8_0.gguf",
+     "size": 8096000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2-math-1.5b-instruct",
+   "name": "Qwen2 Math 1.5B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 1.54,
+   "licence": "Apache-2.0",
+   "repo": "bartowski/Qwen2-Math-1.5B-Instruct-GGUF",
+   "tags": [
+    "maths"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen2-Math-1.5B-Instruct-Q4_K_M.gguf",
+     "size": 934000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "Qwen2-Math-1.5B-Instruct-Q6_K.gguf",
+     "size": 1271000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen2-Math-1.5B-Instruct-Q8_0.gguf",
+     "size": 1636000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2-math-7b-instruct",
+   "name": "Qwen2 Math 7B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 7.62,
+   "licence": "Tongyi Qianwen License",
+   "repo": "bartowski/Qwen2-Math-7B-Instruct-GGUF",
+   "tags": [
+    "maths"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "Qwen2-Math-7B-Instruct-Q3_K_M.gguf",
+     "size": 3715000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "Qwen2-Math-7B-Instruct-Q4_K_M.gguf",
+     "size": 4620000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Qwen2-Math-7B-Instruct-Q5_K_M.gguf",
+     "size": 5429000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Qwen2-Math-7B-Instruct-Q8_0.gguf",
+     "size": 8096000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2-0.5b-instruct",
+   "name": "Qwen2 0.5B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 0.49,
+   "licence": "Apache-2.0",
+   "repo": "Qwen/Qwen2-0.5B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "qwen2-0_5b-instruct-q4_k_m.gguf",
+     "size": 297000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "qwen2-0_5b-instruct-q8_0.gguf",
+     "size": 521000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2-1.5b-instruct",
+   "name": "Qwen2 1.5B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 1.54,
+   "licence": "Apache-2.0",
+   "repo": "Qwen/Qwen2-1.5B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "qwen2-1_5b-instruct-q4_k_m.gguf",
+     "size": 934000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "qwen2-1_5b-instruct-q6_k.gguf",
+     "size": 1271000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "qwen2-1_5b-instruct-q8_0.gguf",
+     "size": 1636000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "qwen2-7b-instruct",
+   "name": "Qwen2 7B Instruct",
+   "family": "qwen",
+   "arch": "qwen2",
+   "params": 7.62,
+   "licence": "Apache-2.0",
+   "repo": "Qwen/Qwen2-7B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "qwen2-7b-instruct-q3_k_m.gguf",
+     "size": 3715000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "qwen2-7b-instruct-q4_k_m.gguf",
+     "size": 4620000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "qwen2-7b-instruct-q5_k_m.gguf",
+     "size": 5429000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "qwen2-7b-instruct-q8_0.gguf",
+     "size": 8096000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "gemma-2-2b-it",
+   "name": "Gemma 2 2B it",
+   "family": "gemma",
+   "arch": "gemma2",
+   "params": 2.61,
+   "licence": "Gemma Terms of Use",
+   "repo": "bartowski/gemma-2-2b-it-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "gemma-2-2b-it-Q4_K_M.gguf",
+     "size": 1582000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "gemma-2-2b-it-Q5_K_M.gguf",
+     "size": 1860000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "gemma-2-2b-it-Q6_K.gguf",
+     "size": 2153000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "gemma-2-2b-it-Q8_0.gguf",
+     "size": 2773000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "gemma-2-2b-jpn-it",
+   "name": "Gemma 2 2B JPN it",
+   "family": "gemma",
+   "arch": "gemma2",
+   "params": 2.61,
+   "licence": "Gemma Terms of Use",
+   "repo": "bartowski/gemma-2-2b-jpn-it-GGUF",
+   "tags": [
+    "chat",
+    "japanese"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "gemma-2-2b-jpn-it-Q4_K_M.gguf",
+     "size": 1582000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "gemma-2-2b-jpn-it-Q8_0.gguf",
+     "size": 2773000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "gemma-2-9b-it",
+   "name": "Gemma 2 9B it",
+   "family": "gemma",
+   "arch": "gemma2",
+   "params": 9.24,
+   "licence": "Gemma Terms of Use",
+   "repo": "bartowski/gemma-2-9b-it-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "gemma-2-9b-it-Q3_K_M.gguf",
+     "size": 4505000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "gemma-2-9b-it-Q4_K_M.gguf",
+     "size": 5602000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "gemma-2-9b-it-Q5_K_M.gguf",
+     "size": 6584000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "gemma-2-9b-it-Q8_0.gguf",
+     "size": 9818000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "gemma-3-270m-it",
+   "name": "Gemma 3 270M it",
+   "family": "gemma",
+   "arch": "gemma3",
+   "params": 0.268,
+   "licence": "Gemma Terms of Use",
+   "repo": "ggml-org/gemma-3-270m-it-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q8_0",
+     "file": "gemma-3-270m-it-Q8_0.gguf",
+     "size": 285000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "gemma-3-1b-it",
+   "name": "Gemma 3 1B it",
+   "family": "gemma",
+   "arch": "gemma3",
+   "params": 1.0,
+   "licence": "Gemma Terms of Use",
+   "repo": "ggml-org/gemma-3-1b-it-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "gemma-3-1b-it-Q4_K_M.gguf",
+     "size": 606000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "gemma-3-1b-it-Q8_0.gguf",
+     "size": 1063000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "gemma-3-4b-it",
+   "name": "Gemma 3 4B it",
+   "family": "gemma",
+   "arch": "gemma3",
+   "params": 3.88,
+   "licence": "Gemma Terms of Use",
+   "repo": "ggml-org/gemma-3-4b-it-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "note": "Text only in the browser (its image projector is not read here).",
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "gemma-3-4b-it-Q4_K_M.gguf",
+     "size": 2352000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "gemma-3-4b-it-Q8_0.gguf",
+     "size": 4123000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "gemma-4-e4b-it",
+   "name": "Gemma 4 E4B it",
+   "family": "gemma",
+   "arch": "gemma4",
+   "params": 8.0,
+   "licence": "Gemma Terms of Use",
+   "repo": "unsloth/gemma-4-E4B-it-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "note": "Runs on the CPU in the browser (the E models stay off the GPU).",
+   "variants": [
+    {
+     "quant": "IQ2_M",
+     "file": "gemma-4-E4B-it-UD-IQ2_M.gguf",
+     "size": 2900000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "phi-3-mini-4k-instruct",
+   "name": "Phi 3 mini 4k Instruct",
+   "family": "phi",
+   "arch": "phi3",
+   "params": 3.82,
+   "licence": "MIT",
+   "repo": "bartowski/Phi-3-mini-4k-instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Phi-3-mini-4k-instruct-Q4_K_M.gguf",
+     "size": 2316000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Phi-3-mini-4k-instruct-Q5_K_M.gguf",
+     "size": 2722000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "Phi-3-mini-4k-instruct-Q6_K.gguf",
+     "size": 3152000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Phi-3-mini-4k-instruct-Q8_0.gguf",
+     "size": 4059000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "phi-3.5-mini-instruct",
+   "name": "Phi 3.5 mini Instruct",
+   "family": "phi",
+   "arch": "phi3",
+   "params": 3.82,
+   "licence": "MIT",
+   "repo": "bartowski/Phi-3.5-mini-instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Phi-3.5-mini-instruct-Q4_K_M.gguf",
+     "size": 2316000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Phi-3.5-mini-instruct-Q5_K_M.gguf",
+     "size": 2722000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "Phi-3.5-mini-instruct-Q6_K.gguf",
+     "size": 3152000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Phi-3.5-mini-instruct-Q8_0.gguf",
+     "size": 4059000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "phi-4-mini-instruct",
+   "name": "Phi 4 mini Instruct",
+   "family": "phi",
+   "arch": "phi3",
+   "params": 3.84,
+   "licence": "MIT",
+   "repo": "bartowski/microsoft_Phi-4-mini-instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "microsoft_Phi-4-mini-instruct-Q4_K_M.gguf",
+     "size": 2328000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "microsoft_Phi-4-mini-instruct-Q5_K_M.gguf",
+     "size": 2736000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "microsoft_Phi-4-mini-instruct-Q6_K.gguf",
+     "size": 3168000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "microsoft_Phi-4-mini-instruct-Q8_0.gguf",
+     "size": 4080000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "mistral-7b-instruct-v0.3",
+   "name": "Mistral 7B Instruct v0.3",
+   "family": "mistral",
+   "arch": "llama",
+   "params": 7.25,
+   "licence": "Apache-2.0",
+   "repo": "bartowski/Mistral-7B-Instruct-v0.3-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "Mistral-7B-Instruct-v0.3-Q3_K_M.gguf",
+     "size": 3534000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf",
+     "size": 4395000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Mistral-7B-Instruct-v0.3-Q5_K_M.gguf",
+     "size": 5166000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Mistral-7B-Instruct-v0.3-Q8_0.gguf",
+     "size": 7703000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "mistral-7b-instruct-v0.2",
+   "name": "Mistral 7B Instruct v0.2",
+   "family": "mistral",
+   "arch": "llama",
+   "params": 7.24,
+   "licence": "Apache-2.0",
+   "repo": "TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "mistral-7b-instruct-v0.2.Q3_K_M.gguf",
+     "size": 3530000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "mistral-7b-instruct-v0.2.Q4_K_M.gguf",
+     "size": 4389000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "mistral-7b-instruct-v0.2.Q5_K_M.gguf",
+     "size": 5159000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "mistral-7b-instruct-v0.2.Q8_0.gguf",
+     "size": 7693000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "hermes-3-llama-3.2-3b",
+   "name": "Hermes 3 Llama 3.2 3B",
+   "family": "hermes",
+   "arch": "llama",
+   "params": 3.21,
+   "licence": "Llama 3.2 Community License",
+   "repo": "NousResearch/Hermes-3-Llama-3.2-3B-GGUF",
+   "tags": [
+    "chat",
+    "tools"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "Hermes-3-Llama-3.2-3B.Q4_K_M.gguf",
+     "size": 1946000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Hermes-3-Llama-3.2-3B.Q5_K_M.gguf",
+     "size": 2287000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "Hermes-3-Llama-3.2-3B.Q6_K.gguf",
+     "size": 2648000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Hermes-3-Llama-3.2-3B.Q8_0.gguf",
+     "size": 3411000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "hermes-3-llama-3.1-8b",
+   "name": "Hermes 3 Llama 3.1 8B",
+   "family": "hermes",
+   "arch": "llama",
+   "params": 8.03,
+   "licence": "Llama 3.1 Community License",
+   "repo": "NousResearch/Hermes-3-Llama-3.1-8B-GGUF",
+   "tags": [
+    "chat",
+    "tools"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "Hermes-3-Llama-3.1-8B.Q3_K_M.gguf",
+     "size": 3915000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf",
+     "size": 4868000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Hermes-3-Llama-3.1-8B.Q5_K_M.gguf",
+     "size": 5721000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Hermes-3-Llama-3.1-8B.Q8_0.gguf",
+     "size": 8532000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "hermes-2-pro-llama-3-8b",
+   "name": "Hermes 2 Pro Llama 3 8B",
+   "family": "hermes",
+   "arch": "llama",
+   "params": 8.03,
+   "licence": "Llama 3 Community License",
+   "repo": "NousResearch/Hermes-2-Pro-Llama-3-8B-GGUF",
+   "tags": [
+    "chat",
+    "tools"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "Hermes-2-Pro-Llama-3-8B-Q3_K_M.gguf",
+     "size": 3915000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "Hermes-2-Pro-Llama-3-8B-Q4_K_M.gguf",
+     "size": 4868000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Hermes-2-Pro-Llama-3-8B-Q5_K_M.gguf",
+     "size": 5721000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Hermes-2-Pro-Llama-3-8B-Q8_0.gguf",
+     "size": 8532000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "hermes-2-pro-mistral-7b",
+   "name": "Hermes 2 Pro Mistral 7B",
+   "family": "hermes",
+   "arch": "llama",
+   "params": 7.24,
+   "licence": "Apache-2.0",
+   "repo": "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
+   "tags": [
+    "chat",
+    "tools"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "Hermes-2-Pro-Mistral-7B.Q3_K_M.gguf",
+     "size": 3530000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "Hermes-2-Pro-Mistral-7B.Q4_K_M.gguf",
+     "size": 4389000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "Hermes-2-Pro-Mistral-7B.Q5_K_M.gguf",
+     "size": 5159000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "Hermes-2-Pro-Mistral-7B.Q8_0.gguf",
+     "size": 7693000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "openhermes-2.5-mistral-7b",
+   "name": "OpenHermes 2.5 Mistral 7B",
+   "family": "hermes",
+   "arch": "llama",
+   "params": 7.24,
+   "licence": "Apache-2.0",
+   "repo": "TheBloke/OpenHermes-2.5-Mistral-7B-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "openhermes-2.5-mistral-7b.Q3_K_M.gguf",
+     "size": 3530000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "openhermes-2.5-mistral-7b.Q4_K_M.gguf",
+     "size": 4389000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "openhermes-2.5-mistral-7b.Q5_K_M.gguf",
+     "size": 5159000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "openhermes-2.5-mistral-7b.Q8_0.gguf",
+     "size": 7693000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "neuralhermes-2.5-mistral-7b",
+   "name": "NeuralHermes 2.5 Mistral 7B",
+   "family": "hermes",
+   "arch": "llama",
+   "params": 7.24,
+   "licence": "Apache-2.0",
+   "repo": "TheBloke/NeuralHermes-2.5-Mistral-7B-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "neuralhermes-2.5-mistral-7b.Q3_K_M.gguf",
+     "size": 3530000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "neuralhermes-2.5-mistral-7b.Q4_K_M.gguf",
+     "size": 4389000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "neuralhermes-2.5-mistral-7b.Q5_K_M.gguf",
+     "size": 5159000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "neuralhermes-2.5-mistral-7b.Q8_0.gguf",
+     "size": 7693000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "smollm2-135m-instruct",
+   "name": "SmolLM2 135M Instruct",
+   "family": "smollm",
+   "arch": "llama",
+   "params": 0.135,
+   "licence": "Apache-2.0",
+   "repo": "bartowski/SmolLM2-135M-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q8_0",
+     "file": "SmolLM2-135M-Instruct-Q8_0.gguf",
+     "size": 143000000,
+     "approx": true
+    },
+    {
+     "quant": "F16",
+     "file": "SmolLM2-135M-Instruct-F16.gguf",
+     "size": 270000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "smollm2-360m-instruct",
+   "name": "SmolLM2 360M Instruct",
+   "family": "smollm",
+   "arch": "llama",
+   "params": 0.362,
+   "licence": "Apache-2.0",
+   "repo": "bartowski/SmolLM2-360M-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "SmolLM2-360M-Instruct-Q4_K_M.gguf",
+     "size": 219000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "SmolLM2-360M-Instruct-Q8_0.gguf",
+     "size": 385000000,
+     "approx": true
+    },
+    {
+     "quant": "F16",
+     "file": "SmolLM2-360M-Instruct-F16.gguf",
+     "size": 724000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "smollm2-1.7b-instruct",
+   "name": "SmolLM2 1.7B Instruct",
+   "family": "smollm",
+   "arch": "llama",
+   "params": 1.71,
+   "licence": "Apache-2.0",
+   "repo": "bartowski/SmolLM2-1.7B-Instruct-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
+     "size": 1037000000,
+     "approx": true
+    },
+    {
+     "quant": "Q6_K",
+     "file": "SmolLM2-1.7B-Instruct-Q6_K.gguf",
+     "size": 1411000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "SmolLM2-1.7B-Instruct-Q8_0.gguf",
+     "size": 1817000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "smollm3-3b",
+   "name": "SmolLM3 3B",
+   "family": "smollm",
+   "arch": "smollm3",
+   "params": 3.08,
+   "licence": "Apache-2.0",
+   "repo": "ggml-org/SmolLM3-3B-GGUF",
+   "tags": [
+    "chat",
+    "reasoning"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "SmolLM3-Q4_K_M.gguf",
+     "size": 1867000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "SmolLM3-Q8_0.gguf",
+     "size": 3273000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "tinyllama-1.1b-chat-v1.0",
+   "name": "TinyLlama 1.1B Chat v1.0",
+   "family": "tinyllama",
+   "arch": "llama",
+   "params": 1.1,
+   "licence": "Apache-2.0",
+   "repo": "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+     "size": 667000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "tinyllama-1.1b-chat-v1.0.Q5_K_M.gguf",
+     "size": 784000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "tinyllama-1.1b-chat-v1.0.Q8_0.gguf",
+     "size": 1169000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "wizardmath-7b-v1.1",
+   "name": "WizardMath 7B v1.1",
+   "family": "wizardmath",
+   "arch": "llama",
+   "params": 7.24,
+   "licence": "Microsoft Research License (see the model card)",
+   "repo": "TheBloke/WizardMath-7B-V1.1-GGUF",
+   "tags": [
+    "maths"
+   ],
+   "variants": [
+    {
+     "quant": "Q3_K_M",
+     "file": "wizardmath-7b-v1.1.Q3_K_M.gguf",
+     "size": 3530000000,
+     "approx": true
+    },
+    {
+     "quant": "Q4_K_M",
+     "file": "wizardmath-7b-v1.1.Q4_K_M.gguf",
+     "size": 4389000000,
+     "approx": true
+    },
+    {
+     "quant": "Q5_K_M",
+     "file": "wizardmath-7b-v1.1.Q5_K_M.gguf",
+     "size": 5159000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "wizardmath-7b-v1.1.Q8_0.gguf",
+     "size": 7693000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "lfm2-1.2b",
+   "name": "LFM2 1.2B",
+   "family": "lfm",
+   "arch": "lfm2",
+   "params": 1.17,
+   "licence": "LFM Open License v1.0",
+   "repo": "LiquidAI/LFM2-1.2B-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "LFM2-1.2B-Q4_K_M.gguf",
+     "size": 709000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "LFM2-1.2B-Q8_0.gguf",
+     "size": 1243000000,
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "lfm2-350m",
+   "name": "LFM2 350M",
+   "family": "lfm",
+   "arch": "lfm2",
+   "params": 0.354,
+   "licence": "LFM Open License v1.0",
+   "repo": "LiquidAI/LFM2-350M-GGUF",
+   "tags": [
+    "chat"
+   ],
+   "variants": [
+    {
+     "quant": "Q4_K_M",
+     "file": "LFM2-350M-Q4_K_M.gguf",
+     "size": 215000000,
+     "approx": true
+    },
+    {
+     "quant": "Q8_0",
+     "file": "LFM2-350M-Q8_0.gguf",
+     "size": 376000000,
+     "approx": true
+    }
+   ]
+  }
+ ]
+}

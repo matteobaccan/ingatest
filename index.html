@@ -7,10 +7,13 @@ SPDX-License-Identifier: MIT
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Inga in the browser</title>
+<link rel="icon" href="logo.svg" type="image/svg+xml">
 <!-- The commit of a published build (the Pages workflow writes it), for the report. -->
-<meta name="inga-build" content="56f8cde 2026-10-16">
+<meta name="inga-build" content="7c31986 2026-10-16">
+<!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
+<script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
 <!-- Where "Report on GitHub" opens an issue, and with which issue form (empty: a plain issue with the
 report as its text); the beta's guide. The Pages workflow sets them for the public build. -->
 <meta name="inga-report-repo" content="matteobaccan/ingatest">
@@ -19,227 +22,490 @@ report as its text); the beta's guide. The Pages workflow sets them for the publ
 <!-- Cross-origin isolation on GitHub Pages (the beta): a service worker, before app.js. -->
 <script src="coi.js"></script>
 <style>
+/* Inga's own colours: the tokens and values of the native web UI's Light and Dark themes
+   (crates/inga-server/src/webui.html), and --warn for the "tight" marks. */
 :root {
-  --bg: #fafaf9; --fg: #1c1917; --muted: #57534e; --line: #d6d3d1; --card: #ffffff;
-  --accent: #0f766e; --accent-fg: #ffffff; --warn: #b45309; --err: #b91c1c;
+  color-scheme: light;
+  --bg: #f5f6fa; --panel: #ffffff; --hover: #f0f1f8; --text: #1b1d2a; --muted: #5f6380;
+  --line: #e1e3ee; --accent: #4f46e5; --on-accent: #ffffff; --user: #eef0ff;
+  --code: #f3f4f9; --danger: #c4271b; --ok: #15803d; --warn: #b45309; --shadow: 0 1px 3px rgba(20, 20, 60, .08);
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --aside-w: 270px; --chat-w: 820px;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1c1917; --fg: #f5f5f4; --muted: #a8a29e; --line: #44403c; --card: #292524;
-    --accent: #2dd4bf; --accent-fg: #042f2e; --warn: #fbbf24; --err: #f87171;
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --bg: #0f1020; --panel: #171a2e; --hover: #20233a; --text: #e8e9f3; --muted: #9ea2c0;
+    --line: #2a2d48; --accent: #818cf8; --on-accent: #0f1020; --user: #262a4d;
+    --code: #20233a; --danger: #f97066; --ok: #4ade80; --warn: #fbbf24; --shadow: 0 1px 3px rgba(0, 0, 0, .4);
   }
 }
+:root[data-theme=dark] {
+  color-scheme: dark;
+  --bg: #0f1020; --panel: #171a2e; --hover: #20233a; --text: #e8e9f3; --muted: #9ea2c0;
+  --line: #2a2d48; --accent: #818cf8; --on-accent: #0f1020; --user: #262a4d;
+  --code: #20233a; --danger: #f97066; --ok: #4ade80; --warn: #fbbf24; --shadow: 0 1px 3px rgba(0, 0, 0, .4);
+}
+:root[data-fs=small] { font-size: 14px; } :root[data-fs=large] { font-size: 17px; } :root[data-fs=xlarge] { font-size: 19px; }
+/* The icons of the sprite (#icons): sized to the text, in its colour, as the native UI's. */
+.ic { width: 1.25em; height: 1.25em; vertical-align: -.3em; flex: none; fill: none; stroke: currentColor;
+  stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; overflow: visible; pointer-events: none; }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, -apple-system, sans-serif; }
-main { max-width: 760px; margin: 0 auto; padding: 16px; }
-h1 { font-size: 1.35rem; margin: 0 0 4px; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 1rem/1.45 var(--font); }
+#app { display: flex; height: 100dvh; }
+h1 { font-size: 1.05rem; margin: 0; }
 h2 { font-size: 1rem; margin: 0 0 8px; }
-p.note { color: var(--muted); margin: 0 0 12px; font-size: 0.9rem; }
-section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 0 0 12px; }
+h3 { font-size: .95rem; margin: 14px 0 6px; }
+p.note { color: var(--muted); margin: 0 0 12px; font-size: .9rem; }
+.meta { color: var(--muted); font-size: .85rem; }
+a { color: var(--accent); }
+section.card, .box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 0 0 12px; box-shadow: var(--shadow); }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-input[type=url], input[type=text], textarea { flex: 1 1 220px; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
-select { padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; max-width: 100%; }
-input[type=number] { width: 6.5em; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
-textarea { width: 100%; min-height: 4.5em; resize: vertical; }
-button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-fg); font: inherit; cursor: pointer; }
+input[type=url], input[type=text], input[type=search], textarea { flex: 1 1 220px; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font: inherit; }
+select, input[type=number] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font: inherit; max-width: 100%; }
+input[type=number] { width: 6.5em; }
+textarea { width: 100%; resize: vertical; }
+button { display: inline-flex; gap: 6px; align-items: center; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font: inherit; cursor: pointer; }
 button.ghost { background: transparent; color: var(--accent); }
-button:disabled { opacity: 0.45; cursor: default; }
+button.icon { padding: 6px; border: 1px solid transparent; background: transparent; color: var(--muted); border-radius: 8px; }
+button.icon:hover, button.ghost:hover, .navb:hover { background: var(--hover); }
+button:disabled { opacity: .45; cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 ul.list { list-style: none; padding: 0; margin: 0; }
 ul.list li { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line); }
 ul.list li:first-child { border-top: 0; }
-.meta { color: var(--muted); font-size: 0.85rem; }
-#status { font-size: 0.9rem; color: var(--muted); min-height: 1.4em; word-break: break-word; }
-#status.err { color: var(--err); }
-progress { width: 100%; height: 8px; }
-#chat { white-space: pre-wrap; word-break: break-word; }
-#chat .u { font-weight: 600; margin-top: 10px; }
-#chat .a { margin-top: 4px; }
+progress { width: 100%; height: 6px; accent-color: var(--accent); }
+details summary { cursor: pointer; color: var(--muted); }
+
+/* The side bar: Inga's mark, the views, the conversations, New chat. A drawer on phones. */
+#side { width: var(--aside-w); flex: none; display: flex; flex-direction: column; gap: 10px; padding: 14px 10px; background: var(--panel); border-right: 1px solid var(--line); }
+#side .brand { display: flex; gap: 10px; align-items: center; padding: 0 6px; }
+#side .brand img { width: 38px; height: 38px; border-radius: 9px; }
+#side .brand .name { font-weight: 700; font-size: 1.15rem; }
+#side .brand .sub { color: var(--muted); font-size: .8rem; }
+.navs { display: flex; flex-direction: column; gap: 2px; }
+.navb { display: flex; gap: 10px; align-items: center; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--text); text-align: left; }
+.navb[aria-current=page] { background: var(--user); color: var(--accent); font-weight: 600; }
+.side-h { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; padding: 4px 10px 0; }
+#convs { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; min-height: 60px; }
+#convs li { display: flex; align-items: center; gap: 4px; border-radius: 10px; }
+#convs li:hover, #convs li[aria-current=true] { background: var(--hover); }
+#convs li[aria-current=true] { box-shadow: inset 3px 0 0 var(--accent); }
+#convs .open { flex: 1; min-width: 0; display: block; text-align: left; padding: 7px 10px; border: 0; background: transparent; color: var(--text); }
+#convs .t { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#convs .m { display: block; color: var(--muted); font-size: .75rem; }
+#convs .del { visibility: hidden; }
+#convs li:hover .del, #convs li[aria-current=true] .del { visibility: visible; }
+#side .foot { display: flex; gap: 4px; align-items: center; border-top: 1px solid var(--line); padding-top: 10px; }
+#side .foot #new-chat { margin-left: auto; }
+#scrim { display: none; }
+
+/* The main pane: the conversation's header, the status line, a view. */
+#main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#top { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel); }
+#top .title { flex: 1; min-width: 0; }
+#top h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#menu { display: none; }
+#statusbar { padding: 6px 14px; border-bottom: 1px solid var(--line); background: var(--bg); }
+#status { font-size: .85rem; color: var(--muted); word-break: break-word; }
+#status.err { color: var(--danger); }
+#load-log { white-space: pre-wrap; font-size: .75rem; margin: 4px 0; max-height: 12em; overflow: auto; color: var(--muted); }
+#statusbar:not(.log) #load-log { display: none; }
+.view { flex: 1; overflow-y: auto; padding: 16px; }
+.view > .inner { max-width: var(--chat-w); margin: 0 auto; }
+#view-chat { display: flex; flex-direction: column; padding: 0; }
+#view-chat[hidden], .view[hidden] { display: none; }
+
+/* Messages: the answers on the left with Inga's mark and the model's name, the user's on the right. */
+#chat { flex: 1; overflow-y: auto; padding: 16px; }
+#chat > * { max-width: var(--chat-w); margin-left: auto; margin-right: auto; }
+.empty { text-align: center; color: var(--muted); padding: 10vh 16px 0; }
+.empty img { width: 64px; height: 64px; border-radius: 14px; }
+.msg { display: flex; gap: 10px; margin-top: 14px; }
+.msg.me { justify-content: flex-end; }
+#chat .u { white-space: pre-wrap; word-break: break-word; max-width: 85%; background: var(--accent); color: var(--on-accent); padding: 8px 12px; border-radius: 16px 16px 4px 16px; }
+.msg.bot .avatar { width: 30px; height: 30px; border-radius: 8px; flex: none; margin-top: 2px; }
+.msg.bot .col { min-width: 0; max-width: calc(100% - 40px); }
+.msg.bot .who { font-size: .8rem; color: var(--muted); margin-bottom: 2px; }
+#chat .a { white-space: pre-wrap; word-break: break-word; background: var(--panel); border: 1px solid var(--line); padding: 8px 12px; border-radius: 4px 16px 16px 16px; }
+#chat .a:empty::before { content: "…"; color: var(--muted); }
 #chat .a.md { white-space: normal; }
+.msg.bot .speed { font-size: .75rem; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
 #chat .md p, #chat .md ul, #chat .md ol, #chat .md blockquote { margin: 6px 0; }
+#chat .md > :first-child { margin-top: 0; } #chat .md > :last-child { margin-bottom: 0; }
 #chat .md ul, #chat .md ol { padding-left: 22px; }
 #chat .md blockquote { padding-left: 8px; border-left: 3px solid var(--line); color: var(--muted); }
 #chat .md h3, #chat .md h4, #chat .md h5, #chat .md h6 { margin: 10px 0 4px; font-size: 1rem; }
-#chat .md code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em; background: var(--card); padding: 0 3px; border-radius: 4px; }
-#chat .md .code { position: relative; margin: 6px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
-#chat .md .code .lang { position: absolute; left: 8px; top: 4px; font-size: 0.75rem; color: var(--muted); }
-#chat .md .code .copy { position: absolute; right: 4px; top: 4px; padding: 2px 8px; font-size: 0.75rem; }
-#chat .md pre { margin: 0; padding: 24px 10px 8px; overflow-x: auto; white-space: pre; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; }
-#chat .md a { color: var(--accent); }
-#stats { font-variant-numeric: tabular-nums; }
-details summary { cursor: pointer; color: var(--muted); }
-#chat details.think { margin-top: 4px; padding: 4px 8px; border-left: 3px solid var(--line); color: var(--muted); font-size: 0.9rem; }
-#chat details.think .body { margin-top: 4px; }
-select { padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
-label.check { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex-basis: 100%; }
+#chat .md code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .9em; background: var(--code); padding: 0 3px; border-radius: 4px; }
+#chat .md .code { position: relative; margin: 6px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--code); }
+#chat .md .code .lang { position: absolute; left: 8px; top: 4px; font-size: .75rem; color: var(--muted); }
+#chat .md .code .copy { position: absolute; right: 4px; top: 4px; padding: 2px 8px; font-size: .75rem; }
+#chat .md pre { margin: 0; padding: 24px 10px 8px; overflow-x: auto; white-space: pre; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; }
+#chat details.think { margin-bottom: 4px; padding: 4px 8px; border-left: 3px solid var(--line); color: var(--muted); font-size: .9rem; }
+#chat details.think .body { margin-top: 4px; white-space: pre-wrap; }
+
+/* The composer: the message, its tools, the model's chip, Send. */
+#composer { padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--bg); }
+#composer .box { max-width: var(--chat-w); margin: 0 auto; padding: 8px; border-radius: 16px; }
+#prompt { border: 0; background: transparent; min-height: 2.6em; max-height: 40vh; padding: 6px; outline: none; }
+#composer .tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+#composer .tools .grow { flex: 1; }
+.chip { display: inline-flex; gap: 6px; align-items: center; max-width: 100%; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: .85rem; }
+.chip.on { border-color: var(--accent); color: var(--accent); }
+#model-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14em; }
+label.chip input { margin: 0; }
+#send-hint, #stats { max-width: var(--chat-w); margin: 4px auto 0; font-variant-numeric: tabular-nums; }
+
+/* Settings and the other views. */
+.set { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 6px 14px; align-items: start; padding: 8px 0; border-top: 1px solid var(--line); }
+.set:first-of-type { border-top: 0; }
+.set > label:first-child, .set > span:first-child { font-weight: 600; padding-top: 6px; }
+.set .meta { display: block; margin-top: 4px; }
+@media (max-width: 640px) { .set { grid-template-columns: 1fr; } }
 #bench, #kernels { overflow-x: auto; }
-#bench table, #kernels table { border-collapse: collapse; font-size: 0.85rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
+#bench table, #kernels table { border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
 #bench th, #bench td, #kernels th, #kernels td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: right; white-space: nowrap; }
 #bench th:first-child, #bench td:first-child, #kernels th:first-child, #kernels td:first-child { text-align: left; white-space: normal; }
+pre.out { white-space: pre-wrap; word-break: break-word; font-size: .8rem; }
+
+/* The model picker (picker.js). */
+dialog#picker { width: min(980px, calc(100vw - 16px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); color: var(--text); }
+dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
+#picker .top { position: sticky; top: 0; background: var(--bg); padding: 12px 12px 8px; border-bottom: 1px solid var(--line); z-index: 1; }
+#picker .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 4px; }
+#picker .chip.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+#picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 10px; padding: 12px; }
+#picker .card { display: flex; flex-direction: column; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+#picker .card[data-fit=big] { opacity: .7; }
+#picker .card-head { display: flex; gap: 8px; align-items: center; }
+#picker .card-head .icon { font-size: 1.3rem; width: 1.6em; text-align: center; }
+#picker .card select { width: 100%; }
+#picker .fit.fits { color: var(--ok); } #picker .fit.tight { color: var(--warn); } #picker .fit.big { color: var(--danger); }
+#picker .card .row a { font-size: .85rem; }
+
+/* Phones: the side bar is a drawer over the page. */
+@media (max-width: 820px) {
+  #side { position: fixed; z-index: 20; inset: 0 auto 0 0; width: min(86vw, 320px); transform: translateX(-102%); transition: transform .2s; padding-top: calc(14px + env(safe-area-inset-top)); }
+  #app.drawer #side { transform: none; box-shadow: 0 0 24px rgb(0 0 0 / .3); }
+  #app.drawer #scrim { display: block; position: fixed; inset: 0; z-index: 19; background: rgb(0 0 0 / .35); }
+  #menu { display: inline-flex; }
+  #top { padding-top: calc(10px + env(safe-area-inset-top)); }
+  .view { padding: 12px; }
+  #chat { padding: 12px; }
+  #composer { padding-left: 8px; padding-right: 8px; }
+  #convs .del { visibility: visible; }
+}
+@media (prefers-reduced-motion: reduce) { #side { transition: none; } }
 </style>
 </head>
 <body>
-<main>
-  <h1>Inga in the browser</h1>
-  <p class="note" id="beta-note" hidden><strong>Beta.</strong> A first public test of Inga in the browser:
-  pick a model, chat, run the Standard test, then press "Report on GitHub" at the bottom (what works and what
-  does not: <a id="beta-guide" href="https://github.com/matteobaccan/inga/blob/main/docs/wasm-beta.md">the beta's guide</a>).</p>
-  <p class="note">An experiment: Inga compiled to WebAssembly, running on this device's CPU (WebAssembly
-  SIMD; one thread, or every core when the page is cross-origin isolated), or with its layers on the GPU
-  through WebGPU (Settings, Device: experimental). A model larger than the tab's memory runs with part of it
-  read from this site's storage at every token. Nothing is sent anywhere: the model runs in this page. Tested in
-  headless Chromium on Linux and in Safari on an iPhone 16 Pro.</p>
-
-  <section style="position:sticky;top:0;z-index:1">
-    <div id="status">Starting…</div>
+<!-- The icons: symbols of the native web UI's sprite (crates/inga-server/src/webui.html, docs/icons.html), and three drawn in their style. -->
+<svg xmlns="http://www.w3.org/2000/svg" id="icons" aria-hidden="true" width="0" height="0" style="position:absolute">
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4 3.5V16h-.5A2.5 2.5 0 0 1 4 13.5v-7A2.5 2.5 0 0 1 6.5 4Z"/><path d="M8 8.5h8M8 12h5"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9M8 5.25l8 4.5"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M18.53 9.76L20.82 10.21L20.82 13.79L18.53 14.24L18.2 15.03L19.5 16.97L16.97 19.5L15.03 18.2L14.24 18.53L13.79 20.82L10.21 20.82L9.76 18.53L8.97 18.2L7.03 19.5L4.5 16.97L5.8 15.03L5.47 14.24L3.18 13.79L3.18 10.21L5.47 9.76L5.8 8.97L4.5 7.03L7.03 4.5L8.97 5.8L9.76 5.47L10.21 3.18L13.79 3.18L14.24 5.47L15.03 5.8L16.97 4.5L19.5 7.03L18.2 8.97Z"/><circle cx="12" cy="12" r="2.75"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M3.5 16.5a8.5 8.5 0 1 1 17 0"/><path d="M12 16.5l4-4.5M6.5 16.5h.01M7.6 11.6h.01M12 8.6v.01M17.5 16.5h.01"/><circle cx="12" cy="16.5" r="1.25"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.5h5V7"/><path d="M6.5 7l.9 12.1A1.5 1.5 0 0 0 8.9 20.5h6.2a1.5 1.5 0 0 0 1.5-1.4L17.5 7M10 11v5.5M14 11v5.5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.75"/><path d="M18.6 12L20.6 12M16.67 16.67L18.08 18.08M12 18.6L12 20.6M7.33 16.67L5.92 18.08M5.4 12L3.4 12M7.33 7.33L5.92 5.92M12 5.4L12 3.4M16.67 7.33L18.08 5.92"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.6A8 8 0 1 1 9.4 4.5a6.4 6.4 0 0 0 10.1 10.1Z"/></symbol>
+  <symbol id="i-theme-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17M12 7H7M12 10H4.3M12 13.5H3.7M12 17H6"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5.5 21V3.5"/><path d="M5.5 4.5h12.5l-3 4.25 3 4.25H5.5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.25 15.25 20.5 20.5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><path d="M10.5 9h8A1.5 1.5 0 0 1 20 10.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 9 18.5v-8A1.5 1.5 0 0 1 10.5 9Z"/><path d="M15 9V5.5A1.5 1.5 0 0 0 13.5 4h-8A1.5 1.5 0 0 0 4 5.5v8A1.5 1.5 0 0 0 5.5 15H9"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.75 9.25h4.5a.5.5 0 0 1 .5.5v4.5a.5.5 0 0 1-.5.5h-4.5a.5.5 0 0 1-.5-.5v-4.5a.5.5 0 0 1 .5-.5Z"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 11.7V5A1.5 1.5 0 0 1 5 3.5h6.7a1.5 1.5 0 0 1 1.1.4l7.3 7.4a1.5 1.5 0 0 1 0 2.1l-6.8 6.8a1.5 1.5 0 0 1-2.1 0L3.9 12.8a1.5 1.5 0 0 1-.4-1.1Z"/><circle cx="8" cy="8" r="1.5"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8.5 8.5M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/></symbol>
+  <symbol id="i-markdown" viewBox="0 0 24 24"><path d="M4.5 5.5H19.5a2 2 0 0 1 2 2V16.5a2 2 0 0 1 -2 2H4.5a2 2 0 0 1 -2 -2V7.5a2 2 0 0 1 2 -2Z"/><path d="M6 15V9l2.5 3L11 9v6M16.5 9v6M14.25 12.75 16.5 15l2.25-2.25"/></symbol>
+  <symbol id="i-braces" viewBox="0 0 24 24"><path d="M9 4.5H8.5a2 2 0 0 0-2 2v3A2.5 2.5 0 0 1 4 12a2.5 2.5 0 0 1 2.5 2.5v3a2 2 0 0 0 2 2H9M15 4.5h.5a2 2 0 0 1 2 2v3A2.5 2.5 0 0 0 20 12a2.5 2.5 0 0 0-2.5 2.5v3a2 2 0 0 1-2 2H15"/></symbol>
+  <symbol id="i-brain" viewBox="0 0 24 24"><path d="M11.5 5.2A3 3 0 0 0 6.6 6.8 3 3 0 0 0 4.6 11.3a3.2 3.2 0 0 0 1 5 3 3 0 0 0 4 3.2 2.5 2.5 0 0 0 1.9-1.6Z"/><path d="M12.5 5.2a3 3 0 0 1 4.9 1.6 3 3 0 0 1 2 4.5 3.2 3.2 0 0 1-1 5 3 3 0 0 1-4 3.2 2.5 2.5 0 0 1-1.9-1.6Z"/><path d="M7.5 10.5c1.2.4 2.4 0 3-.9M16.5 10.5c-1.2.4-2.4 0-3-.9M8 15.2c1-.6 2.2-.5 3 .3M16 15.2c-1-.6-2.2-.5-3 .3"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><path d="M7.75 6H16.25a1.75 1.75 0 0 1 1.75 1.75V16.25a1.75 1.75 0 0 1 -1.75 1.75H7.75a1.75 1.75 0 0 1 -1.75 -1.75V7.75a1.75 1.75 0 0 1 1.75 -1.75Z"/><path d="M10.25 9.5H13.75a0.75 0.75 0 0 1 0.75 0.75V13.75a0.75 0.75 0 0 1 -0.75 0.75H10.25a0.75 0.75 0 0 1 -0.75 -0.75V10.25a0.75 0.75 0 0 1 0.75 -0.75Z"/><path d="M9.5 3.5v2.5M9.5 18v2.5M3.5 9.5h2.5M18 9.5h2.5M12 3.5v2.5M12 18v2.5M3.5 12h2.5M18 12h2.5M14.5 3.5v2.5M14.5 18v2.5M3.5 14.5h2.5M18 14.5h2.5"/></symbol>
+  <symbol id="i-gpu" viewBox="0 0 24 24"><path d="M3.5 4.5v15M3.5 6.5h16a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1h-16"/><circle cx="11" cy="11.75" r="3.25"/><path d="M11 11.75h.01"/><path d="M16.5 9.5v5M7.5 17v2.5h8V17"/></symbol>
+  <symbol id="i-database" viewBox="0 0 24 24"><path d="M5 6.5a7 2.5 0 1 0 14 0 7 2.5 0 1 0-14 0"/><path d="M5 6.5v11a7 2.5 0 0 0 14 0v-11"/><path d="M5 12a7 2.5 0 0 0 14 0"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 20V9M7.5 13.5 12 9l4.5 4.5M5 4.5h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-retry" viewBox="0 0 24 24"><path d="M19.5 12A7.5 7.5 0 1 1 12 4.5"/><path d="M9.5 2l2.5 2.5L9.5 7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol> <!-- New chat (drawn for the browser page) -->
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="M13.5 6.5l4 4"/></symbol> <!-- Rename (drawn for the browser page) -->
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol> <!-- Full screen (drawn for the browser page) -->
+</svg>
+<div id="app">
+<aside id="side" aria-label="Inga">
+  <div class="brand"><img src="logo.svg" alt=""><div><div class="name">Inga</div><div class="sub" data-i18n="brand.sub">AI models running in your browser</div></div></div>
+  <nav class="navs" aria-label="Views">
+    <button class="navb" id="nav-chat" data-view="chat" aria-current="page"><svg class="ic"><use href="#i-chat"/></svg><span data-i18n="nav.chat">Chat</span></button>
+    <button class="navb" id="nav-models" data-view="models"><svg class="ic"><use href="#i-package"/></svg><span data-i18n="nav.models">Models</span></button>
+    <button class="navb" id="nav-settings" data-view="settings"><svg class="ic"><use href="#i-settings"/></svg><span data-i18n="nav.settings">Settings</span></button>
+    <button class="navb" id="nav-diag" data-view="diag"><svg class="ic"><use href="#i-gauge"/></svg><span data-i18n="nav.diag">Tests and report</span></button>
+  </nav>
+  <div class="side-h" data-i18n="side.convs">Conversations</div>
+  <ul id="convs"></ul>
+  <div class="foot">
+    <button id="theme-btn" class="icon" type="button" title="Theme: auto" aria-label="Theme"><svg class="ic"><use href="#i-theme-auto"/></svg></button>
+    <a class="icon" href="https://github.com/matteobaccan/inga/blob/main/docs/wasm-beta.md" target="_blank" rel="noopener" title="The beta's guide" aria-label="The beta's guide" style="padding:6px;color:var(--muted)"><svg class="ic"><use href="#i-external"/></svg></a>
+    <button id="new-chat" type="button"><svg class="ic"><use href="#i-plus"/></svg><span data-i18n="chat.new">New chat</span></button>
+  </div>
+</aside>
+<div id="scrim"></div>
+<div id="main">
+  <header id="top">
+    <button id="menu" class="icon" type="button" aria-label="Menu"><svg class="ic"><use href="#i-menu"/></svg></button>
+    <div class="title"><h1 id="conv-title">New chat</h1><div class="meta" id="conv-count">0 messages</div></div>
+    <button id="conv-rename" class="icon" type="button" title="Rename this conversation" data-i18n-title="conv.rename"><svg class="ic"><use href="#i-edit"/></svg></button>
+    <button id="conv-export" class="icon" type="button" title="Export as Markdown" data-i18n-title="conv.md"><svg class="ic"><use href="#i-markdown"/></svg></button>
+    <button id="conv-download" class="icon" type="button" title="Download as JSON" data-i18n-title="conv.json"><svg class="ic"><use href="#i-download"/></svg></button>
+    <button id="fullscreen" class="icon" type="button" title="Full screen" data-i18n-title="conv.full"><svg class="ic"><use href="#i-expand"/></svg></button>
+  </header>
+  <div id="statusbar">
+    <div class="row" style="flex-wrap:nowrap"><div id="status" style="flex:1">Starting…</div>
+      <button id="log-toggle" class="icon" type="button" title="Show the load log" aria-expanded="false"><svg class="ic"><use href="#i-braces"/></svg></button></div>
     <progress id="progress" max="1" value="0" hidden></progress>
-  </section>
+    <pre id="load-log"></pre>
+  </div>
 
-  <section>
-    <h2>Test models</h2>
-    <p class="note">A fixed list, for runs that compare: downloaded once from Hugging Face into this site's
-    private storage (OPFS); an interrupted download resumes. Where "Get" is blocked (a preview frame), "Save
-    file" saves it and option 2 below loads it: a picked file is stored under its own name, which must be the
-    list's file name for "stored ✓" to show.</p>
-    <ul class="list" id="suggested"></ul>
-  </section>
-
-  <section>
-    <h2>Load a model</h2>
-    <div class="row" style="margin-bottom:10px">
-      <label for="url" class="meta" style="flex-basis:100%">1. From a link to a GGUF file (it must allow cross-origin downloads, as Hugging Face does)</label>
-      <input type="url" id="url" placeholder="https://huggingface.co/…/resolve/main/model-Q8_0.gguf">
-      <button id="url-go">Download and load</button>
-    </div>
-    <div class="row" style="margin-bottom:10px">
-      <label for="file" class="meta" style="flex-basis:100%">2. From a file on this device (on an iPhone or iPad it opens the Files app)</label>
-      <input type="file" id="file" accept=".gguf,application/octet-stream">
-    </div>
-    <div class="row">
-      <span class="meta" style="flex-basis:100%">3. From an <code>inga serve</code> on your network: not available yet. The server
-      does not hand out its model files today; until it does, any web server on your network
-      that sends the GGUF file with CORS headers works through option 1 (over HTTPS, since
-      this page is HTTPS).</span>
-    </div>
-    <details style="margin-top:10px">
-      <summary>Settings</summary>
-      <div class="row" style="margin-top:8px">
-        <label>Context <input type="number" id="ctx" value="2048" min="64" step="64"></label>
-        <label>Max tokens <input type="number" id="max" value="256" min="1"></label>
-        <label>Temperature <input type="number" id="temp" value="0.7" min="0" step="0.1"></label>
-        <label class="check"><input type="checkbox" id="think" checked> Think before answering
-          <span class="meta">(thinking models such as Qwen3; unchecked, they answer at once)</span></label>
-        <label class="check">Memory for the model
-          <select id="wmem"><option value="auto" selected>Auto</option><option value="all">All in memory</option><option value="mb">Limit in MB</option></select>
-          <input type="number" id="wmem-mb" value="1500" min="1" step="64" aria-label="Megabytes for the model">
-          <span class="meta" id="wmem-hint"></span>
-          <span class="meta">Everything the model keeps in memory: its weights, its KV cache for the context, its
-          working buffers. What does not fit is read from this site's storage while it runs (the embeddings a row
-          per token, the output layer and the last layers whole at every token): much slower, but a model larger
-          than the tab's memory runs; one that cannot fit is refused. A longer context leaves less for the
-          weights. Auto: 1600 MB on an iPhone or iPad, under the measured ceiling (Safari kept the tab at 1.75 GiB on an iPhone 16 Pro and
-          ended it at 2000 MB; a phone with less memory may need less), 3584 MB elsewhere (under the 4 GiB a
-          WebAssembly module can address: a model's part in memory is capped near 4 GB, so a larger model always
-          reads from storage; WebAssembly Memory64, in Chrome but not yet in Safari, would lift that). Kept in this
-          browser.</span></label>
-        <label class="check">Device
-          <select id="device"><option value="cpu" selected>CPU</option><option value="auto">Auto</option><option value="gpu">GPU (WebGPU, experimental)</option></select>
-          <button id="gpu-info" class="ghost">GPU info</button>
-          <span class="meta" id="device-hint"></span>
-          <span class="meta">CPU: WebAssembly SIMD on this device's cores. GPU: the layers through WebGPU, as
-          many as fit "GPU memory", the rest on the CPU (read from this site's storage when the memory limit
-          asks); a model whose layers or weight types the GPU does not run stays on the CPU, and the load line
-          says why. Auto: the GPU only where it was measured faster than the CPU, and never for a model larger
-          than "Memory for the model" (it would be read from storage, and the GPU's share leaves the CPU fewer
-          weights); on the iPhone 16 Pro the GPU was not faster (Qwen3 0.6B: 16.3 tok/s on the GPU, 25 on the
-          CPU), so Auto picks the CPU for now.</span></label>
-        <label class="check">GPU memory
-          <select id="gmem"><option value="auto" selected>Auto</option><option value="mb">Limit in MB</option></select>
-          <input type="number" id="gmem-mb" value="1024" min="1" step="64" aria-label="Megabytes for the GPU">
-          <span class="meta">What the GPU may hold: its layers' weights and KV cache, its working buffers. Auto:
-          1024 MB on an iPhone or iPad (Llama 3.2 1B, 0.9 GiB on the GPU, is the largest model measured to load
-          there); 3072 MB elsewhere, a guess: WebGPU does not tell a GPU's memory, and 3 GiB fits a 4 GB card
-          (set it in MB for yours).</span></label>
-        <label class="check">GPU memory accounting
-          <select id="gacct"><option value="auto" selected>Auto</option><option value="one">One limit: the GPU's bytes counted in "Memory for the model"</option><option value="apart">Apart: the limit covers WebAssembly memory only</option></select>
-          <span class="meta">One limit adds the GPU's bytes to WebAssembly memory, in case the system counts a tab's
-          GPU buffers with its memory, as iOS may; then a model that needs storage keeps fewer weights on the CPU
-          and runs slower on the GPU than on the CPU alone (Qwen3-4B on an iPhone 16 Pro: 0.9 against 2.3 tok/s).
-          Apart: "Memory for the model" bounds WebAssembly memory only and "GPU memory" the GPU's bytes, as on a
-          desktop, whose graphics memory is not the tab's. Auto: one limit on an iPhone or iPad (until the test in
-          the guide's step 7 shows that iOS does not count GPU buffers), apart elsewhere. The load line says which
-          was used.</span></label>
-        <label class="check">Draft model
-          <select id="draft"><option value="">None</option></select>
-          <span class="meta">A smaller stored model with the same vocabulary (for Qwen3-4B, Qwen3-0.6B; for Llama
-          3.2 3B, Llama 3.2 1B) guesses a few tokens, and the model checks them in one pass: a layer read from
-          storage is read once for every token the pass accepts. It is held whole, out of the same memory
-          limit, so the model keeps less in memory; it turns itself off while it does not make the answers
-          faster. Kept in this browser.</span></label>
-      </div>
-      <p class="meta" id="gpu-line"></p>
-    </details>
-  </section>
-
-  <section>
-    <h2>Stored models</h2>
-    <ul class="list" id="stored"></ul>
-    <p class="meta" id="storage"></p>
-    <div class="row" style="margin-bottom:8px"><button id="wipe" class="ghost" data-act="1">Delete all stored data</button>
-      <span id="wipe-confirm" hidden><span class="meta">Delete every model and file this site stores? This cannot be undone.</span>
-        <button id="wipe-yes">Delete all</button><button id="wipe-no" class="ghost">Cancel</button></span></div>
-    <div class="row"><button id="disktest" class="ghost" data-act="1">Disk speed test</button>
-      <span class="meta" id="disktest-out">Writes 256 MiB here, reads it back, deletes it.</span></div>
-  </section>
-
-  <section>
-    <h2 id="model-name">Chat</h2>
+  <section class="view" id="view-chat" aria-label="Chat">
     <div id="chat"></div>
-    <div class="row" style="margin-top:10px">
-      <textarea id="prompt" placeholder="Write a message" disabled></textarea>
+    <div id="composer">
+      <div class="box">
+        <textarea id="prompt" rows="2" placeholder="Write a message" data-i18n-ph="chat.ph" disabled></textarea>
+        <div class="tools">
+          <button id="model-chip" class="chip" type="button" title="Pick a model"><svg class="ic"><use href="#i-package"/></svg><span id="model-name">No model: pick one</span></button>
+          <label class="chip" title="Thinking models such as Qwen3 reason before they answer; unchecked, they answer at once"><input type="checkbox" id="think" checked><svg class="ic"><use href="#i-brain"/></svg><span data-i18n="chat.think">Think</span></label>
+          <span class="grow"></span>
+          <button id="reset" class="icon" type="button" title="New chat" disabled><svg class="ic"><use href="#i-plus"/></svg></button>
+          <button id="stop" class="ghost" type="button" disabled><svg class="ic"><use href="#i-stop"/></svg><span data-i18n="chat.stop">Stop</span></button>
+          <button id="send" type="button" disabled><span data-i18n="chat.send">Send</span></button>
+        </div>
+      </div>
+      <div class="meta" id="send-hint">Enter to send, Shift+Enter for a new line</div>
+      <p class="meta" id="stats"></p>
     </div>
-    <div class="row" style="margin-top:8px">
-      <button id="send" disabled>Send</button>
-      <button id="stop" class="ghost" disabled>Stop</button>
-      <button id="reset" class="ghost" disabled>New chat</button>
-      <button id="gpubench" class="ghost" disabled title="Runs the loaded GPU model on a fixed prompt and 32 tokens under several kernel choices">GPU benchmark</button>
-      <button id="gpuprofile" class="ghost" disabled title="Times every kernel of the loaded GPU model's decode steps (timestamp-query where the GPU has it)">Kernel times</button>
-    </div>
-    <p class="meta" id="stats"></p>
-    <div class="row" style="margin-top:8px">
-      <button id="stdtest" class="ghost" data-act="1" disabled title="Ciao, presentati in tre frasi. — thinking off, temperature 0, 64 tokens, a fresh chat">Standard test</button>
-      <span class="meta">A fixed, comparable run on the loaded model, whatever the Settings: the prompt "Ciao,
-      presentati in tre frasi.", thinking off, temperature 0, at most 64 tokens, a fresh chat.</span>
-    </div>
-    <div class="row" id="std-out" hidden style="margin-top:6px">
-      <code id="std-line" style="flex:1 1 100%;white-space:pre-wrap;word-break:break-word;font-size:0.8rem"></code>
-      <button id="std-copy" class="ghost">Copy</button>
-    </div>
-    <details id="std-all" style="margin-top:8px">
-      <summary>Standard test results in this browser (<span id="std-count">0</span>)</summary>
-      <pre id="std-list" style="white-space:pre-wrap;word-break:break-word;font-size:0.8rem"></pre>
-      <div class="row"><button id="std-copy-all" class="ghost">Copy all</button><button id="std-clear" class="ghost">Clear</button></div>
-    </details>
-    <div id="bench" class="meta"></div>
-    <div id="kernels" class="meta"></div>
   </section>
 
-  <section>
-    <h2>Report</h2>
-    <p class="note">Opens GitHub's issue form for this beta with what the page knows filled in: this browser and
-    its GPU adapter, the model and how it loaded, the speeds (the last answer, the Standard test, the GPU
-    benchmark and kernel times if you ran them), the load log and the errors the page saw. Nothing is sent from
-    here: you read it on GitHub, add what you did, and submit it (a GitHub account is needed).</p>
-    <div class="row">
-      <button id="report-go">Report on GitHub</button>
-      <button id="report-copy" class="ghost">Copy report</button>
-      <span class="meta" id="report-out"></span>
+  <section class="view" id="view-models" aria-label="Models" hidden><div class="inner">
+    <p class="note" id="beta-note" hidden><strong>Beta.</strong> A first public test of Inga in the browser:
+    pick a model, chat, run the Standard test (Tests and report), then press "Report on GitHub" there (what works
+    and what does not: <a href="https://github.com/matteobaccan/inga/blob/main/docs/wasm-beta.md">the beta's guide</a>).</p>
+    <p class="note">An experiment: Inga compiled to WebAssembly, running on this device's CPU (WebAssembly
+    SIMD; one thread, or every core when the page is cross-origin isolated), or with its layers on the GPU
+    through WebGPU (Settings, Device: experimental). A model larger than the tab's memory runs with part of it
+    read from this site's storage at every token. Nothing is sent anywhere: the model runs in this page. Tested in
+    headless Chromium on Linux and in Safari on an iPhone 16 Pro.</p>
+    <section class="card">
+      <h2 data-i18n="models.catalog">Model catalog</h2>
+      <div class="row">
+        <span class="meta" style="flex-basis:100%">About fifty GGUF models on Hugging Face that Inga runs (Llama, Qwen,
+        Gemma, Phi, Mistral, DeepSeek R1 distills…), each quantization marked by whether it fits this browser.</span>
+        <button id="picker-open"><svg class="ic"><use href="#i-search"/></svg><span data-i18n="models.browse">Browse models</span></button>
+      </div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="models.tests">Test models</h2>
+      <p class="note">A fixed list, for runs that compare: downloaded once from Hugging Face into this site's
+      private storage (OPFS); an interrupted download resumes. Where "Get" is blocked (a preview frame), "Save
+      file" saves it and option 2 below loads it: a picked file is stored under its own name, which must be the
+      list's file name for "stored ✓" to show.</p>
+      <ul class="list" id="suggested"></ul>
+    </section>
+    <section class="card">
+      <h2 data-i18n="models.load">Load a model</h2>
+      <div class="row" style="margin-bottom:10px">
+        <label for="url" class="meta" style="flex-basis:100%">1. From a link to a GGUF file (it must allow cross-origin downloads, as Hugging Face does)</label>
+        <input type="url" id="url" placeholder="https://huggingface.co/…/resolve/main/model-Q8_0.gguf">
+        <button id="url-go">Download and load</button>
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <label for="file" class="meta" style="flex-basis:100%">2. From a file on this device (on an iPhone or iPad it opens the Files app)</label>
+        <input type="file" id="file" accept=".gguf,application/octet-stream">
+      </div>
+      <div class="row">
+        <span class="meta" style="flex-basis:100%">3. From an <code>inga serve</code> on your network: not available yet. The server
+        does not hand out its model files today; until it does, any web server on your network
+        that sends the GGUF file with CORS headers works through option 1 (over HTTPS, since
+        this page is HTTPS).</span>
+      </div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="models.stored">Stored models</h2>
+      <ul class="list" id="stored"></ul>
+      <p class="meta" id="storage"></p>
+      <div class="row" style="margin-bottom:8px">
+        <button id="wipe-models" class="ghost" data-act="1"><svg class="ic"><use href="#i-trash"/></svg><span data-i18n="models.wipe">Delete model files</span></button>
+        <button id="wipe" class="ghost" data-act="1"><svg class="ic"><use href="#i-trash"/></svg><span data-i18n="models.wipeall">Delete all stored data</span></button>
+        <span id="wipe-confirm" hidden><span class="meta" id="wipe-what">Delete every model and file this site stores, and the conversations? This cannot be undone.</span>
+          <button id="wipe-yes">Delete all</button><button id="wipe-no" class="ghost">Cancel</button></span></div>
+    </section>
+  </div></section>
+
+  <section class="view" id="view-settings" aria-label="Settings" hidden><div class="inner">
+    <section class="card">
+      <h2 data-i18n="set.gen">Answers</h2>
+      <div class="set"><label for="temp" data-i18n="set.temp">Temperature</label><div><input type="number" id="temp" value="0.7" min="0" max="2" step="0.1">
+        <span class="meta">0 always takes the likeliest token (the same answer every time); higher is more varied.</span></div></div>
+      <div class="set"><label for="topp">Top P</label><div><input type="number" id="topp" value="0.95" min="0" max="1" step="0.05">
+        <span class="meta">Draws among the likeliest tokens whose probabilities add up to this (1: all).</span></div></div>
+      <div class="set"><label for="topk">Top K</label><div><input type="number" id="topk" value="40" min="0" step="1">
+        <span class="meta">Draws among this many likeliest tokens (0: no limit).</span></div></div>
+      <div class="set"><label for="minp">Min P</label><div><input type="number" id="minp" value="0.05" min="0" max="1" step="0.01">
+        <span class="meta">Leaves out tokens less likely than this fraction of the likeliest one.</span></div></div>
+      <div class="set"><label for="rep" data-i18n="set.rep">Repeat penalty</label><div><input type="number" id="rep" value="1" min="0" step="0.05">
+        <span class="meta">Above 1, tokens of the last 64 are less likely again (1: off).</span></div></div>
+      <div class="set"><label for="pres" data-i18n="set.pres">Presence penalty</label><div><input type="number" id="pres" value="0" min="-2" max="2" step="0.1">
+        <span class="meta">Subtracted from every token already in the answer: new topics (0: off).</span></div></div>
+      <div class="set"><label for="freq" data-i18n="set.freq">Frequency penalty</label><div><input type="number" id="freq" value="0" min="-2" max="2" step="0.1">
+        <span class="meta">Subtracted for each time a token appeared: fewer repetitions (0: off).</span></div></div>
+      <div class="set"><label for="max" data-i18n="set.max">Max tokens</label><div><input type="number" id="max" value="256" min="1">
+        <span class="meta">The longest answer, reasoning included.</span></div></div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="set.conv">Conversation</h2>
+      <div class="set"><span data-i18n="set.sys">System prompt</span><div>
+        <label class="row" style="gap:6px"><input type="checkbox" id="sys-on"> <span data-i18n="set.syson">Send a system prompt first</span></label>
+        <textarea id="sys" rows="3" placeholder="You are a helpful assistant. Answer briefly."></textarea>
+        <span class="meta">Given to the model before the conversation, through its chat template.</span></div></div>
+      <div class="set"><label for="past" data-i18n="set.past">Past messages sent</label><div><input type="number" id="past" value="0" min="0" step="1">
+        <span class="meta">How many of the conversation's last messages go with each question (0: all of them, as long as the context holds them).</span></div></div>
+      <div class="set"><label for="sendkey" data-i18n="set.sendkey">Send key</label><div><select id="sendkey"><option value="enter" selected>Enter</option><option value="ctrl">Ctrl+Enter (⌘+Enter)</option></select></div></div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="set.load">Model loading</h2>
+      <div class="set"><label for="ctx" data-i18n="set.ctx">Context window</label><div><input type="number" id="ctx" value="2048" min="64" step="64">
+        <span class="meta">Tokens the model keeps (the KV cache): the conversation, the question and the answer must fit. Applies at the next load.</span></div></div>
+      <div class="set"><label for="wmem">Memory for the model</label><div>
+        <select id="wmem"><option value="auto" selected>Auto</option><option value="all">All in memory</option><option value="mb">Limit in MB</option></select>
+        <input type="number" id="wmem-mb" value="1500" min="1" step="64" aria-label="Megabytes for the model">
+        <span class="meta" id="wmem-hint"></span>
+        <span class="meta">Everything the model keeps in memory: its weights, its KV cache for the context, its
+        working buffers. What does not fit is read from this site's storage while it runs (the embeddings a row
+        per token, the output layer and the last layers whole at every token): much slower, but a model larger
+        than the tab's memory runs; one that cannot fit is refused. A longer context leaves less for the
+        weights. Auto: 1600 MB on an iPhone or iPad, under the measured ceiling (Safari kept the tab at 1.75 GiB on an iPhone 16 Pro and
+        ended it at 2000 MB; a phone with less memory may need less), 3584 MB elsewhere (under the 4 GiB a
+        WebAssembly module can address: a model's part in memory is capped near 4 GB, so a larger model always
+        reads from storage; WebAssembly Memory64, in Chrome but not yet in Safari, would lift that). Kept in this
+        browser.</span></div></div>
+      <div class="set"><label for="device">Device</label><div>
+        <select id="device"><option value="cpu" selected>CPU</option><option value="auto">Auto</option><option value="gpu">GPU (WebGPU, experimental)</option></select>
+        <button id="gpu-info" class="ghost">GPU info</button>
+        <span class="meta" id="device-hint"></span>
+        <span class="meta" id="gpu-line"></span>
+        <span class="meta">CPU: WebAssembly SIMD on this device's cores. GPU: the layers through WebGPU, as
+        many as fit "GPU memory", the rest on the CPU (read from this site's storage when the memory limit
+        asks); a model whose layers or weight types the GPU does not run stays on the CPU, and the load line
+        says why. Auto: the GPU only where it was measured faster than the CPU, and never for a model larger
+        than "Memory for the model" (it would be read from storage, and the GPU's share leaves the CPU fewer
+        weights); on the iPhone 16 Pro the GPU was not faster (Qwen3 0.6B: 16.3 tok/s on the GPU, 25 on the
+        CPU), so Auto picks the CPU for now.</span></div></div>
+      <div class="set"><label for="gmem">GPU memory</label><div>
+        <select id="gmem"><option value="auto" selected>Auto</option><option value="mb">Limit in MB</option></select>
+        <input type="number" id="gmem-mb" value="1024" min="1" step="64" aria-label="Megabytes for the GPU">
+        <span class="meta">What the GPU may hold: its layers' weights and KV cache, its working buffers. Auto:
+        1024 MB on an iPhone or iPad (Llama 3.2 1B, 0.9 GiB on the GPU, is the largest model measured to load
+        there); 3072 MB elsewhere, a guess: WebGPU does not tell a GPU's memory, and 3 GiB fits a 4 GB card
+        (set it in MB for yours).</span></div></div>
+      <div class="set"><label for="gacct">GPU memory accounting</label><div>
+        <select id="gacct"><option value="auto" selected>Auto</option><option value="one">One limit: the GPU's bytes counted in "Memory for the model"</option><option value="apart">Apart: the limit covers WebAssembly memory only</option></select>
+        <span class="meta">One limit adds the GPU's bytes to WebAssembly memory, in case the system counts a tab's
+        GPU buffers with its memory, as iOS may; then a model that needs storage keeps fewer weights on the CPU
+        and runs slower on the GPU than on the CPU alone (Qwen3-4B on an iPhone 16 Pro: 0.9 against 2.3 tok/s).
+        Apart: "Memory for the model" bounds WebAssembly memory only and "GPU memory" the GPU's bytes, as on a
+        desktop, whose graphics memory is not the tab's. Auto: one limit on an iPhone or iPad (until the test in
+        the guide's step 7 shows that iOS does not count GPU buffers), apart elsewhere. The load line says which
+        was used.</span></div></div>
+      <div class="set"><label for="draft">Draft model</label><div>
+        <select id="draft"><option value="">None</option></select>
+        <span class="meta">A smaller stored model with the same vocabulary (for Qwen3-4B, Qwen3-0.6B; for Llama
+        3.2 3B, Llama 3.2 1B) guesses a few tokens, and the model checks them in one pass: a layer read from
+        storage is read once for every token the pass accepts. It is held whole, out of the same memory
+        limit, so the model keeps less in memory; it turns itself off while it does not make the answers
+        faster. Kept in this browser.</span></div></div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="set.look">Appearance</h2>
+      <div class="set"><label for="theme" data-i18n="set.theme">Theme</label><div><select id="theme"><option value="auto" selected>Auto (this device's)</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div>
+      <div class="set"><label for="fontsize" data-i18n="set.font">Font size</label><div><select id="fontsize"><option value="small">Small</option><option value="normal" selected>Normal</option><option value="large">Large</option><option value="xlarge">Larger</option></select></div></div>
+      <div class="set"><label for="lang" data-i18n="set.lang">Language</label><div><select id="lang"><option value="en" selected>English</option><option value="it">Italiano</option></select>
+        <span class="meta">The page's buttons, menus and headings; the longer explanations stay in English.</span></div></div>
+      <div class="set"><label for="loglevel" data-i18n="set.log">Load log</label><div><select id="loglevel"><option value="all" selected>Every step</option><option value="summary">The start, the end and errors</option><option value="off">Off</option></select>
+        <span class="meta">What the load log under the status line keeps (the report sends it).</span></div></div>
+    </section>
+    <section class="card">
+      <div class="row"><button id="settings-reset" class="ghost"><svg class="ic"><use href="#i-retry"/></svg><span data-i18n="set.reset">Reset all settings</span></button>
+        <span class="meta">Every setting above back to its default; models and conversations stay. Settings are kept in this browser.</span></div>
+    </section>
+  </div></section>
+
+  <section class="view" id="view-diag" aria-label="Tests and report" hidden><div class="inner">
+    <section class="card">
+      <h2 data-i18n="diag.std">Standard test</h2>
+      <div class="row">
+        <button id="stdtest" class="ghost" data-act="1" disabled title="Ciao, presentati in tre frasi. — thinking off, temperature 0, 64 tokens, a fresh chat">Standard test</button>
+        <span class="meta">A fixed, comparable run on the loaded model, whatever the Settings: the prompt "Ciao,
+        presentati in tre frasi.", thinking off, temperature 0, at most 64 tokens, in a new conversation.</span>
+      </div>
+      <div class="row" id="std-out" hidden style="margin-top:6px">
+        <code id="std-line" style="flex:1 1 100%;white-space:pre-wrap;word-break:break-word;font-size:.8rem"></code>
+        <button id="std-copy" class="ghost">Copy</button>
+      </div>
+      <details id="std-all" style="margin-top:8px">
+        <summary>Standard test results in this browser (<span id="std-count">0</span>)</summary>
+        <pre id="std-list" class="out"></pre>
+        <div class="row"><button id="std-copy-all" class="ghost">Copy all</button><button id="std-clear" class="ghost">Clear</button></div>
+      </details>
+    </section>
+    <section class="card">
+      <h2 data-i18n="diag.gpu">GPU</h2>
+      <div class="row">
+        <button id="gpubench" class="ghost" disabled title="Runs the loaded GPU model on a fixed prompt and 32 tokens under several kernel choices">GPU benchmark</button>
+        <button id="gpuprofile" class="ghost" disabled title="Times every kernel of the loaded GPU model's decode steps (timestamp-query where the GPU has it)">Kernel times</button>
+        <span class="meta">On a model loaded on the GPU; its prompt is not part of a conversation.</span>
+      </div>
+      <div id="bench" class="meta"></div>
+      <div id="kernels" class="meta"></div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="diag.disk">Storage speed</h2>
+      <div class="row"><button id="disktest" class="ghost" data-act="1">Disk speed test</button>
+        <span class="meta" id="disktest-out">Writes 256 MiB here, reads it back, deletes it.</span></div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="diag.report">Report</h2>
+      <p class="note">Opens GitHub's issue form for this beta with what the page knows filled in: this browser and
+      its GPU adapter, the model and how it loaded, the speeds (the last answer, the Standard test, the GPU
+      benchmark and kernel times if you ran them), the load log and the errors the page saw. Nothing is sent from
+      here: you read it on GitHub, add what you did, and submit it (a GitHub account is needed).</p>
+      <div class="row">
+        <button id="report-go"><svg class="ic"><use href="#i-flag"/></svg>Report on GitHub</button>
+        <button id="report-copy" class="ghost">Copy report</button>
+        <span class="meta" id="report-out"></span>
+      </div>
+      <details style="margin-top:8px">
+        <summary>What the report contains</summary>
+        <pre id="report-text" class="out"></pre>
+      </details>
+    </section>
+  </div></section>
+</div>
+</div>
+<dialog id="picker" aria-labelledby="picker-title">
+  <div class="top">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="picker-title" style="margin:0">Model selection</h2>
+      <button id="picker-close" class="ghost" type="button" aria-label="Close">Close</button>
     </div>
-    <details style="margin-top:8px">
-      <summary>What the report contains</summary>
-      <pre id="report-text" style="white-space:pre-wrap;word-break:break-word;font-size:0.8rem"></pre>
-    </details>
-  </section>
-</main>
+    <div class="row" style="margin-top:8px">
+      <input type="text" id="picker-q" placeholder="Search: a name, a size, a quantization (qwen 1.5b q8)" aria-label="Search the models">
+      <label class="meta"><input type="checkbox" id="picker-all"> Show models too big for this browser</label>
+    </div>
+    <div class="chips" id="picker-chips" role="group" aria-label="Families"></div>
+    <div class="meta"><span id="picker-count"></span> · <span id="picker-source"></span></div>
+    <div class="meta" id="picker-env"></div>
+  </div>
+  <div id="picker-grid"></div>
+</dialog>
 <script type="module" src="app.js"></script>
 <script type="module" src="report.js"></script>
 </body>
