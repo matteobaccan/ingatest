@@ -110,6 +110,25 @@ async function start() {
 
 const ready = start();
 
+// A sync access handle on `fileHandle`. Chromium releases a closed handle's lock in its
+// browser process after close() returns (and a terminated worker's later still), so
+// opening the file again at once (a load right after its download, a fresh worker after
+// Stop) can find it still locked: NoModificationAllowedError, "Access Handles cannot be
+// created if there is another open Access Handle". Asked again for up to 10 s before
+// the error goes to the page; a file really open elsewhere fails after that.
+async function syncHandle(fileHandle) {
+  const until = performance.now() + 10000;
+  for (let wait = 10; ; wait = Math.min(wait * 2, 500)) {
+    try {
+      return await fileHandle.createSyncAccessHandle();
+    } catch (e) {
+      if (e?.name !== "NoModificationAllowedError") throw e;
+      if (performance.now() >= until) throw new Error("the model file is in use by another tab or window of this page: close the other Inga tabs and load it again");
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
+}
+
 async function modelsDir() {
   const root = await navigator.storage.getDirectory();
   return root.getDirectoryHandle(DIR, { create: true });
@@ -126,7 +145,7 @@ async function readMeta(dir, name) {
 }
 
 async function writeMeta(dir, name, meta) {
-  const h = await (await dir.getFileHandle(name + ".json", { create: true })).createSyncAccessHandle();
+  const h = await syncHandle(await dir.getFileHandle(name + ".json", { create: true }));
   try {
     const bytes = new TextEncoder().encode(JSON.stringify(meta));
     h.truncate(0);
@@ -215,7 +234,7 @@ async function download(url, name) {
   const dir = await modelsDir();
   const meta = (await readMeta(dir, name)) ?? { url, size: null, complete: false };
   if (meta.complete) return;
-  const handle = await (await dir.getFileHandle(name, { create: true })).createSyncAccessHandle();
+  const handle = await syncHandle(await dir.getFileHandle(name, { create: true }));
   try {
     let at = meta.url === url ? handle.getSize() : 0;
     let resp;
@@ -702,7 +721,7 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
   const t0 = performance.now();
   const progress = (done, total) => post({ type: "progress", what: "load", done, total });
   const open = async () => {
-    const h = await (await (await modelsDir()).getFileHandle(name)).createSyncAccessHandle();
+    const h = await syncHandle(await (await modelsDir()).getFileHandle(name));
     [streamHandle, streamName] = [h, name];
     return h;
   };
@@ -779,7 +798,7 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
     const h = await open();
     let d = null;
     if (draft) {
-      d = await (await (await modelsDir()).getFileHandle(draft)).createSyncAccessHandle();
+      d = await syncHandle(await (await modelsDir()).getFileHandle(draft));
       [draftHandle, draftName] = [d, draft];
     }
     step(`CPU: loading the weights (${Math.round(h.getSize() / 1048576)} MiB file)`);
@@ -810,7 +829,7 @@ async function importFile(file) {
   if (free != null && free < file.size) {
     throw new Error(`This site's storage has ${mib(free)} free; ${file.name} needs ${mib(file.size)}. Delete a stored model, or choose "All in memory".`);
   }
-  const h = await (await dir.getFileHandle(file.name, { create: true })).createSyncAccessHandle();
+  const h = await syncHandle(await dir.getFileHandle(file.name, { create: true }));
   try {
     h.truncate(0);
     for (let at = 0; at < file.size; at += CHUNK) {
@@ -834,7 +853,7 @@ async function diskTest() {
   if (free != null && free < total + (64 << 20)) throw new Error(`The disk test needs ${mib(total)} free in this site's storage; ${mib(free)} are.`);
   const root = await navigator.storage.getDirectory();
   const name = "inga-disk-test.tmp";
-  const h = await (await root.getFileHandle(name, { create: true })).createSyncAccessHandle();
+  const h = await syncHandle(await root.getFileHandle(name, { create: true }));
   const buf = new Uint8Array(CHUNK);
   for (let i = 0; i < buf.length; i++) buf[i] = Math.imul(i, 2654435761) >>> 24;
   try {
