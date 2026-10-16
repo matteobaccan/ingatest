@@ -72,8 +72,9 @@
   {
    "id": "emma",
    "label": "Emma",
-   "icon": "🇮🇹",
-   "about": "Emma, an Italian Llama fine-tune by PaoloneSborracchione"
+   "icon": "👧",
+   "logo": "icons/emma.svg",
+   "about": "Emma, the Italian model by Egomnia (emma.egomnia.com); GGUF by PaoloneSborracchione"
   }
  ],
  "models": [
@@ -1895,6 +1896,14 @@
     "chat",
     "italian"
    ],
+   "ctx": 4096,
+   "sampling": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "top_k": 40,
+    "repeat_penalty": 1.1,
+    "source": "Egomnia's Emma chat (emma.egomnia.com, Preferences, style Bilanciata, its default); the model card gives a context of 4096 tokens"
+   },
    "variants": [
     {
      "quant": "Q8_0",

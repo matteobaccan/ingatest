@@ -25,6 +25,19 @@ export function variantUrl(m, v) {
 
 export const fileOf = (v) => v.file.split("/").pop();
 
+// A family's mark: its `logo` (an image of the page's folder, e.g. icons/emma.svg) when
+// it has one, else its `icon` (an emoji); null for neither.
+export function familyMark(f) {
+  if (f?.logo) {
+    const img = document.createElement("img");
+    img.className = "fam-logo";
+    img.src = f.logo;
+    img.alt = "";
+    return img;
+  }
+  return f?.icon ? document.createTextNode(f.icon) : null;
+}
+
 function size(b) {
   return b >= GiB ? (b / GiB).toFixed(b >= 10 * GiB ? 0 : 1) + " GiB" : Math.round(b / MiB) + " MiB";
 }
@@ -119,7 +132,9 @@ export function createPicker(opts) {
       b.type = "button";
       b.className = "chip" + (f.id === family ? " on" : "");
       b.dataset.family = f.id;
-      b.textContent = (f.icon ? f.icon + " " : "") + f.label;
+      const mark = familyMark(f);
+      if (mark) b.append(mark, " ");
+      b.append(f.label);
       if (f.about) b.title = f.about;
       b.setAttribute("aria-pressed", String(f.id === family));
       b.onclick = () => {
@@ -156,7 +171,8 @@ export function createPicker(opts) {
       head.className = "card-head";
       const icon = document.createElement("span");
       icon.className = "icon";
-      icon.textContent = fam[m.family]?.icon ?? "";
+      const mark = familyMark(fam[m.family]);
+      if (mark) icon.append(mark);
       icon.title = fam[m.family]?.label ?? m.family;
       const name = document.createElement("strong");
       name.textContent = m.name;

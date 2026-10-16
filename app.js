@@ -13,6 +13,7 @@ import * as chats from "./chats.js";
 import { t, setLang } from "./i18n.js";
 import { fmt, createRate, downloadLine, estimate, lastSpeed, saveSpeed } from "./eta.js";
 import { gauge, gaugeTitle, promptLimit, detail } from "./ctx.js";
+import { PRESET_FIELDS, catalogEntry, presetOf, presetValues, handFromSaved, describePreset } from "./preset.js";
 
 // The test models: a fixed list, so runs on different devices compare (the maintainer's
 // matrix of models x CPU / GPU, with the Standard test). Sizes are approximate.
@@ -243,6 +244,7 @@ function renderAnswer(soon) {
 
 // The answer is over (done, stopped, failed): its last render, and no element left.
 function endAnswer() {
+  reloadLater();
   clearTimeout(quietTimer);
   quietTimer = null;
   quietShown = false;
@@ -428,6 +430,9 @@ function handleMessage(m) {
       const i = m.info;
       onGpu = i.device === "webgpu";
       modelName = i.name || source?.name || source?.file?.name || "model";
+      modelMark = (source?.name && markOf[source.name]) || null;
+      reloadLater();
+      showMark();
       $("model-name").textContent = modelName;
       $("model-chip").title = `${source?.name ?? source?.file?.name ?? ""}: ${i.architecture}, ${i.layers} layers; click for another model`;
       const cpu = `${i.isa} kernels on ${i.threads} thread${i.threads === 1 ? "" : "s"}`;
@@ -444,8 +449,10 @@ function handleMessage(m) {
       if (m.note?.startsWith("On the CPU")) deviceUsed.label = deviceUsed.label.replace("device GPU (Auto", "device CPU, not the GPU (Auto");
       status(`Loaded in ${m.secs.toFixed(1)} s: ${i.architecture}, ${i.layers} layers, ${fmt(i.bytes)} of weights, ` +
         `context ${i.ctx}, ${where}; WebAssembly memory ${fmt(m.memory)}${gpuBytes(m.gpu)}; ` +
-        `${limitUsed}; ${deviceUsed.label}.` + (why ? ` ${why}.` : "") + streamNote(i) + draftNote(i));
+        `${limitUsed}; ${deviceUsed.label}.` + (why ? ` ${why}.` : "") + streamNote(i) + draftNote(i) + (reloadWhy ? " " + t("reloaded", ...reloadWhy) : ""));
+      reloadWhy = null;
       $("wmem-hint").textContent = "";
+      presetAfterLoad(i);
       // A model loaded: a new conversation (the earlier ones stay in the side bar).
       if (!keepChat) newChat();
       keepChat = false;
@@ -488,7 +495,7 @@ function handleMessage(m) {
       // Only the answer goes back to the model, as in inga serve's web UI; the reasoning
       // and the speeds are kept for the page.
       const reasoning = thinking?.lastChild?.textContent || undefined;
-      const said = { role: "assistant", content: answerText, reasoning, model: modelName, at: Date.now(),
+      const said = { role: "assistant", content: answerText, reasoning, model: modelName, ...(modelMark ? { mark: modelMark } : {}), at: Date.now(),
         stats: { prompt_tps: s.prompt_tps, gen_tps: s.gen_tps, prompt_tokens: s.prompt_tokens, gen_tokens: s.gen_tokens } };
       messages.push(said);
       speedLine(answerBox, said);
@@ -874,6 +881,8 @@ async function fromUrl(url, from = null) {
     return;
   }
   const name = fileName(url);
+  // A catalog model's family (its mark); a link's has none.
+  setMark(name, from ? familyOf(from.model) : null);
   setBusy(true);
   await persist();
   status(`Downloading ${name}…`);
@@ -918,6 +927,9 @@ async function loadStored(name) {
   source = { name };
   setBusy(true);
   status(`Loading ${name}…`);
+  // The context the catalog gives this model, unless set by hand (preset.js).
+  await presetBeforeLoad(name);
+  snapLoad();
   freshWorker();
   used = true;
   const { budget, label } = memoryLimit();
@@ -947,6 +959,7 @@ async function loadFile(file) {
     return;
   }
   source = { file };
+  snapLoad();
   setBusy(true);
   status(`Loading ${file.name}…`);
   freshWorker();
@@ -989,6 +1002,10 @@ function ask(text, opts) {
   const mine = { role: "user", content: text, at: Date.now() };
   messages.push(mine);
   startChat(text);
+  // The settings of this question, kept with the conversation (its backup carries them).
+  if (!stdRunning) {
+    chat.settings = { params: { ...opts }, system: $("sys-on").checked ? $("sys").value.trim() : "" };
+  }
   $("chat").querySelector(".empty")?.remove();
   $("chat").append(userBubble(mine));
   answerBox = botBubble(null);
@@ -1115,7 +1132,7 @@ function stop() {
   // Without cross-origin isolation the worker cannot be told while it computes: it is
   // ended, and the model loaded again (from OPFS or the same file).
   worker.terminate();
-  if (answer) messages.push({ role: "assistant", content: answerText, model: modelName, at: Date.now() });
+  if (answer) messages.push({ role: "assistant", content: answerText, model: modelName, ...(modelMark ? { mark: modelMark } : {}), at: Date.now() });
   endAnswer();
   persistChat();
   $("stop").disabled = true;
@@ -1287,6 +1304,8 @@ function saveSettings() {
   for (const id of SETTINGS) v[id] = $(id).type === "checkbox" ? $(id).checked : $(id).value;
   // The draft is kept by name even while its file is not listed.
   v.draft = draftWanted;
+  // The preset fields changed by hand (preset.js).
+  v.hand = [...hand];
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(v));
   } catch {}
@@ -1303,6 +1322,8 @@ function restoreSettings() {
     if (BETA && navigator.gpu && !isIOS()) $("device").value = "gpu";
     return;
   }
+  // A page saved before the presets: the fields not at their default were set by hand.
+  hand = Array.isArray(v.hand) ? new Set(v.hand.filter((id) => PRESET_FIELDS.includes(id))) : handFromSaved(v, PRESET_BASE);
   for (const id of SETTINGS) {
     if (!(id in v)) continue;
     if (id === "draft") draftWanted = typeof v.draft === "string" ? v.draft : "";
@@ -1311,13 +1332,106 @@ function restoreSettings() {
   }
 }
 
+// ---- Per-model presets (preset.js): the sampling and context a model comes with ----
+
+// The page's own defaults of the preset fields (its markup), before the saved settings.
+const PRESET_BASE = Object.fromEntries(PRESET_FIELDS.map((id) => [id, $(id).value]));
+// The preset fields changed by hand: the user's, kept over any model's preset.
+let hand = new Set();
+// The loaded model's preset, and its catalog entry's name.
+let preset = null;
+let presetModel = "";
+let catalogData;
+
+// The catalog (catalog.json), once; null when it cannot be read.
+async function catalogOnce() {
+  if (catalogData === undefined) {
+    try {
+      const r = await fetch("catalog.json", { cache: "no-cache" });
+      catalogData = r.ok ? await r.json() : null;
+    } catch {
+      catalogData = null;
+    }
+  }
+  return catalogData;
+}
+
+// Writes `values` (field id -> value) into the Settings.
+function setFields(values) {
+  for (const [id, v] of Object.entries(values)) $(id).value = String(v);
+}
+
+// Before a load of the stored file `name`: the context of its catalog entry (or the
+// page's default), unless set by hand.
+async function presetBeforeLoad(name) {
+  if (hand.has("ctx")) return;
+  const entry = catalogEntry(await catalogOnce(), name);
+  setFields({ ctx: presetOf({}, entry).values.ctx ?? PRESET_BASE.ctx });
+  saveSettings();
+}
+
+// A model loaded (its `info`): its preset into the Settings' fields not set by hand.
+async function presetAfterLoad(info) {
+  const name = source?.name ?? source?.file?.name ?? "";
+  const entry = catalogEntry(await catalogOnce(), name);
+  preset = presetOf(info.recommended_sampling ?? {}, entry);
+  presetModel = entry?.name ?? info.name ?? name;
+  setFields(presetValues(preset, PRESET_BASE, hand));
+  saveSettings();
+  presetLine();
+}
+
+// The Settings' line on the preset: whose values the answers use.
+function presetLine() {
+  const el = $("preset-line");
+  if (!el) return;
+  const mine = PRESET_FIELDS.filter((id) => hand.has(id));
+  $("preset-reset").hidden = !mine.length;
+  if (!preset) {
+    el.textContent = mine.length ? t("preset.yours.none", mine.map(fieldName).join(", ")) : t("preset.none");
+    return;
+  }
+  const what = describePreset(preset);
+  const where = Object.values(preset.from).includes("catalog")
+    ? t("preset.src.catalog", preset.source ?? "catalog.json")
+    : t("preset.src.gguf");
+  const model = what ? t("preset.model", presetModel, what, where) : t("preset.empty", presetModel);
+  el.textContent = mine.length ? `${t("preset.yours", mine.map(fieldName).join(", "))} ${model}` : model;
+}
+
+// A field's label in the Settings.
+function fieldName(id) {
+  return document.querySelector(`label[for="${id}"]`)?.textContent ?? id;
+}
+
+// "Use the model's settings": the fields set by hand back to the model's preset (or
+// the page's defaults without a model).
+function presetReset() {
+  const ctxBefore = $("ctx").value;
+  for (const id of PRESET_FIELDS) hand.delete(id);
+  setFields(presetValues(preset, PRESET_BASE, hand));
+  saveSettings();
+  presetLine();
+  // A context changed: the model reloads when Settings is left.
+  if (source && $("ctx").value !== ctxBefore) {
+    loadTouched.add("ctx");
+    $("wmem-hint").textContent = t("set.reloadnote");
+  }
+}
+
 restoreSettings();
 applyLook();
+$("preset-reset").onclick = presetReset;
 $("wmem-mb").hidden = $("wmem").value !== "mb";
 $("gmem-mb").hidden = $("gmem").value !== "mb";
 for (const id of SETTINGS) {
   $(id).addEventListener("change", () => {
     if (id === "draft") draftWanted = $("draft").value;
+    // A preset field changed by hand: the user's from now on.
+    if (PRESET_FIELDS.includes(id)) {
+      hand.add(id);
+      presetLine();
+    }
     saveSettings();
     if (id === "wmem") $("wmem-mb").hidden = $("wmem").value !== "mb";
     if (id === "gmem") $("gmem-mb").hidden = $("gmem").value !== "mb";
@@ -1328,8 +1442,9 @@ for (const id of SETTINGS) {
     else if (id === "max") drawGauge();
     // The context, the memory limits, the draft and the device are a load's: say so
     // while a model is loaded.
+    if (LOAD_IDS.includes(id)) loadTouched.add(id);
     if (source && ["ctx", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct"].includes(id)) {
-      $(id.startsWith("device") || id.startsWith("g") ? "device-hint" : "wmem-hint").textContent = "Applies at the next Load.";
+      $(id.startsWith("device") || id.startsWith("g") ? "device-hint" : "wmem-hint").textContent = t("set.reloadnote");
     }
   });
 }
@@ -1439,10 +1554,7 @@ function userBubble(m) {
 function botBubble(m) {
   const row = document.createElement("div");
   row.className = "msg bot";
-  const img = document.createElement("img");
-  img.className = "avatar";
-  img.src = "logo.svg";
-  img.alt = "";
+  const img = avatar(m ? m.mark : modelMark);
   const col = document.createElement("div");
   col.className = "col";
   const who = document.createElement("div");
@@ -1471,6 +1583,110 @@ function botBubble(m) {
     speedLine(row, m);
   }
   return row;
+}
+
+// ---- A load's settings: changed in Settings, the model reloads when Settings is left
+// (after the answer running, if one is); the sampler's settings never reload it ----
+const LOAD_IDS = ["device", "ctx", "wmem", "wmem-mb", "gmem", "gmem-mb", "gacct", "draft"];
+let loadedWith = null; // the load settings of the model's load
+// The load settings changed by hand since (a change event): the page's own changes (a
+// model's preset) never reload.
+const loadTouched = new Set();
+let reloadPending = false;
+let reloadWhy = null; // [model, where, setting] of a reload asked by a setting, for its status line
+function snapLoad() {
+  loadedWith = Object.fromEntries(LOAD_IDS.map((id) => [id, $(id).value]));
+  loadTouched.clear();
+}
+// The first load setting that differs from the load's, or null. A limit in MB counts
+// only while its setting is "Limit in MB".
+function changedLoad() {
+  if (!source || !loadedWith) return null;
+  return LOAD_IDS.find((id) => {
+    if (!loadTouched.has(id)) return false;
+    if (id.endsWith("-mb") && $(id.slice(0, -3)).value !== "mb" && loadedWith[id.slice(0, -3)] !== "mb") return false;
+    return $(id).value !== loadedWith[id];
+  }) ?? null;
+}
+function reloadIfChanged() {
+  const id = changedLoad();
+  if (!id) return;
+  if (busy || answer) {
+    reloadPending = true;
+    return;
+  }
+  reloadPending = false;
+  const dev = $("device").value;
+  const where = dev === "cpu" ? t("reload.cpu") : dev === "gpu" ? t("reload.gpu") : "";
+  const setting = document.querySelector(`label[for="${id.replace(/-mb$/, "")}"]`)?.textContent.trim() ?? id;
+  reloadWhy = [modelName || source?.name || source?.file?.name || "", where, setting];
+  const why = t("reload", ...reloadWhy);
+  // The conversation stays: the same model, loaded again.
+  keepChat = true;
+  if (source.name) loadStored(source.name);
+  else if (source.file) loadFile(source.file);
+  else return;
+  status(why);
+}
+// Once free again (an answer ended, a load done), a reload asked meanwhile.
+function reloadLater() {
+  if (reloadPending) setTimeout(() => !busy && !answer && reloadIfChanged(), 0);
+}
+
+// The avatar of an answer: its model's mark (`mark`: its catalog family's logo, else its
+// emoji, on a round tile), or Inga's logo for a model the catalog did not give.
+function avatar(mark) {
+  if (!mark?.logo && !mark?.icon) {
+    const img = document.createElement("img");
+    img.className = "avatar";
+    img.src = "logo.svg";
+    img.alt = "";
+    return img;
+  }
+  const el = document.createElement(mark.logo ? "img" : "span");
+  el.className = "avatar fam";
+  el.dataset.family = mark.family ?? "";
+  el.title = mark.label ?? "";
+  if (mark.logo) {
+    el.src = mark.logo;
+    el.alt = "";
+  } else {
+    el.textContent = mark.icon;
+    el.setAttribute("aria-hidden", "true");
+  }
+  return el;
+}
+
+// ---- The model's mark: a file downloaded through the model catalog keeps its family
+// (by file name, in this browser), so the answers it writes carry its logo or emoji; a
+// model loaded by link or from a file of this device has none (Inga's logo) ----
+const MARKS_KEY = "inga.marks";
+let markOf = {};
+try {
+  markOf = JSON.parse(localStorage.getItem(MARKS_KEY) || "{}") || {};
+} catch {}
+let modelMark = null; // the loaded model's: {family, label, icon, logo?}, or null
+function setMark(file, fam) {
+  if (fam) markOf[file] = { family: fam.id, label: fam.label, icon: fam.icon ?? "", ...(fam.logo ? { logo: fam.logo } : {}) };
+  else delete markOf[file];
+  try {
+    localStorage.setItem(MARKS_KEY, JSON.stringify(markOf));
+  } catch {}
+}
+const familyOf = (model) => picker.catalog?.families.find((f) => f.id === model?.family) ?? null;
+// The model chip: the mark, or the package icon; Emma's chip in her colour.
+function showMark() {
+  const chip = $("model-chip");
+  chip.dataset.family = modelMark?.family ?? "";
+  const box = $("model-mark");
+  box.textContent = "";
+  if (modelMark?.logo || modelMark?.icon) {
+    const a = avatar(modelMark);
+    a.className = "fam-logo";
+    box.append(a);
+  }
+  box.hidden = !box.firstChild;
+  chip.querySelector("svg.ic").style.display = box.hidden ? "" : "none";
 }
 
 // The line under an answer: its prompt (prefill) and answer (decode) speeds and its time.
@@ -1584,7 +1800,9 @@ async function showConvs() {
     del.type = "button";
     del.title = t("conv.delete");
     del.innerHTML = `<svg class="ic"><use href="#i-trash"/></svg>`;
+    // Asked first, with its title, as the native web UI asks ("Delete this chat?").
     del.onclick = async () => {
+      if (!confirm(t("conv.delask", c.title))) return;
       await chats.remove(c.id).catch(() => {});
       if (chat?.id === c.id) newChat();
       else showConvs();
@@ -1592,6 +1810,8 @@ async function showConvs() {
     li.append(open, del);
     ul.append(li);
   }
+  $("convs-export").disabled = $("convs-export-md").disabled = $("convs-clear").disabled = !all.length;
+  if (!all.length) $("convs-clear-ask").hidden = true;
   setBusy(busy);
 }
 
@@ -1616,18 +1836,76 @@ $("conv-rename").onclick = async () => {
 };
 $("conv-export").onclick = () => chat && download(`${fileTitle()}.md`, "text/markdown", chats.markdown(chat));
 $("conv-download").onclick = () => chat && download(`${fileTitle()}.json`, "application/json", JSON.stringify(chat, null, 1));
+
+// Every conversation at once (the side bar's archive button): a backup in JSON (the
+// native web UI's "Every chat" format, chats.js), the same in Markdown, an import that
+// adds what is not here yet, and "Delete all", confirmed in the bar, export offered.
+const stamp = () => new Date().toISOString().slice(0, 10);
+// A count's words: the key's `.one` form for 1.
+const tn = (key, n) => (n === 1 ? t(key + ".one") : t(key, n));
+$("convs-more").onclick = () => {
+  const open = $("convs-actions").hidden;
+  $("convs-actions").hidden = !open;
+  $("convs-more").setAttribute("aria-expanded", String(open));
+  if (!open) $("convs-clear-ask").hidden = true;
+};
+async function exportAll(md) {
+  const all = await chats.list().catch(() => []);
+  if (!all.length) return;
+  if (md) download(`inga-chats-${stamp()}.md`, "text/markdown", chats.markdownAll(all));
+  else download(`inga-chats-${stamp()}.json`, "application/json", chats.backup(all));
+  status(tn("convs.exported", all.length));
+}
+$("convs-export").onclick = () => exportAll(false);
+$("convs-export-md").onclick = () => exportAll(true);
+$("convs-clear-export").onclick = () => exportAll(false);
+$("convs-import").onclick = () => $("convs-file").click();
+$("convs-file").onchange = async () => {
+  const f = $("convs-file").files[0];
+  $("convs-file").value = "";
+  if (!f) return;
+  try {
+    const got = chats.parseImport(JSON.parse(await f.text()));
+    const { add, skipped, renamed } = chats.merge(await chats.list(), got);
+    for (const c of add) await chats.save(c);
+    status(tn("imp.done", add.length) + (skipped ? tn("imp.skipped", skipped) : "") + (renamed ? tn("imp.renamed", renamed) : "") + ".");
+  } catch (e) {
+    status(t("imp.error", e?.message ?? e), true);
+  }
+  showConvs();
+};
+$("convs-clear").onclick = async () => {
+  const n = (await chats.list().catch(() => [])).length;
+  if (!n) return;
+  $("convs-clear-what").textContent = n === 1 ? t("convs.clearask.one") : t("convs.clearask", n);
+  $("convs-clear-ask").hidden = false;
+};
+$("convs-clear-no").onclick = () => ($("convs-clear-ask").hidden = true);
+$("convs-clear-yes").onclick = async () => {
+  if (busy) return;
+  $("convs-clear-ask").hidden = true;
+  await chats.clear().catch(() => {});
+  newChat();
+  status(t("convs.cleared"));
+};
+// About: what Inga is, who makes it, the links (a dialog; Escape closes it too).
+$("about-btn").onclick = () => $("about").showModal();
+$("about-close").onclick = () => $("about").close();
 if (!document.fullscreenEnabled) $("fullscreen").hidden = true;
 $("fullscreen").onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {});
 
 // ---- The views (Chat, Models, Settings, Tests and report) and the side bar's drawer ----
 
 function showView(name) {
+  // Leaving Settings: a load setting changed reloads the model.
+  const leaving = !$("view-settings").hidden && name !== "settings";
   for (const v of ["chat", "models", "settings", "diag"]) {
     $("view-" + v).hidden = v !== name;
     if (v === name) $("nav-" + v).setAttribute("aria-current", "page");
     else $("nav-" + v).removeAttribute("aria-current");
   }
   $("app").classList.remove("drawer");
+  if (leaving) reloadIfChanged();
 }
 for (const b of document.querySelectorAll(".navb")) b.onclick = () => showView(b.dataset.view);
 $("menu").onclick = () => $("app").classList.toggle("drawer");
@@ -1654,6 +1932,7 @@ function applyLook() {
   setLang($("lang").value);
   $("send-hint").textContent = t($("sendkey").value === "ctrl" ? "hint.ctrl" : "hint.enter");
   if (!source) $("model-name").textContent = t("chat.nomodel");
+  presetLine();
   showHeader();
   if (!messages.length) renderChat();
 }
@@ -1746,8 +2025,10 @@ const picker = createPicker({
   onLoad: (model, variant, url) => {
     const name = url.split("/").pop().split("?")[0];
     const file = decodeURIComponent(name);
-    if (storedSize[file] != null) loadStored(file);
-    else fromUrl(url, { model, variant });
+    if (storedSize[file] != null) {
+      setMark(file, familyOf(model));
+      loadStored(file);
+    } else fromUrl(url, { model, variant });
   },
   onDelete: (file) => {
     if (source?.name === file) source = null;

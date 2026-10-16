@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="#008088"><!-- Emma's family in the browser page: Inga's own drawing (not Egomnia's logo) -->
+<circle cx="10" cy="31" r="8"/><circle cx="54" cy="31" r="8"/>
+<path d="M17 25l-4-3M47 25l4-3" stroke="#008088" stroke-width="3" stroke-linecap="round"/>
+<circle cx="32" cy="34" r="18.5" fill="none" stroke="#008088" stroke-width="4"/>
+<path d="M13.6 32A18.5 18.5 0 0 1 50.4 32L45 28.5 40 32.5 35 27.5 30 32.5 25 27.5 20 31.5Z"/>
+<circle cx="25" cy="39" r="2.7"/><circle cx="39" cy="39" r="2.7"/>
+<path d="M26 45.5q6 5 12 0" fill="none" stroke="#008088" stroke-width="3" stroke-linecap="round"/>
+</svg>
