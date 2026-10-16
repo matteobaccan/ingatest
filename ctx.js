@@ -34,9 +34,14 @@ export function gaugeTitle(t, used, size) {
 
 // The room the answer keeps in a context of `size` tokens: `max` tokens (the Settings'
 // Max tokens), at most half of the context.
-export function promptLimit(size, max) {
+export function answerRoom(size, max) {
   const s = Math.max(16, Number(size) || 0);
-  return s - Math.min(Math.max(0, Number(max) || 0), Math.floor(s / 2));
+  return Math.min(Math.max(0, Number(max) || 0), Math.floor(s / 2));
+}
+
+// What the question may take of the context: the rest.
+export function promptLimit(size, max) {
+  return Math.max(16, Number(size) || 0) - answerRoom(size, max);
 }
 
 // `msgs` (a leading system message kept) cut from the oldest until `count(list)` is at
@@ -56,4 +61,34 @@ export function fitMessages(msgs, count, limit) {
     tokens = count(sys.concat(rest));
   }
   return { messages: sys.concat(rest), dropped, tokens };
+}
+
+// The ring's detail (its panel): `msgs` as the model reads them (a leading system
+// message, the past messages kept, and the draft last when `draft`), counted by
+// `count(list)` (Model.countChat) in parts. Each part is what it adds to the count of the
+// parts before it, so the template's tokens fall in the parts and they add up to the
+// total. `past` is how many past messages are kept; `dropped`, how many of the oldest the
+// next question would leave out to stay within `limit` (fitMessages).
+export function breakdown(msgs, count, draft, limit) {
+  const sys = msgs.length && msgs[0].role === "system" ? 1 : 0;
+  const total = msgs.length ? count(msgs) : 0;
+  const system = sys ? count(msgs.slice(0, 1)) : 0;
+  const body = draft && msgs.length > sys ? msgs.slice(0, -1) : msgs;
+  const upto = body.length > sys ? count(body) : system;
+  const dropped = limit && total > limit ? fitMessages(msgs, count, limit).dropped : 0;
+  return { total, system, past: Math.max(0, upto - system), draft: Math.max(0, total - upto), kept: body.length - sys, dropped };
+}
+
+// The panel's numbers: the share used and the tokens free of a context of `size`, and
+// its rows (system prompt, past messages, draft, the answer's room) with each bar's width
+// in % of the context; a part of 0 tokens is left out, the answer's room always shown.
+export function detail(used, size, parts, max) {
+  const s = Math.max(0, Number(size) || 0);
+  const u = Math.max(0, Number(used) || 0);
+  const w = (n) => (s ? Math.min(100, (n * 100) / s) : 0);
+  const rows = [];
+  if (parts) for (const key of ["system", "past", "draft"]) if (parts[key] > 0) rows.push({ key, n: parts[key], w: w(parts[key]) });
+  const room = answerRoom(s, max);
+  rows.push({ key: "room", n: room, w: w(room) });
+  return { used: u, size: s, shown: gauge(u, s).shown, free: Math.max(0, s - u), rows, dropped: parts?.dropped || 0 };
 }

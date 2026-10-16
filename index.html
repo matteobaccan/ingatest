@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 <title>Inga (beta)</title>
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <!-- The commit of a published build (the Pages workflow writes it), for the report. -->
-<meta name="inga-build" content="48b747f 2026-10-16">
+<meta name="inga-build" content="ef12c0e 2026-10-16">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
 <!-- Where "Report on GitHub" opens an issue, and with which issue form (empty: a plain issue with the
@@ -161,7 +161,8 @@ details summary { cursor: pointer; color: var(--muted); }
 label.chip input { margin: 0; }
 /* The context used, as a ring that closes as it fills (inga serve's web UI's): the
    accent, amber past 75 %, red past 90 % (ctx.js). */
-#ctx-gauge { gap: 5px; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; cursor: help; }
+#ctx-gauge { gap: 5px; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; cursor: pointer; }
+#ctx-gauge[aria-expanded=true] { background: var(--hover); border-color: var(--line); }
 #ctx-gauge svg { width: 18px; height: 18px; transform: rotate(-90deg); }
 #ctx-gauge circle { fill: none; stroke-width: 3; }
 #ctx-gauge circle.track { stroke: var(--line); }
@@ -171,6 +172,23 @@ label.chip input { margin: 0; }
 #ctx-gauge.full { color: var(--danger); }
 #ctx-gauge.full #ctx-ring { stroke: var(--danger); }
 @media (prefers-reduced-motion: reduce) { #ctx-ring { transition: none; } }
+/* The ring's panel (a click or a tap on it), above the composer's tools at their right
+   end, as inga serve's: what fills the context, in bars of its size. */
+#composer .tools { position: relative; }
+#ctx-pop { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 20; width: min(340px, calc(100vw - 32px));
+  max-height: 60vh; overflow-y: auto; background: var(--panel); color: var(--text); border: 1px solid var(--line);
+  border-radius: 10px; box-shadow: 0 8px 30px rgba(0, 0, 0, .18); padding: 10px 12px; font-size: .85rem; overflow-wrap: anywhere; }
+#ctx-pop .note { color: var(--muted); margin: 2px 0 8px; }
+#ctx-pop .note.warn { color: var(--warn); margin: 8px 0 0; }
+#ctx-pop .note.small { font-size: .75rem; margin: 8px 0 0; }
+#ctx-pop .part { display: grid; grid-template-columns: minmax(0, 1fr) minmax(40px, 90px) auto; gap: 8px; align-items: center; margin: 4px 0; }
+#ctx-pop .track { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+#ctx-pop .bar { display: block; height: 100%; background: var(--accent); }
+#ctx-pop .bar.past { background: #0ea5e9; }
+#ctx-pop .bar.draft { background: var(--ok); }
+#ctx-pop .bar.room { background: repeating-linear-gradient(45deg, var(--muted) 0 3px, transparent 3px 6px); }
+#ctx-pop .part.room { color: var(--muted); }
+#ctx-pop .num { text-align: right; font-variant-numeric: tabular-nums; min-width: 3ch; }
 #send-hint, #stats { max-width: var(--chat-w); margin: 4px auto 0; font-variant-numeric: tabular-nums; }
 
 /* Settings and the other views. */
@@ -296,8 +314,9 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
           <span class="grow"></span>
           <button id="reset" class="icon" type="button" title="New chat" disabled><svg class="ic"><use href="#i-plus"/></svg></button>
           <button id="stop" class="ghost" type="button" disabled><svg class="ic"><use href="#i-stop"/></svg><span data-i18n="chat.stop">Stop</span></button>
-          <button id="ctx-gauge" class="icon" type="button" hidden aria-label="Context used" title=""><svg viewBox="0 0 20 20" aria-hidden="true"><circle class="track" cx="10" cy="10" r="8"/><circle id="ctx-ring" cx="10" cy="10" r="8" pathLength="100" stroke-dasharray="0 100"/></svg><span id="ctx-pct">0%</span></button>
+          <button id="ctx-gauge" class="icon" type="button" hidden aria-label="Context used" title="" aria-haspopup="dialog" aria-expanded="false" aria-controls="ctx-pop"><svg viewBox="0 0 20 20" aria-hidden="true"><circle class="track" cx="10" cy="10" r="8"/><circle id="ctx-ring" cx="10" cy="10" r="8" pathLength="100" stroke-dasharray="0 100"/></svg><span id="ctx-pct">0%</span></button>
           <button id="send" type="button" disabled><span data-i18n="chat.send">Send</span></button>
+          <div id="ctx-pop" role="dialog" aria-labelledby="ctx-pop-h" hidden></div>
         </div>
       </div>
       <div class="meta" id="send-hint">Enter to send, Shift+Enter for a new line</div>

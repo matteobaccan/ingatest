@@ -20,7 +20,8 @@
 // Messages in: {type: "download", url, name} | {type: "load", name | file, ctx, device} |
 // {type: "list"} | {type: "delete", name} | {type: "chat", messages, opts, stop, fit} (fit:
 // the prompt's most tokens; the oldest messages are left out until it fits, ctx.js) |
-// {type: "count", id, messages, opts} (the chat's tokens, for the context gauge) |
+// {type: "count", id, messages, opts, detail, draft, fit} (the chat's tokens, for the
+//   context gauge; with `detail`, its parts for the gauge's panel, ctx.js's breakdown) |
 // {type: "complete", text, opts} | {type: "reset"} | {type: "stop"} |
 // {type: "load", name, ctx, budget, draft, device, gpuBudget, gpuSeparate} (budget: bytes of memory for
 // the model, its KV cache and buffers included, the GPU's too; what does not fit is read
@@ -40,7 +41,7 @@
 // again with `device` in a fresh worker, `note` saying why) |
 // {type: "piece", text, reasoning} (reasoning: a thinking model's, apart from its answer) |
 // {type: "done", stats, memory, gpu} | {type: "error", message} |
-// {type: "count", id, tokens} (tokens null: no model, or a module without countChat) |
+// {type: "count", id, tokens, parts} (tokens null: no model, or a module without countChat) |
 // {type: "trimmed", dropped, tokens} (a chat's oldest messages left out to fit `fit`) |
 // {type: "disktest", bytes, write_mbs, read_mbs} |
 // {type: "gpubench", rows, done, tuning, shader_f16, subgroups, timestamp_query} (a row per
@@ -49,7 +50,7 @@
 // {type: "gpucheck", checked, total, failed, shader_f16, storage, storage_buffers,
 // most_storage_buffers}.
 
-import { fitMessages } from "./ctx.js";
+import { fitMessages, breakdown } from "./ctx.js";
 
 const CHUNK = 8 << 20; // bytes read from a file per push
 const DIR = "models";
@@ -605,10 +606,16 @@ async function handle(m) {
     }
     case "count": {
       let tokens = null;
+      let parts = null;
       try {
-        tokens = countChat(m.messages, JSON.stringify(m.opts ?? {}));
+        const opts = JSON.stringify(m.opts ?? {});
+        // The ring's panel is open: the parts too (a few counts more), else the total.
+        if (m.detail && typeof model?.countChat === "function") {
+          parts = breakdown(m.messages, (l) => countChat(l, opts), m.draft, m.fit);
+          tokens = parts.total;
+        } else tokens = countChat(m.messages, opts);
       } catch {}
-      post({ type: "count", id: m.id, tokens });
+      post({ type: "count", id: m.id, tokens, parts });
       break;
     }
     case "reset":

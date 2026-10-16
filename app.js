@@ -12,7 +12,7 @@ import { createPicker } from "./picker.js";
 import * as chats from "./chats.js";
 import { t, setLang } from "./i18n.js";
 import { fmt, createRate, downloadLine, estimate, lastSpeed, saveSpeed } from "./eta.js";
-import { gauge, gaugeTitle, promptLimit } from "./ctx.js";
+import { gauge, gaugeTitle, promptLimit, detail } from "./ctx.js";
 
 // The test models: a fixed list, so runs on different devices compare (the maintainer's
 // matrix of models x CPU / GPU, with the Standard test). Sizes are approximate.
@@ -101,11 +101,17 @@ let ctxUsed = 0; // the tokens of the conversation as the model reads it, the dr
 let countId = 0; // the last count asked of the worker (older answers are ignored)
 let countTimer = null;
 let trimmedNote = ""; // the oldest messages left out of the answer running, said
+let ctxParts = null; // the parts of the last count made with the panel open (ctx.js's breakdown); null: not counted
 const COUNT_MS = 400; // the pause in typing before the draft is counted
 
 // The context the loaded model has (its n_ctx), else the Settings' context.
 function ctxSize() {
   return loadedInfo?.info?.ctx || ctx();
+}
+
+// The Settings' Max tokens: what the answer may take.
+function maxTokens() {
+  return Number($("max").value) || 256;
 }
 
 function drawGauge() {
@@ -119,6 +125,60 @@ function drawGauge() {
   el.setAttribute("aria-label", el.title);
   el.classList.toggle("warn", g.level === "warn");
   el.classList.toggle("full", g.level === "full");
+  if (el.hidden) closeDetail();
+  else if (!$("ctx-pop").hidden) drawDetail();
+}
+
+// The ring's panel, as inga serve's web UI's: the tokens used of the context, what fills
+// it (the system prompt, the past messages sent, the draft) and the room kept for the
+// answer, the messages the next question would leave out, and the context's size and
+// where it comes from. Its parts are counted when it opens and with each count while it
+// is open (`countSoon`); closed, the gauge counts only the total.
+function drawDetail() {
+  const pop = $("ctx-pop");
+  const size = ctxSize();
+  const d = detail(ctxUsed, size, ctxParts, maxTokens());
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  pop.textContent = "";
+  const head = el("b", null, t("ctx.title") + " · " + t("ctx.of", d.used, d.size));
+  head.id = "ctx-pop-h";
+  pop.append(head, el("div", "note", t("ctx.used", d.shown, d.free)));
+  const list = el("div", "parts");
+  // Not counted yet (the worker busy with an answer, or the count on its way).
+  if (ctxParts === null && ctxUsed) list.append(el("div", "note", t("ctx.counting")));
+  for (const r of d.rows) {
+    const bar = el("span", "bar " + r.key);
+    bar.style.width = (r.n ? Math.max(1, r.w) : 0) + "%";
+    const track = el("span", "track");
+    track.append(bar);
+    const row = el("div", "part " + r.key);
+    row.dataset.part = r.key;
+    row.append(el("span", "lbl", t("ctx.part." + r.key)), track, el("span", "num", String(r.n)));
+    list.append(row);
+  }
+  pop.append(list);
+  if (d.dropped) pop.append(el("div", "note warn", t(d.dropped === 1 ? "ctx.drop.one" : "ctx.drop", d.dropped)));
+  pop.append(el("div", "note small", t("ctx.size", size, t(loadedInfo?.info?.ctx ? "ctx.src.model" : "ctx.src.set"))));
+}
+
+function openDetail() {
+  $("ctx-pop").hidden = false;
+  $("ctx-gauge").setAttribute("aria-expanded", "true");
+  drawDetail();
+  // The parts: counted now.
+  countSoon(0);
+}
+
+function closeDetail(focus = false) {
+  if ($("ctx-pop").hidden) return;
+  $("ctx-pop").hidden = true;
+  $("ctx-gauge").setAttribute("aria-expanded", "false");
+  if (focus) $("ctx-gauge").focus();
 }
 
 // Counts, after `ms`, the tokens of what the model would read now: the system prompt,
@@ -133,9 +193,13 @@ function countSoon(ms = COUNT_MS) {
     const sent = wire(draft ? messages.concat({ role: "user", content: draft }) : messages);
     if (!sent.length) {
       ctxUsed = 0;
+      ctxParts = { total: 0, system: 0, past: 0, draft: 0, kept: 0, dropped: 0 };
       return drawGauge();
     }
-    worker.postMessage({ type: "count", id: ++countId, messages: sent, opts: { thinking: $("think").checked } });
+    // The panel open: its parts too, and what the next question would leave out.
+    const open = !$("ctx-pop").hidden;
+    worker.postMessage({ type: "count", id: ++countId, messages: sent, opts: { thinking: $("think").checked },
+      detail: open, draft: !!draft, fit: open ? promptLimit(ctxSize(), maxTokens()) : undefined });
   }, ms);
 }
 
@@ -348,6 +412,7 @@ function handleMessage(m) {
       progress(0, 0);
       loadedInfo = m;
       ctxUsed = 0;
+      ctxParts = null;
       const i = m.info;
       onGpu = i.device === "webgpu";
       modelName = i.name || source?.name || source?.file?.name || "model";
@@ -394,6 +459,8 @@ function handleMessage(m) {
     case "count":
       // A module without countChat: the gauge keeps the last answer's tokens.
       if (m.id === countId && m.tokens != null) ctxUsed = m.tokens;
+      // No parts: not asked (the panel closed), or not countable (false: a module without countChat).
+      if (m.id === countId) ctxParts = m.parts ?? (m.tokens == null ? false : null);
       drawGauge();
       break;
     case "trimmed":
@@ -404,6 +471,7 @@ function handleMessage(m) {
       const s = m.stats;
       // What the conversation now takes: the prompt and the answer (counted exactly next).
       ctxUsed = s.prompt_tokens + s.gen_tokens;
+      ctxParts = null;
       lastStats = { ...s, memory: m.memory, gpu: m.gpu };
       // Only the answer goes back to the model, as in inga serve's web UI; the reasoning
       // and the speeds are kept for the page.
@@ -882,7 +950,7 @@ function send() {
   const text = $("prompt").value.trim();
   if (!text || busy || !source) return;
   $("prompt").value = "";
-  const opts = { max_tokens: Number($("max").value) || 256, temperature: Number($("temp").value), thinking: $("think").checked };
+  const opts = { max_tokens: maxTokens(), temperature: Number($("temp").value), thinking: $("think").checked };
   // The sampler's Settings: each one sent when it is a number (empty: Inga's default).
   for (const [id, key] of [["topp", "top_p"], ["topk", "top_k"], ["minp", "min_p"], ["rep", "repeat_penalty"], ["pres", "presence_penalty"], ["freq", "frequency_penalty"]]) {
     const v = $(id).value.trim();
@@ -1244,6 +1312,8 @@ for (const id of SETTINGS) {
     if (["theme", "fontsize", "lang", "sendkey"].includes(id)) applyLook();
     // What the model reads, or the context it has: the gauge again.
     if (["sys-on", "sys", "past", "ctx", "lang"].includes(id)) countSoon(0);
+    // The answer's room in the ring's panel.
+    else if (id === "max") drawGauge();
     // The context, the memory limits, the draft and the device are a load's: say so
     // while a model is loaded.
     if (source && ["ctx", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct"].includes(id)) {
@@ -1315,8 +1385,18 @@ $("new-chat").onclick = () => {
 // The draft counts too, once the typing pauses.
 $("prompt").addEventListener("input", () => countSoon());
 $("think").addEventListener("change", () => countSoon(0));
-// A click (a touch screen has no tooltip) says the gauge's text in the status line.
-$("ctx-gauge").onclick = () => status($("ctx-gauge").title.replace("\n", " "));
+// A click or a tap opens the ring's panel (a touch screen has no tooltip), a second one
+// closes it, as do Escape and a tap outside it.
+$("ctx-gauge").onclick = () => ($("ctx-pop").hidden ? openDetail() : closeDetail());
+document.addEventListener("pointerdown", (e) => {
+  if (!$("ctx-pop").hidden && !e.target.closest?.("#ctx-pop, #ctx-gauge")) closeDetail();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("ctx-pop").hidden) {
+    e.preventDefault();
+    closeDetail(true);
+  }
+});
 // The send key of the Settings: Enter (Shift+Enter a new line), or Ctrl / ⌘ + Enter
 // (Enter a new line). A composition (an IME) is never cut short.
 $("prompt").addEventListener("keydown", (e) => {
@@ -1421,6 +1501,7 @@ function newChat() {
   renderChat();
   showConvs();
   ctxUsed = 0;
+  ctxParts = null;
   countSoon(0);
 }
 
