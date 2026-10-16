@@ -18,7 +18,10 @@
 // reaches it between tokens).
 //
 // Messages in: {type: "download", url, name} | {type: "load", name | file, ctx, device} |
-// {type: "list"} | {type: "delete", name} | {type: "chat", messages, opts, stop} |
+// {type: "list"} | {type: "delete", name} | {type: "chat", messages, opts, stop, fit} (fit:
+// the prompt's most tokens; the oldest messages are left out until it fits, ctx.js) |
+// {type: "count", id, messages, opts, detail, draft, fit} (the chat's tokens, for the
+//   context gauge; with `detail`, its parts for the gauge's panel, ctx.js's breakdown) |
 // {type: "complete", text, opts} | {type: "reset"} | {type: "stop"} |
 // {type: "load", name, ctx, budget, draft, device, gpuBudget, gpuSeparate} (budget: bytes of memory for
 // the model, its KV cache and buffers included, the GPU's too; what does not fit is read
@@ -31,18 +34,27 @@
 // BENCH's kernel choices) | {type: "gpuprofile", tokens, mode} (the kernel times of
 // `tokens` decode steps, Gpu.profileStart's mode) | {type: "gpucheck", storageBuffers} (every kernel compiled on
 // the GPU, `storageBuffers` lowering maxStorageBuffersPerShaderStage).
-// Messages out: {type: "ready"} | {type: "progress", what, done, total} |
-// {type: "loaded", info, secs, memory, gpu, note} | {type: "models", models} |
+// Messages out: {type: "ready"} | {type: "progress", what, done, total, start} (start: a
+// download's bytes already there when this session began) |
+// {type: "loaded", info, secs, memory, gpu, note, ctx_asked, ctx_cut, ctx_auto} (ctx_auto:
+// ctx.js's autoContext of the load, the context and KV cache chosen; ctx_cut: the
+// context was lowered from ctx_asked to the most the limits hold, {asked, got, budget,
+// gpuBudget, device}) | {type: "models", models} |
+// {type: "gpulost", reason, message} (the WebGPU device was lost: the model is gone) |
 // {type: "retry", device, note} (the GPU refused the model while it loaded: load it
 // again with `device` in a fresh worker, `note` saying why) |
 // {type: "piece", text, reasoning} (reasoning: a thinking model's, apart from its answer) |
 // {type: "done", stats, memory, gpu} | {type: "error", message} |
+// {type: "count", id, tokens, parts} (tokens null: no model, or a module without countChat) |
+// {type: "trimmed", dropped, tokens} (a chat's oldest messages left out to fit `fit`) |
 // {type: "disktest", bytes, write_mbs, read_mbs} |
 // {type: "gpubench", rows, done, tuning, shader_f16, subgroups, timestamp_query} (a row per
 // configuration as it ends) |
 // {type: "gpuprofile", mode, overhead_ms, tokens, wall_ms, rows, tuning, subgroups, timestamp_query} |
 // {type: "gpucheck", checked, total, failed, shader_f16, storage, storage_buffers,
 // most_storage_buffers}.
+
+import { fitMessages, breakdown, autoContext, kvShape } from "./ctx.js";
 
 const CHUNK = 8 << 20; // bytes read from a file per push
 const DIR = "models";
@@ -55,6 +67,14 @@ let gpu = null; // the WebGPU device, made at the first GPU load
 let gpuInga = null; // ./pkg's module, which has WebGPU (the threaded one does not)
 let stopAsked = false;
 const post = (m) => self.postMessage(m);
+
+// The tokens of a chat as the model reads it (Model.countChat), or null when there is no
+// model or the module predates countChat.
+function countChat(messages, opts) {
+  if (!model || typeof model.countChat !== "function") return null;
+  return model.countChat(JSON.stringify(messages), opts);
+}
+
 // A step of a load, for the page's load log (what the worker is doing, so a load that
 // stops says where).
 const step = (text) => post({ type: "step", text, at: performance.now() });
@@ -94,22 +114,65 @@ async function start() {
 
 const ready = start();
 
-// A sync access handle on `fileHandle`. Chromium releases a closed handle's lock in its
-// browser process after close() returns (and a terminated worker's later still), so
-// opening the file again at once (a load right after its download, a fresh worker after
-// Stop) can find it still locked: NoModificationAllowedError, "Access Handles cannot be
-// created if there is another open Access Handle". Asked again for up to 10 s before
-// the error goes to the page; a file really open elsewhere fails after that.
+// A sync access handle on `fileHandle` for writing (a download, a copy, a sidecar, the
+// disk test): exclusive ("readwrite", the default). Chromium releases a closed handle's
+// lock in its browser process after close() returns (and a terminated worker's later
+// still), so opening the file again at once (a load right after its download, a fresh
+// worker after Stop) can find it still locked: NoModificationAllowedError, "Access
+// Handles cannot be created if there is another open Access Handle". Asked again for up
+// to 10 s before the error goes to the page; a file really open elsewhere (another tab
+// reading or downloading it) fails after that.
 async function syncHandle(fileHandle) {
+  return await retryLocked(() => fileHandle.createSyncAccessHandle(),
+    "the model file is in use by another tab or window of this page: close the other Inga tabs and load it again");
+}
+
+async function retryLocked(open, why) {
   const until = performance.now() + 10000;
   for (let wait = 10; ; wait = Math.min(wait * 2, 500)) {
     try {
-      return await fileHandle.createSyncAccessHandle();
+      return await open();
     } catch (e) {
-      if (e?.name !== "NoModificationAllowedError" || performance.now() >= until) throw e;
+      if (e?.name !== "NoModificationAllowedError") throw e;
+      if (performance.now() >= until) throw new Error(why);
       await new Promise((r) => setTimeout(r, wait));
     }
   }
+}
+
+// Whether this browser opens a sync access handle "read-only" (Chrome 121+): several
+// such handles may be open on one file at once, in several tabs, so each tab can run
+// the same stored model. A browser without the option would ignore it and open an
+// exclusive handle, hence the check of the handle's `mode` attribute (added with it).
+const READ_ONLY = typeof FileSystemSyncAccessHandle !== "undefined" && "mode" in FileSystemSyncAccessHandle.prototype;
+
+// A model file opened for reading, with a sync access handle's read, getSize and close:
+// a "read-only" handle where the browser has it; else the file's snapshot (getFile)
+// read in slices with FileReaderSync, which takes no lock (slower, but another tab can
+// read the file at the same time). Only a writer locks the file then: a download or a
+// copy running in this or another tab; waited for like a writer's lock (the lock of
+// this worker's own download, released just after), then said.
+async function readHandle(fileHandle) {
+  const busyWhy = "the model file is being written (downloaded or copied) in another tab or window of this page: wait until that ends, then load it again";
+  if (READ_ONLY) {
+    const h = await retryLocked(() => fileHandle.createSyncAccessHandle({ mode: "read-only" }), busyWhy);
+    step(`${fileHandle.name}: opened read-only (other tabs may read it too)`);
+    return h;
+  }
+  const file = await retryLocked(() => fileHandle.getFile(), busyWhy);
+  step(`${fileHandle.name}: read with no lock (this browser has no read-only handle)`);
+  const reader = new FileReaderSync();
+  return {
+    read(view, { at = 0 } = {}) {
+      const end = Math.min(file.size, at + view.byteLength);
+      if (end <= at) return 0;
+      const bytes = new Uint8Array(reader.readAsArrayBuffer(file.slice(at, end)));
+      new Uint8Array(view.buffer, view.byteOffset, view.byteLength).set(bytes);
+      return bytes.length;
+    },
+    getSize: () => file.size,
+    close() {},
+  };
 }
 
 async function modelsDir() {
@@ -240,7 +303,13 @@ async function download(url, name) {
       meta.size = total || null;
       await writeMeta(dir, name, meta);
       const reader = resp.body.getReader();
-      let last = 0;
+      // `start`: what an earlier session left, so the page's speed counts this one's
+      // bytes only. A word at least every 250 ms while bytes arrive (the page's speed
+      // and time left), flushed every 4 MiB.
+      const start = at;
+      let last = at;
+      let lastPost = performance.now();
+      post({ type: "progress", what: "download", done: at, total, start });
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -249,7 +318,11 @@ async function download(url, name) {
         if (at - last > 4 << 20) {
           last = at;
           handle.flush();
-          post({ type: "progress", what: "download", done: at, total });
+        }
+        const now = performance.now();
+        if (now - lastPost >= 250) {
+          lastPost = now;
+          post({ type: "progress", what: "download", done: at, total, start });
         }
       }
       handle.flush();
@@ -298,10 +371,28 @@ function requestSubgroups() {
   const patched = function (desc = {}) {
     const want = [...(desc.requiredFeatures ?? [])];
     if (this.features?.has("subgroups") && !want.includes("subgroups")) want.push("subgroups");
-    return original.call(this, { ...desc, requiredFeatures: want });
+    return original.call(this, { ...desc, requiredFeatures: want }).then((device) => {
+      watchLost(device);
+      return device;
+    });
   };
   patched.ingaSubgroups = true;
   proto.requestDevice = patched;
+}
+
+// A WebGPU device lost (GPUDevice.lost) other than by this worker's destroy(): the GPU
+// was reset, its driver restarted, or the system took its memory back. The model on it
+// cannot run any more (an answer waiting for it may never resume); the page is told
+// once (`gpulost`), ends this worker and asks for a new load:
+// nothing here tries the device again, so a GPU that keeps failing is not driven in a
+// loop.
+function watchLost(device) {
+  device?.lost?.then((info) => {
+    if (info?.reason === "destroyed") return;
+    const message = String(info?.message || "").trim();
+    // The page ends this worker (its memory with it) and starts a fresh one.
+    post({ type: "gpulost", reason: info?.reason ?? "unknown", message });
+  });
 }
 
 // ./pkg's module and the WebGPU device, made once.
@@ -480,6 +571,25 @@ async function gpuProfile(tokens, mode) {
   }
 }
 
+// The Settings' KV cache of the load running ("auto", "f16", "q8_0", "q4_0").
+let kvAsked = "auto";
+const GIB = 2 ** 30;
+
+// The context and KV cache type of a load of the model `name` of `size` bytes that
+// `read(at, view)` reads (ctx.js's autoContext): its training context and KV bytes per
+// token from its header (planModel's `kv` at three contexts), against the memory it may
+// use: the GPU memory limit on the GPU, else the memory limit, at most WebAssembly's
+// 4 GiB. `ctx`: the Settings' (0: Auto). null when the module cannot tell (an older one).
+function sizeLoad(read, size, name, ctx, budget, gpuBudget, gpu) {
+  let shape = null;
+  try {
+    shape = kvShape((c) => JSON.parse(inga.planModel(name, size, read, -1, c)).kv ?? NaN);
+  } catch {}
+  if (!shape) return null;
+  const b = gpu && gpuBudget != null ? gpuBudget : Math.min(budget ?? 4 * GIB, 4 * GIB);
+  return autoContext({ ...shape, budget: b, weights: size, asked: ctx || 0, kv: kvAsked, gpu });
+}
+
 // Loads a Blob (a picked File, or a file of OPFS) into Inga chunk by chunk: each chunk
 // is copied once into its tensors in WebAssembly memory (or, on the GPU, its layers'
 // weights into GPU buffers), then dropped.
@@ -492,6 +602,19 @@ async function load(blob, name, ctx, device, note = null) {
     model = null;
   }
   const t0 = performance.now();
+  // Auto's context and KV cache, from the header read synchronously from the Blob.
+  let auto = null;
+  try {
+    const fr = new FileReaderSync();
+    const read = (at, view) => {
+      const b = new Uint8Array(fr.readAsArrayBuffer(blob.slice(at, at + view.length)));
+      view.set(b);
+      return b.length;
+    };
+    auto = sizeLoad(read, blob.size, name, ctx, null, null, device === "gpu");
+  } catch {}
+  const asked = auto?.ctx ?? (ctx || 2048);
+  if (auto) step(`context ${auto.ctx} (${auto.why}), KV cache ${auto.kv}`);
   mod = device === "gpu" ? await webgpu() : inga;
   const loader = device === "gpu" ? mod.Loader.withGpu(gpu) : new mod.Loader();
   for (let at = 0; at < blob.size; at += CHUNK) {
@@ -500,9 +623,9 @@ async function load(blob, name, ctx, device, note = null) {
     post({ type: "progress", what: "load", done: Math.min(at + CHUNK, blob.size), total: blob.size });
   }
   step("file read: building the model");
-  model = loader.finish(name, ctx || 0);
+  model = loader.finish(name, asked, auto?.kv);
   step("model ready: telling the page");
-  post({ type: "loaded", info: JSON.parse(model.info()), secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note });
+  post({ type: "loaded", info: JSON.parse(model.info()), secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note, ctx_asked: asked, ctx_auto: auto });
 }
 
 // The GPU's bytes, while the loaded model runs layers there.
@@ -539,6 +662,7 @@ async function handle(m) {
     case "load": {
       step(`load asked: ${m.name ?? m.file?.name}, device ${m.device ?? "cpu"}, limit ${m.budget == null ? "none" : Math.round(m.budget / 1048576) + " MiB"}`);
       closeStream();
+      kvAsked = m.kv || "auto";
       if ((m.budget != null || m.draft || m.device === "gpu") && !m.file) {
         await loadStreamed(m.name, m.budget, m.ctx, m.draft, m.device, m.gpuBudget, m.gpuOff, m.gpuSeparate, m.auto, m.note ?? null);
         break;
@@ -583,9 +707,31 @@ async function handle(m) {
         return flag ? Atomics.load(flag, 0) !== 0 : false;
       };
       const opts = JSON.stringify(m.opts ?? {});
+      // A conversation longer than the context: its oldest messages are left out.
+      if (m.type === "chat" && m.fit && typeof model.countChat === "function") {
+        const fit = fitMessages(m.messages, (l) => countChat(l, opts), m.fit);
+        if (fit.dropped) {
+          m.messages = fit.messages;
+          post({ type: "trimmed", dropped: fit.dropped, tokens: fit.tokens });
+        }
+      }
       const stats = onGpu() ? await stepped(m, onPiece)
         : m.type === "chat" ? model.chat(JSON.stringify(m.messages), opts, onPiece) : model.complete(m.text, opts, onPiece);
       post({ type: "done", stats: JSON.parse(stats), memory: mod.memoryBytes(), gpu: gpuInfo() });
+      break;
+    }
+    case "count": {
+      let tokens = null;
+      let parts = null;
+      try {
+        const opts = JSON.stringify(m.opts ?? {});
+        // The ring's panel is open: the parts too (a few counts more), else the total.
+        if (m.detail && typeof model?.countChat === "function") {
+          parts = breakdown(m.messages, (l) => countChat(l, opts), m.draft, m.fit);
+          tokens = parts.total;
+        } else tokens = countChat(m.messages, opts);
+      } catch {}
+      post({ type: "count", id: m.id, tokens, parts });
       break;
     }
     case "reset":
@@ -672,9 +818,67 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
   const t0 = performance.now();
   const progress = (done, total) => post({ type: "progress", what: "load", done, total });
   const open = async () => {
-    const h = await syncHandle(await (await modelsDir()).getFileHandle(name));
+    const h = await readHandle(await (await modelsDir()).getFileHandle(name));
     [streamHandle, streamName] = [h, name];
     return h;
+  };
+  // The context asked, and, when the memory limit cannot hold its KV cache even with
+  // everything else read from storage (the plan's "smaller context"), the largest that
+  // it holds (a multiple of 256): loaded with that one, the page says why (`ctx_cut`),
+  // rather than refusing the model. On the CPU it is found from the header
+  // (planModel); on the GPU, whose layers hold their KV cache apart, by asking the GPU's
+  // load again with half the context.
+  // Auto's context and KV cache (sizeLoad), from the header.
+  let sized = null;
+  {
+    const h = await open();
+    try {
+      sized = sizeLoad((at, view) => h.read(view, { at }), h.getSize(), name, ctx, budget, gpuBudget, device === "gpu");
+    } finally {
+      h.close();
+      streamHandle = streamName = null;
+    }
+  }
+  if (sized) {
+    ctx = sized.ctx;
+    step(`context ${sized.ctx} (${sized.why}), KV cache ${sized.kv}`);
+  }
+  const kv = sized?.kv;
+  const asked = ctx || 2048;
+  let ctxCut = null;
+  const cutContext = async () => {
+    if (budget == null) return;
+    const h = await open();
+    const fits = (c) => {
+      try {
+        inga.planModel(name, h.getSize(), (at, view) => h.read(view, { at }), budget, c, kv);
+        return true;
+      } catch (e) {
+        if (/smaller context/.test(String(e?.message ?? e))) return false;
+        throw e;
+      }
+    };
+    try {
+      if (!fits(asked)) {
+        // In 256s: `lo` fits (0: none does), `hi` does not.
+        let [lo, hi] = [0, Math.floor(asked / 256)];
+        while (hi - lo > 1) {
+          const mid = (lo + hi) >> 1;
+          if (fits(mid * 256)) lo = mid;
+          else hi = mid;
+        }
+        if (lo > 0) {
+          ctx = lo * 256;
+          ctxCut = { asked, got: ctx, budget, device: "cpu" };
+          step(`context: ${ctx} of the ${asked} asked, the most the memory limit (${mib(budget)}) holds`);
+        }
+      }
+    } catch {
+      // The plan cannot tell: the load says why, if it fails.
+    } finally {
+      h.close();
+      streamHandle = streamName = null;
+    }
   };
   if (device === "gpu") {
     let plan = null;
@@ -703,7 +907,7 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
     const h = await open();
     let plan = null;
     try {
-      plan = JSON.parse(inga.planModel(name, h.getSize(), (at, view) => h.read(view, { at }), budget, ctx || 0));
+      plan = JSON.parse(inga.planModel(name, h.getSize(), (at, view) => h.read(view, { at }), budget, ctx || 0, kv));
     } catch {}
     h.close();
     streamHandle = streamName = null;
@@ -724,7 +928,19 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
       step("GPU: opening the model file");
       h = await open();
       step("GPU: loading the weights");
-      model = mod.openModelGpu(gpu, name, h.getSize(), (at, view) => h.read(view, { at }), budget ?? -1, gpuBudget ?? -1, ctx || 0, progress, !!gpuSeparate);
+      for (;;) {
+        try {
+          model = mod.openModelGpu(gpu, name, h.getSize(), (at, view) => h.read(view, { at }), budget ?? -1, gpuBudget ?? -1, ctx || 0, progress, !!gpuSeparate);
+          break;
+        } catch (e) {
+          // The limits cannot hold this context's KV cache: half of it, down to 256.
+          const half = Math.floor((ctx || 2048) / 512) * 256;
+          if (!/smaller context/.test(String(e?.message ?? e)) || half < 256) throw e;
+          ctx = half;
+          ctxCut = { asked, got: ctx, budget, gpuBudget, device: "gpu" };
+          step(`GPU: the limits do not hold a context of ${ctx * 2} tokens; trying ${ctx}`);
+        }
+      }
     } catch (e) {
       const why = String(e?.message ?? e);
       // A module that panicked is gone; a model that does not fit the limit does not
@@ -745,21 +961,22 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
   }
   if (!model) {
     mod = inga;
+    await cutContext();
     step("CPU: opening the model file");
     const h = await open();
     let d = null;
     if (draft) {
-      d = await syncHandle(await (await modelsDir()).getFileHandle(draft));
+      d = await readHandle(await (await modelsDir()).getFileHandle(draft));
       [draftHandle, draftName] = [d, draft];
     }
     step(`CPU: loading the weights (${Math.round(h.getSize() / 1048576)} MiB file)`);
     model = inga.openModel(name, h.getSize(), (at, view) => h.read(view, { at }), budget ?? -1, ctx || 0, progress,
-      d ? draft : undefined, d ? d.getSize() : undefined, d ? (at, view) => d.read(view, { at }) : undefined, undefined);
+      d ? draft : undefined, d ? d.getSize() : undefined, d ? (at, view) => d.read(view, { at }) : undefined, undefined, kv);
   }
   step("weights loaded: reading the model's description");
   const info = JSON.parse(model.info());
   step(`model ready (${Math.round(mod.memoryBytes() / 1048576)} MiB of WebAssembly memory): telling the page`);
-  post({ type: "loaded", info, secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note });
+  post({ type: "loaded", info, secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note, ctx_asked: asked, ctx_cut: ctxCut, ctx_auto: sized });
 }
 
 // Free bytes in this site's storage, or null when the browser does not say.

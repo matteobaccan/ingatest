@@ -8,6 +8,8 @@
 // Code blocks, inline code, bold, italic, links (http and https only), headings, lists,
 // quotes and rules. The model's text only ever becomes text nodes.
 
+import { t } from "./i18n.js";
+
 function el(tag, props = {}, ...children) {
   const e = Object.assign(document.createElement(tag), props);
   e.append(...children);
@@ -79,9 +81,9 @@ export function markdown(target, text) {
   while ((m = re.exec(text))) {
     blocks(target, text.slice(last, m.index));
     const code = m[2].replace(/\n$/, "");
-    const copy = el("button", { className: "copy", type: "button", textContent: "Copy" });
+    const copy = el("button", { className: "copy", type: "button", textContent: t("md.copy") });
     copy.onclick = () => {
-      navigator.clipboard?.writeText(code).then(() => (copy.textContent = "Copied"), () => {});
+      navigator.clipboard?.writeText(code).then(() => (copy.textContent = t("md.copied")), () => {});
     };
     target.append(el("div", { className: "code" }, el("span", { className: "lang", textContent: m[1] }), copy,
       el("pre", { textContent: code })));

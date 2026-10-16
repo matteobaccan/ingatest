@@ -7,6 +7,8 @@
 // (quantizations) say whether they fit this browser. The page (app.js) gives it what it
 // knows of the device (env) and of the stored models, and acts on Load and Delete.
 
+import { t } from "./i18n.js";
+
 const HF = "https://huggingface.co/";
 const GiB = 1 << 30;
 const MiB = 1 << 20;
@@ -25,6 +27,19 @@ export function variantUrl(m, v) {
 
 export const fileOf = (v) => v.file.split("/").pop();
 
+// A family's mark: its `logo` (an image of the page's folder, e.g. icons/emma.svg) when
+// it has one, else its `icon` (an emoji); null for neither.
+export function familyMark(f) {
+  if (f?.logo) {
+    const img = document.createElement("img");
+    img.className = "fam-logo";
+    img.src = f.logo;
+    img.alt = "";
+    return img;
+  }
+  return f?.icon ? document.createTextNode(f.icon) : null;
+}
+
 function size(b) {
   return b >= GiB ? (b / GiB).toFixed(b >= 10 * GiB ? 0 : 1) + " GiB" : Math.round(b / MiB) + " MiB";
 }
@@ -34,10 +49,15 @@ function size(b) {
 //           in memory), never more than a 32-bit WebAssembly module addresses;
 //   wasmMax: what the module can address (4 GiB: the build is wasm32, not Memory64);
 //   deviceMemory: navigator.deviceMemory in GB (rounded, at most 8), or null;
-//   gpu: {budget, maxBufferSize, maxStorageBufferBindingSize, guess, separate} when the
-//        Device setting may use a WebGPU adapter, else null;
+//   gpu: {budget, maxBufferSize, maxStorageBufferBindingSize, guess, measured, separate}
+//        when the Device setting may use a WebGPU adapter, else null; `budget` the GPU
+//        memory measured (`measured`) once the page knows it, else Auto's or the
+//        Settings' value;
 //   free: the storage this site may still use (navigator.storage.estimate), or null.
-// Returns {mark: "fits" | "tight" | "big", icon, why}.
+// Returns {mark: "fits" | "tight" | "big", icon, why}. With a GPU (`env.gpu`) a variant
+// fits when its weights and cache fit the GPU memory (the speed a tester expects from
+// a GPU); more than that is "tight": the rest on the CPU, or read from storage, slow.
+// On the CPU the memory limit and the 4 GiB of wasm32 are the rule.
 export function fitOf(bytes, approx, env) {
   const need = bytes * (approx ? 1.08 : 1) + OVERHEAD;
   if (env.free != null && bytes > env.free) {
@@ -54,11 +74,21 @@ export function fitOf(bytes, approx, env) {
       by = `half of this device's ${env.deviceMemory} GB`;
     }
   }
-  // Layers on the GPU are held there, not in WebAssembly memory, when the GPU's bytes
-  // are counted apart (a desktop); its budget is the Settings' "GPU memory".
-  const gpu = env.gpu && env.gpu.separate ? env.gpu.budget : 0;
-  const cap = cpu + gpu;
-  const where = gpu ? `${size(cpu)} for the CPU (${by}) + ${size(gpu)} on the GPU${env.gpu.guess ? " (a guess)" : ""}` : `${size(cpu)} (${by})`;
+  if (env.gpu) {
+    const g = env.gpu.budget;
+    const of = `${size(g)} of GPU memory (${env.gpu.measured ? "measured" : env.gpu.guess ? "a guess" : "the Settings'"})`;
+    if (need <= 0.85 * g) return { mark: "fits", icon: "✅", why: `about ${size(need)} with its cache, within ${of}` };
+    // The rest on the CPU: within WebAssembly memory beside the GPU's (counted apart on a
+    // desktop), or read from storage at every token.
+    const room = env.gpu.separate ? cpu + g : Math.max(cpu, g);
+    const onCpu = `about ${size(need)}, more than ${of}: the rest on the CPU (${size(cpu)}, ${by})`;
+    if (need <= room) return { mark: "tight", icon: "⚠️", why: `${onCpu}, slow` };
+    if (env.memory == null) return { mark: "big", icon: "❌", why: `${onCpu}: more than that (All in memory)` };
+    if (need <= 2 * room) return { mark: "tight", icon: "⚠️", why: `${onCpu}; ${size(need - room)} read from storage at every token (very slow)` };
+    return { mark: "big", icon: "❌", why: `too big for this browser: about ${size(need)}, more than twice ${size(room)} (GPU and CPU)` };
+  }
+  const cap = cpu;
+  const where = `${size(cpu)} (${by})`;
   if (need <= 0.85 * cap) return { mark: "fits", icon: "✅", why: `about ${size(need)} with its cache, of ${where}` };
   if (need <= cap) return { mark: "tight", icon: "⚠️", why: `tight: about ${size(need)} with its cache, of ${where}` };
   // All in memory: nothing is read from storage, so what does not fit cannot load.
@@ -67,6 +97,39 @@ export function fitOf(bytes, approx, env) {
   // room, slow but usable; beyond, too slow to be of use.
   if (need <= 2 * cap) return { mark: "tight", icon: "⚠️", why: `about ${size(need)}, more than ${where}: ${size(need - cap)} read from storage at every token (slow)` };
   return { mark: "big", icon: "❌", why: `too big for this browser: about ${size(need)}, more than twice ${where}` };
+}
+
+// Where a variant would run, when the Device setting may use the GPU (`env.gpu`): its
+// weights and cache within the GPU memory Auto (or the Settings) gives ("gpu": fast);
+// more than that, the rest of its layers on the CPU, or read from storage at every
+// token ("part": slow, the 1-2 tok/s of a 7B on a 4 GB card); or too big for this
+// browser at all ("big", fitOf's verdict). Null without a GPU to judge against (fitOf's
+// mark is then the one that counts). {mark, label, why}, the label and why in the
+// page's language.
+export function gpuFit(bytes, approx, env) {
+  const f = fitOf(bytes, approx, env);
+  if (f.mark === "big") return { mark: "big", label: t("fit.big"), why: f.why };
+  if (!env.gpu) return null;
+  return f.mark === "fits" ? { mark: "gpu", label: t("fit.gpu"), why: f.why } : { mark: "part", label: t("fit.part"), why: f.why };
+}
+
+// A model to suggest instead of `v` of `m`, which would not run on the GPU here: the
+// largest variant that does (gpuFit "gpu"; without a GPU, fitOf "fits") of the same
+// family, the same tags first (a coder for a coder), else of any starter. Null for none.
+export function smallerPick(catalog, m, v, env) {
+  const ok = (x) => (env.gpu ? gpuFit(x.size, x.approx, env)?.mark === "gpu" : fitOf(x.size, x.approx, env).mark === "fits");
+  const tags = new Set(m.tags ?? []);
+  const score = (c) => (c.family === m.family ? 2 : 0) + ((c.tags ?? []).some((x) => tags.has(x)) ? 1 : 0) + (c.id.split("-")[0] === m.id.split("-")[0] ? 1 : 0);
+  let best = null;
+  for (const c of catalog?.models ?? []) {
+    if (c.family !== m.family && !c.starter) continue;
+    for (const x of c.variants) {
+      if (x === v || x.size >= v.size || !ok(x)) continue;
+      const k = [score(c), x.size];
+      if (!best || k[0] > best.k[0] || (k[0] === best.k[0] && k[1] > best.k[1])) best = { model: c, variant: x, k };
+    }
+  }
+  return best && { model: best.model, variant: best.variant };
 }
 
 // The models matching the search `q` (words in the name, family, id, tags, quantizations,
@@ -82,17 +145,34 @@ export function filterModels(catalog, { q = "", family = "", all = false, env })
   });
 }
 
-// The variant a card shows first: a stored one, else the largest that fits, else the
-// largest that is tight, else the smallest.
-function defaultVariant(m, env, stored) {
+// The variant a card shows first: a stored one, else the largest that fits (on the GPU
+// with one), else the smallest that does not (the least of it on the CPU or read from
+// storage: a 3B Q4_K_M rather than its Q8_0 on a 2 GB card), else the smallest.
+export function defaultVariant(m, env, stored) {
   const st = m.variants.findIndex((v) => stored[fileOf(v)] != null);
   if (st >= 0) return st;
   const by = (mark) => m.variants.map((v, i) => [v, i]).filter(([v]) => fitOf(v.size, v.approx, env).mark === mark).sort((a, b) => b[0].size - a[0].size)[0]?.[1];
-  return by("fits") ?? by("tight") ?? m.variants.reduce((b, v, i) => (v.size < m.variants[b].size ? i : b), 0);
+  const smallest = m.variants.reduce((b, v, i) => (v.size < m.variants[b].size ? i : b), 0);
+  return by("fits") ?? smallest;
 }
 
 // The dialog. `opts`: {dialog, url, getEnv(): Promise<env>, getStored(): {file: bytes},
-// onLoad(model, variant, url), onDelete(file)}.
+// speedHint(bytes): the time a download would take ("" when unknown), onLoad(model,
+// variant, url), onDelete(file)}.
+// The model to try first, with no model loaded: of the catalog's starters (`starter:
+// true`), the smallest variant marked as fitting `env`; null when none fits.
+export function starterPick(catalog, env) {
+  let best = null;
+  for (const m of catalog?.models ?? []) {
+    if (!m.starter) continue;
+    for (const v of m.variants) {
+      if (fitOf(v.size, v.approx, env).mark !== "fits") continue;
+      if (!best || v.size < best.variant.size) best = { model: m, variant: v };
+    }
+  }
+  return best;
+}
+
 export function createPicker(opts) {
   const d = opts.dialog;
   const $ = (sel) => d.querySelector(sel);
@@ -118,7 +198,9 @@ export function createPicker(opts) {
       b.type = "button";
       b.className = "chip" + (f.id === family ? " on" : "");
       b.dataset.family = f.id;
-      b.textContent = (f.icon ? f.icon + " " : "") + f.label;
+      const mark = familyMark(f);
+      if (mark) b.append(mark, " ");
+      b.append(f.label);
       if (f.about) b.title = f.about;
       b.setAttribute("aria-pressed", String(f.id === family));
       b.onclick = () => {
@@ -155,7 +237,8 @@ export function createPicker(opts) {
       head.className = "card-head";
       const icon = document.createElement("span");
       icon.className = "icon";
-      icon.textContent = fam[m.family]?.icon ?? "";
+      const mark = familyMark(fam[m.family]);
+      if (mark) icon.append(mark);
       icon.title = fam[m.family]?.label ?? m.family;
       const name = document.createElement("strong");
       name.textContent = m.name;
@@ -163,17 +246,30 @@ export function createPicker(opts) {
       const meta = document.createElement("div");
       meta.className = "meta";
       meta.textContent = [m.params ? `${m.params < 1 ? Math.round(m.params * 1000) + "M" : m.params + "B"} parameters` : "", m.arch, m.licence, ...(m.tags ?? [])].filter(Boolean).join(" · ");
-      const sel = document.createElement("select");
-      sel.className = "variant";
-      sel.setAttribute("aria-label", `${m.name}: variant`);
-      m.variants.forEach((v, i) => {
-        const o = document.createElement("option");
+      // The variants as chips (a select was easy to miss: a tester on a 2 GB card loaded
+      // a Q8_0 without seeing its Q4_K_M), each with its size and fit mark; ✓ downloaded.
+      const chipsBox = document.createElement("div");
+      chipsBox.className = "variants";
+      chipsBox.setAttribute("role", "radiogroup");
+      chipsBox.setAttribute("aria-label", `${m.name}: variant`);
+      let pickedVariant = chosen[m.id] ?? defaultVariant(m, env, stored);
+      const vchips = m.variants.map((v, i) => {
         const f = fitOf(v.size, v.approx, env);
-        o.value = String(i);
-        o.textContent = `${v.quant} · ${v.approx ? "~" : ""}${size(v.size)} ${f.icon}${stored[fileOf(v)] != null ? " · downloaded" : ""}`;
-        sel.append(o);
+        const g = gpuFit(v.size, v.approx, env);
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "vchip " + (g?.mark ?? f.mark);
+        b.dataset.quant = v.quant;
+        b.setAttribute("role", "radio");
+        b.textContent = `${v.quant} · ${v.approx ? "~" : ""}${size(v.size)} ${g ? { gpu: "✅", part: "🐢", big: "❌" }[g.mark] : f.icon}${stored[fileOf(v)] != null ? " ✓" : ""}`;
+        b.title = g ? `${g.label}: ${g.why}` : f.why;
+        b.onclick = () => {
+          pickedVariant = chosen[m.id] = i;
+          show();
+        };
+        return b;
       });
-      sel.value = String(chosen[m.id] ?? defaultVariant(m, env, stored));
+      chipsBox.append(...vchips);
       const info = document.createElement("div");
       info.className = "meta fit-line";
       const row = document.createElement("div");
@@ -191,19 +287,36 @@ export function createPicker(opts) {
       link.textContent = "Hugging Face";
       row.append(load, del, link);
       const show = () => {
-        const v = m.variants[Number(sel.value)];
+        const v = m.variants[pickedVariant];
+        vchips.forEach((b, i) => b.setAttribute("aria-checked", String(i === pickedVariant)));
         const f = fitOf(v.size, v.approx, env);
+        const g = gpuFit(v.size, v.approx, env);
         const have = stored[fileOf(v)] != null;
         card.dataset.fit = f.mark;
+        card.dataset.gpu = g?.mark ?? "";
         card.dataset.downloaded = String(have);
         info.textContent = "";
         const mark = document.createElement("span");
         mark.className = "fit " + f.mark;
         mark.textContent = `${f.icon} ${{ fits: "fits", tight: "tight", big: "too big" }[f.mark]}`;
         mark.title = f.why;
+        // With a GPU: where it would run (gpuFit), the badge the card shows first.
+        if (g) {
+          mark.className = "fit gpu-fit " + g.mark;
+          mark.textContent = `${{ gpu: "✅", part: "🐢", big: "❌" }[g.mark]} ${g.label}`;
+          mark.title = g.why;
+        }
         const sz = document.createElement("span");
         sz.className = "size";
-        sz.textContent = ` · ${v.approx ? "about " : ""}${size(v.size)}${v.approx ? " (estimated, not yet checked)" : ""}`;
+        sz.textContent = ` · ${v.approx ? "about " : ""}${size(v.size)}${v.approx ? " (estimated, not yet checked)" : ""}${have ? " · downloaded" : ""}`;
+        // Before a download: how long it would take at the last speed measured.
+        const hint = have ? "" : opts.speedHint?.(v.size) ?? "";
+        if (hint) {
+          const eta = document.createElement("span");
+          eta.className = "eta";
+          eta.textContent = ` · ${hint}`;
+          sz.append(eta);
+        }
         info.append(mark, sz);
         if (have) {
           const dl = document.createElement("span");
@@ -225,12 +338,8 @@ export function createPicker(opts) {
         };
         del.onclick = () => opts.onDelete(fileOf(v));
       };
-      sel.onchange = () => {
-        chosen[m.id] = Number(sel.value);
-        show();
-      };
       show();
-      card.append(head, meta, sel, info, row);
+      card.append(head, meta, chipsBox, info, row);
       grid.append(card);
     }
     opts.afterRender?.();
@@ -240,7 +349,7 @@ export function createPicker(opts) {
     const parts = [`memory for the model ${env.memory == null ? "all (no limit)" : size(env.memory)}`, "WebAssembly 4 GiB (wasm32)"];
     if (env.deviceMemory) parts.push(`device memory about ${env.deviceMemory} GB`);
     if (env.gpu) {
-      parts.push(`GPU ${env.gpu.name}: ${size(env.gpu.budget)} for layers${env.gpu.guess ? " (a guess)" : ""}` +
+      parts.push(`GPU ${env.gpu.name}: ${size(env.gpu.budget)} for layers${env.gpu.measured ? " (measured)" : env.gpu.guess ? " (a guess)" : ""}` +
         `${env.gpu.separate ? "" : " counted in the memory limit"}, maxBufferSize ${size(env.gpu.maxBufferSize)}, ` +
         `maxStorageBufferBindingSize ${size(env.gpu.maxStorageBufferBindingSize)}`);
     } else parts.push("CPU only (Device setting, or no WebGPU)");
@@ -269,5 +378,23 @@ export function createPicker(opts) {
   $("#picker-q").addEventListener("input", render);
   $("#picker-all").addEventListener("change", render);
   $("#picker-close").onclick = () => d.close();
-  return { open, render: () => d.open && render(), get catalog() { return catalog; } };
+  // The starter to try (starterPick), the catalog read first; null when there is none.
+  async function starter() {
+    try {
+      catalog ??= await fetchCatalog();
+    } catch {
+      return null;
+    }
+    return starterPick(catalog, await opts.getEnv());
+  }
+  // Loads a catalog model's variant, as its card's button does.
+  const load = (m, v) => opts.onLoad(m, v, variantUrl(m, v));
+  // Judged again on what the page now knows (a GPU memory measured), when open.
+  async function refresh() {
+    if (!d.open || !catalog) return;
+    env = await opts.getEnv();
+    envLine();
+    render();
+  }
+  return { open, starter, load, refresh, render: () => d.open && render(), get catalog() { return catalog; } };
 }

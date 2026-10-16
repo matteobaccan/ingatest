@@ -8,7 +8,14 @@
 // anywhere (HTTPS needed for OPFS and workers off localhost).
 
 import { markdown } from "./md.js";
-import { createPicker } from "./picker.js";
+import { createPicker, fitOf, gpuFit, smallerPick, variantUrl, fileOf } from "./picker.js";
+import { infoSections, infoText, renderInfo } from "./info.js";
+import * as chats from "./chats.js";
+import { t, setLang, num, size } from "./i18n.js";
+import { ask as askBox, setupAsk } from "./ask.js";
+import { fmt, createRate, downloadLine, estimate, lastSpeed, saveSpeed } from "./eta.js";
+import { gauge, gaugeTitle, promptLimit, detail, AUTO_FLOOR } from "./ctx.js";
+import { PRESET_FIELDS, catalogEntry, presetOf, presetValues, handFromSaved, describePreset } from "./preset.js";
 
 // The test models: a fixed list, so runs on different devices compare (the maintainer's
 // matrix of models x CPU / GPU, with the Standard test). Sizes are approximate.
@@ -29,14 +36,16 @@ const SUGGESTED = [
 ];
 
 const $ = (id) => document.getElementById(id);
-const fmt = (b) => (b >= 1 << 30 ? (b / (1 << 30)).toFixed(2) + " GiB" : (b / (1 << 20)).toFixed(1) + " MiB");
 const fileName = (url) => decodeURIComponent(new URL(url).pathname.split("/").pop() || "model.gguf");
 
 let worker = null;
 let source = null; // what the loaded model came from: {name} (OPFS) or {file}
 let busy = false;
-let messages = [];
+let messages = []; // the current conversation's messages ({role, content, ...}: chats.js)
+let chat = null; // the current conversation (chats.js), null until its first message
 let answer = null; // the element of the answer streaming
+let answerBox = null; // its message (the bubble with the speed line)
+let answerSeed = null; // the seed it draws with
 let answerText = ""; // its raw text (what goes back to the model), rendered as Markdown
 let renderTimer = null; // a render of the answer pending (at most one every RENDER_MS)
 const RENDER_MS = 100;
@@ -44,10 +53,26 @@ let thinking = null; // the <details> of its reasoning, once a thinking model re
 let used = false; // this worker has loaded a model: its WebAssembly memory never shrinks
 let stopFlag = null;
 let keepChat = false; // the model loads again after a stop: the chat stays
+let gpuUsed = ""; // the GPU memory limit of the load, as the load line says it
+let gpuLabel = ""; // the same with why (Auto's rule, or the Settings'), for the Info panel
 let limitUsed = ""; // the memory limit the model being loaded was given, as the load line says it
 let deviceUsed = { device: "cpu", label: "" }; // the device chosen for it (chooseDevice)
 let onGpu = false; // the loaded model runs on the GPU (WebGPU)
 let lastStats = null; // the last answer's statistics ("done"), for the beta's report
+let modelName = ""; // the loaded model's name, on its answers
+let pageReady = false; // the page's script has run to its end (the picker made)
+let loadedInfo = null; // the last "loaded" message: info, memory, gpu, note
+// Whether the loaded model can think (its chat template's marks, `info.thinks`; a module
+// that does not say counts as yes): Think shows, and `thinking` is sent, only then.
+const thinks = () => loadedInfo?.info?.thinks !== false;
+// The options without `thinking` for a model that cannot think.
+const thinkOpts = (opts) => {
+  if (thinks()) return opts;
+  const { thinking: _, ...rest } = opts;
+  return rest;
+};
+// Shows the Think switch for a model that can think, hides it otherwise.
+const drawThink = () => { $("think").closest("label").hidden = !thinks(); };
 // The public beta (GitHub Pages, docs/wasm-beta.md; `?beta` elsewhere): Device defaults to
 // the GPU where the browser has WebGPU, off iOS (report.js reads the page's state).
 const BETA = location.hostname.endsWith(".github.io") || new URLSearchParams(location.search).has("beta");
@@ -57,26 +82,164 @@ function status(text, err = false) {
   $("status").className = err ? "err" : "";
 }
 
-function progress(done, total) {
+function progress(done, total, text = "") {
   const p = $("progress");
   p.hidden = !total;
+  p.title = text;
   if (total) {
     p.max = total;
     p.value = done;
   }
 }
 
+// The download running (fromUrl): its smoothed rate (eta.js), on this session's bytes.
+let dlRate = null;
+
 function setBusy(b) {
   busy = b;
+  // Inga's mark animates while the page works (a load, an answer), as inga serve's.
+  $("brand-mark").classList.toggle("busy", b);
   for (const id of ["url-go", "file"]) $(id).disabled = b;
   document.querySelectorAll("button[data-act]").forEach((x) => (x.disabled = b));
   const loaded = !!source;
+  // No model any more (given back, lost, deleted): its lock goes.
+  if (!loaded && !b && modelLock) dropModelLock();
   $("send").disabled = b || !loaded;
   $("stdtest").disabled = b || !loaded;
   $("prompt").disabled = !loaded;
-  $("reset").disabled = b || !loaded;
+  $("reset").disabled = b;
+  $("new-chat").disabled = b;
+  for (const x of document.querySelectorAll("#convs button")) x.disabled = b;
   $("gpubench").disabled = b || !loaded || !onGpu;
+  sendHint();
+  // An empty chat says whether a model is there (a load, a model deleted).
+  const empty = $("chat").querySelector(".empty");
+  if (pageReady && empty && empty.dataset.loaded !== String(loaded)) renderChat();
   $("gpuprofile").disabled = b || !loaded || !onGpu;
+  // Free again: the context gauge counts what the model would now read.
+  if (!b) countSoon(0);
+  else drawGauge();
+}
+
+// ---- The context gauge: the ring next to Send (ctx.js) ----
+
+let ctxUsed = 0; // the tokens of the conversation as the model reads it, the draft included
+let countId = 0; // the last count asked of the worker (older answers are ignored)
+let countTimer = null;
+let trimmedNote = ""; // the oldest messages left out of the answer running, said
+let ctxParts = null; // the parts of the last count made with the panel open (ctx.js's breakdown); null: not counted
+const COUNT_MS = 400; // the pause in typing before the draft is counted
+
+// The context the loaded model has (its n_ctx), else the Settings' context (Auto: the
+// least Auto gives).
+function ctxSize() {
+  return loadedInfo?.info?.ctx || ctx() || AUTO_FLOOR;
+}
+
+// The Settings' Max tokens: what the answer may take, 1024 by default (256 before:
+// testers kept hitting it). The room it keeps is at most half of the context (ctx.js's
+// answerRoom), so a default above the context's room never crowds the question out.
+// Left at its default (never changed by hand), it is at least THINK_MAX for a model that
+// thinks with Think on: its reasoning alone often takes more than 1024 tokens.
+const MAX_DEFAULT = 1024;
+const THINK_MAX = 2048;
+let maxHand = false; // Max tokens changed by hand (the Settings, or "Raise to …")
+function maxTokens() {
+  const v = Number($("max").value) || MAX_DEFAULT;
+  return !maxHand && thinks() && $("think").checked ? Math.max(v, THINK_MAX) : v;
+}
+
+function drawGauge() {
+  const size = ctxSize();
+  const g = gauge(ctxUsed, size);
+  const el = $("ctx-gauge");
+  el.hidden = !source || !g.show;
+  $("ctx-ring").setAttribute("stroke-dasharray", g.pct.toFixed(1) + " 100");
+  $("ctx-pct").textContent = g.shown + "%";
+  el.title = gaugeTitle(t, ctxUsed, size) + (autoLine ? "\n" + autoLine : "") + (ctxLine ? "\n" + ctxLine : "");
+  el.setAttribute("aria-label", el.title);
+  el.classList.toggle("warn", g.level === "warn");
+  el.classList.toggle("full", g.level === "full");
+  if (el.hidden) closeDetail();
+  else if (!$("ctx-pop").hidden) drawDetail();
+}
+
+// The ring's panel, as inga serve's web UI's: the tokens used of the context, what fills
+// it (the system prompt, the past messages sent, the draft) and the room kept for the
+// answer, the messages the next question would leave out, and the context's size and
+// where it comes from. Its parts are counted when it opens and with each count while it
+// is open (`countSoon`); closed, the gauge counts only the total.
+function drawDetail() {
+  const pop = $("ctx-pop");
+  const size = ctxSize();
+  const d = detail(ctxUsed, size, ctxParts, maxTokens());
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  pop.textContent = "";
+  const head = el("b", null, t("ctx.title") + " · " + t("ctx.of", d.used, d.size));
+  head.id = "ctx-pop-h";
+  pop.append(head, el("div", "note", t("ctx.used", d.shown, d.free)));
+  const list = el("div", "parts");
+  // Not counted yet (the worker busy with an answer, or the count on its way).
+  if (ctxParts === null && ctxUsed) list.append(el("div", "note", t("ctx.counting")));
+  for (const r of d.rows) {
+    const bar = el("span", "bar " + r.key);
+    bar.style.width = (r.n ? Math.max(1, r.w) : 0) + "%";
+    const track = el("span", "track");
+    track.append(bar);
+    const row = el("div", "part " + r.key);
+    row.dataset.part = r.key;
+    row.append(el("span", "lbl", t("ctx.part." + r.key)), track, el("span", "num", String(r.n)));
+    list.append(row);
+  }
+  pop.append(list);
+  if (d.dropped) pop.append(el("div", "note warn", t(d.dropped === 1 ? "ctx.drop.one" : "ctx.drop", d.dropped)));
+  pop.append(el("div", "note small", t("ctx.size", size, t(loadedInfo?.info?.ctx ? "ctx.src.model" : "ctx.src.set"))));
+  if (autoLine) pop.append(el("div", "note small", autoLine));
+  if (ctxLine) pop.append(el("div", "note small warn", ctxLine));
+  const want = Number($("ctx").value);
+  if (loadedInfo?.ctx_asked && want && want !== loadedInfo.ctx_asked) pop.append(el("div", "note small", t("ctx.pending", want)));
+}
+
+function openDetail() {
+  $("ctx-pop").hidden = false;
+  $("ctx-gauge").setAttribute("aria-expanded", "true");
+  drawDetail();
+  // The parts: counted now.
+  countSoon(0);
+}
+
+function closeDetail(focus = false) {
+  if ($("ctx-pop").hidden) return;
+  $("ctx-pop").hidden = true;
+  $("ctx-gauge").setAttribute("aria-expanded", "false");
+  if (focus) $("ctx-gauge").focus();
+}
+
+// Counts, after `ms`, the tokens of what the model would read now: the system prompt,
+// the messages "Past messages sent" keeps and the draft being written. Not while the
+// worker is busy (it counts after the answer).
+function countSoon(ms = COUNT_MS) {
+  clearTimeout(countTimer);
+  countTimer = setTimeout(() => {
+    countTimer = null;
+    if (!source || !worker || busy) return drawGauge();
+    const draft = $("prompt").value.trim();
+    const sent = wire(draft ? messages.concat({ role: "user", content: draft }) : messages);
+    if (!sent.length) {
+      ctxUsed = 0;
+      ctxParts = { total: 0, system: 0, past: 0, draft: 0, kept: 0, dropped: 0 };
+      return drawGauge();
+    }
+    // The panel open: its parts too, and what the next question would leave out.
+    const open = !$("ctx-pop").hidden;
+    worker.postMessage({ type: "count", id: ++countId, messages: sent, opts: thinkOpts({ thinking: $("think").checked }),
+      detail: open, draft: !!draft, fit: open ? promptLimit(ctxSize(), maxTokens()) : undefined });
+  }, ms);
 }
 
 // Renders the answer streaming from its raw text: now, or (`soon`) within RENDER_MS,
@@ -85,21 +248,30 @@ function renderAnswer(soon) {
   if (soon) {
     renderTimer ??= setTimeout(() => {
       renderTimer = null;
-      if (answer) markdown(answer, answerText);
+      if (answer) {
+        const box = $("chat");
+        const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+        markdown(answer, answerText);
+        if (atEnd) box.scrollTop = box.scrollHeight;
+      }
     }, RENDER_MS);
     return;
   }
   clearTimeout(renderTimer);
   renderTimer = null;
   if (answer) {
+    const box = $("chat");
+    const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
     markdown(answer, answerText);
     // The text as the model wrote it, for the browser tests (the rendering drops marks).
     answer.dataset.raw = answerText;
+    if (atEnd) box.scrollTop = box.scrollHeight;
   }
 }
 
 // The answer is over (done, stopped, failed): its last render, and no element left.
 function endAnswer() {
+  reloadLater();
   clearTimeout(quietTimer);
   quietTimer = null;
   quietShown = false;
@@ -147,15 +319,14 @@ function armQuiet() {
   // A word after the warning: the worker is alive, the answer goes on.
   if (quietShown) {
     quietShown = false;
-    status("Answering…");
+    status(t("st.answering"));
   }
   quietTimer = setTimeout(() => {
     if (!answer) return;
-    const t = `No word from the model's worker for ${QUIET_MS / 1000} s: it is still reading the prompt, or the browser ` +
-      "stopped it (probably memory); Stop, or reload the page and load the model again";
-    loadLog(t);
+    const msg = t("st.quiet", QUIET_MS / 1000);
+    loadLog(msg);
     // A warning, not an error: the answer may still come.
-    status(t);
+    status(msg);
     quietShown = true;
   }, QUIET_MS);
 }
@@ -193,9 +364,13 @@ function workerLost(why) {
 }
 
 // The load log: each step the worker reports, with its time, shown under the status
-// line (a load that stops says where; Copy it into a report).
+// line (a load that stops says where; Copy it into a report). The Settings' "Load log"
+// keeps every step, only the start, the end and the errors, or nothing.
 let logT0 = null;
+const LOG_SUMMARY = /^(load asked|ready to chat|page error|No word|the page received)/;
 function loadLog(text, reset = false) {
+  const level = $("loglevel")?.value ?? "all";
+  if (level === "off" || (level === "summary" && !LOG_SUMMARY.test(text) && !/error|fail|refus|stopp/i.test(text))) return;
   let el = document.getElementById("load-log");
   if (!el) {
     el = document.createElement("pre");
@@ -236,12 +411,21 @@ function handleMessage(m) {
     case "ready":
       // A worker started again to load a model: its progress follows.
       // An error shown (a worker lost) stays until the next action.
-      if (!busy && $("status").className !== "err") status("Ready: pick a model.");
+      if (!busy && !released && $("status").className !== "err") status(t("st.pick"));
       worker.postMessage({ type: "list" });
       break;
     case "progress": {
-      const what = { download: "Downloading", copy: "Copying into this site's storage", disktest: "Disk speed test" }[m.what] ?? "Loading";
-      status(`${what}: ${fmt(m.done)}${m.total ? " of " + fmt(m.total) : ""}`);
+      if (m.what === "download") {
+        // Downloaded of the whole file, the speed and the time left (eta.js).
+        dlRate ??= createRate();
+        dlRate.update(m.done - (m.start ?? 0), performance.now() / 1000);
+        const line = downloadLine({ done: m.done, total: m.total, rate: dlRate.rate }, t);
+        status(line);
+        progress(m.done, m.total, line);
+        break;
+      }
+      const what = t({ download: "st.p.download", copy: "st.p.copy", disktest: "st.p.disktest" }[m.what] ?? "st.p.load");
+      status(`${what}: ${size(m.done)}${m.total ? t("st.of", size(m.total)) : ""}`);
       progress(m.done, m.total);
       break;
     }
@@ -256,7 +440,7 @@ function handleMessage(m) {
         worker.terminate();
         startWorker();
         used = true;
-        status("The GPU did not take this model: loading it on the CPU…");
+        status(t("st.retry.cpu"));
         startLoading();
         worker.postMessage({ ...lastLoad, device: "cpu", auto: false, note: m.note });
       }
@@ -266,9 +450,19 @@ function handleMessage(m) {
       stopLoading();
       progress(0, 0);
       loadedInfo = m;
+      drawThink();
+      ctxUsed = 0;
+      ctxParts = null;
       const i = m.info;
       onGpu = i.device === "webgpu";
-      $("model-name").textContent = i.name || source?.name || source?.file?.name || "Chat";
+      modelName = i.name || source?.name || source?.file?.name || "model";
+      modelMark = (source?.name && markOf[source.name]) || null;
+      if (source?.name) rememberFile(modelName, source.name);
+      holdModel(source?.name ?? null);
+      reloadLater();
+      showMark();
+      $("model-name").textContent = modelName;
+      $("model-chip").title = `${source?.name ?? source?.file?.name ?? ""}: ${i.architecture}, ${i.layers} layers; click for another model`;
       const cpu = `${i.isa} kernels on ${i.threads} thread${i.threads === 1 ? "" : "s"}`;
       let where = cpu;
       if (onGpu) {
@@ -281,22 +475,35 @@ function handleMessage(m) {
       const why = [m.note, onGpu || deviceUsed.device === "gpu" ? i.gpu_note : "", accountingNote(i)].filter(Boolean).join(". ");
       // Auto chose the GPU, the worker the CPU (a model that needs storage).
       if (m.note?.startsWith("On the CPU")) deviceUsed.label = deviceUsed.label.replace("device GPU (Auto", "device CPU, not the GPU (Auto");
+      ctxLine = ctxNote(m);
+      slowLine = slowNote(i);
+      autoLine = autoText(m.ctx_auto);
+      showAuto();
       status(`Loaded in ${m.secs.toFixed(1)} s: ${i.architecture}, ${i.layers} layers, ${fmt(i.bytes)} of weights, ` +
         `context ${i.ctx}, ${where}; WebAssembly memory ${fmt(m.memory)}${gpuBytes(m.gpu)}; ` +
-        `${limitUsed}; ${deviceUsed.label}.` + (why ? ` ${why}.` : "") + streamNote(i) + draftNote(i));
+        `${limitUsed}; ${deviceUsed.label}.` + (variantLine(source?.name) ? " " + variantLine(source?.name) + "." : "") + (why ? ` ${why}.` : "") + streamNote(i) + draftNote(i) + (reloadWhy ? " " + t("reloaded", ...reloadWhy) : "") +
+        (autoLine ? " " + autoLine + "." : "") + (ctxLine ? " " + ctxLine : "") + (slowLine ? " " + slowLine : ""));
+      reloadWhy = null;
       $("wmem-hint").textContent = "";
-      if (!keepChat) {
-        messages = [];
-        $("chat").textContent = "";
-      }
+      presetAfterLoad(i);
+      // A model loaded: a new conversation (the earlier ones stay in the side bar).
+      if (!keepChat) newChat();
       keepChat = false;
       setBusy(false);
+      showView("chat");
       $("prompt").focus();
       loadLog("ready to chat");
+      // "Raise the context and regenerate": the answer again, with the new context.
+      if (afterLoad) {
+        const f = afterLoad;
+        afterLoad = null;
+        f();
+      }
       break;
     }
     case "piece":
       if (!answer) break;
+      liveSpeed();
       if (m.reasoning) think(m.text);
       else {
         // Blank lines before the answer (after </think>, or before <think>) are dropped.
@@ -308,26 +515,54 @@ function handleMessage(m) {
         renderAnswer(true);
       }
       break;
+    case "count":
+      // A module without countChat: the gauge keeps the last answer's tokens.
+      if (m.id === countId && m.tokens != null) ctxUsed = m.tokens;
+      // No parts: not asked (the panel closed), or not countable (false: a module without countChat).
+      if (m.id === countId) ctxParts = m.parts ?? (m.tokens == null ? false : null);
+      drawGauge();
+      break;
+    case "trimmed":
+      trimmedNote = t(m.dropped === 1 ? "ctx.trimmed.one" : "ctx.trimmed", m.dropped);
+      status(t("st.answering") + " " + trimmedNote);
+      break;
     case "done": {
       const s = m.stats;
+      // What the conversation now takes: the prompt and the answer (counted exactly next).
+      ctxUsed = s.prompt_tokens + s.gen_tokens;
+      ctxParts = null;
       lastStats = { ...s, memory: m.memory, gpu: m.gpu };
-      // Only the answer goes back to the model, as in inga serve's web UI.
-      messages.push({ role: "assistant", content: answerText });
+      // Only the answer goes back to the model, as in inga serve's web UI; the reasoning
+      // and the speeds are kept for the page.
+      const reasoning = thinking?.lastChild?.textContent || undefined;
+      // How it ended (`max_tokens`: the limit) and the limit, for the note under it.
+      const said = { role: "assistant", content: answerText, reasoning, model: modelName, ...(modelMark ? { mark: modelMark } : {}), at: Date.now(), seed: answerSeed,
+        stop: s.stop, max: askedOpts?.max_tokens, ctx: ctxSize(), think: askedOpts?.thinking !== false && thinks(),
+        stats: { prompt_tps: s.prompt_tps, gen_tps: s.gen_tps, prompt_tokens: s.prompt_tokens, gen_tokens: s.gen_tokens } };
+      messages.push(said);
+      speedLine(answerBox, said);
+      if (!stdRunning) limitNote(answerBox, said, true);
       endAnswer();
+      persistChat();
       $("stop").disabled = true;
-      const r = s.reasoning_tokens ? ` (${s.reasoning_tokens} of them thinking)` : "";
-      $("stats").textContent = `Prompt: ${s.prompt_tokens - s.cached_tokens} tokens at ${s.prompt_tps.toFixed(1)} tok/s` +
-        ` (${s.cached_tokens} reused) · answer: ${s.gen_tokens} tokens at ${s.gen_tps.toFixed(1)} tok/s${r}` +
-        ` · ${s.stop} · memory ${fmt(m.memory)}${gpuBytes(m.gpu)}` + readNote(s) + draftStats(s) +
-        (s.gpu_sampled ? ` · ${s.gpu_sampled} drawn on the GPU` : "");
-      status("Ready.");
+      // In the page's language, its numbers too (i18n.js num).
+      const r = s.reasoning_tokens ? t("st.thinking", num(s.reasoning_tokens)) : "";
+      const stopKey = "st.stop." + s.stop;
+      const stop = t(stopKey) === stopKey ? s.stop : t(stopKey);
+      $("stats").textContent = t("st.prompt", num(s.prompt_tokens - s.cached_tokens), num(s.prompt_tps, 1), num(s.cached_tokens)) +
+        " · " + t("st.answer", num(s.gen_tokens), num(s.gen_tps, 1), r) +
+        ` · ${stop} · ` + t("st.memory", size(m.memory) + (m.gpu ? t("st.gpu", size(m.gpu.weight_bytes), size(m.gpu.other_bytes)) : "")) +
+        readNote(s) + draftStats(s) + (s.gpu_sampled ? " · " + t("st.sampled", num(s.gpu_sampled)) : "") + " · " + t("st.seed", answerSeed) +
+        (slowLine ? ` · ${slowLine}` : "");
+      status(trimmedNote ? t("st.ready") + " " + trimmedNote : t("st.ready"));
+      trimmedNote = "";
       if (stdRunning) {
         stdRunning = false;
         const line = standardLine(s, m);
         $("std-line").textContent = line;
         $("std-out").hidden = false;
         keepResult(line);
-        status("Ready. Standard test done: its line is below the chat.");
+        status(t("st.ready.std"));
       }
       setBusy(false);
       break;
@@ -335,28 +570,30 @@ function handleMessage(m) {
     case "gpuprofile":
       showKernels(m);
       $("stop").disabled = true;
-      status("Ready. Kernel times done: the table is below. The prompt is not part of the chat: the chat starts again.");
-      messages = [];
-      $("chat").textContent = "";
+      status(t("st.ready.kernels"));
+      newChat();
       setBusy(false);
       break;
     case "gpubench":
       showBench(m);
       if (m.done) {
         $("stop").disabled = true;
-        status("Ready. The benchmark's prompt is not part of the chat: the chat starts again.");
-        messages = [];
-        $("chat").textContent = "";
+        status(t("st.ready.bench"));
+        newChat();
         setBusy(false);
       }
       break;
     case "disktest":
       progress(0, 0);
       $("disktest-out").textContent = `Read ${m.read_mbs.toFixed(0)} MB/s, write ${m.write_mbs.toFixed(0)} MB/s (${fmt(m.bytes)}, read back right after writing).`;
-      status("Ready.");
+      status(t("st.ready"));
       setBusy(false);
       break;
+    case "gpulost":
+      gpuLost(m);
+      break;
     case "error":
+      afterLoad = null;
       stopLoading();
       progress(0, 0);
       stdRunning = false;
@@ -469,7 +706,7 @@ function gpuProfile() {
   setBusy(true);
   $("stop").disabled = false;
   $("kernels").textContent = "";
-  status("Kernel times: timing every kernel of the loaded model's decode steps…");
+  status(t("st.kernels"));
   const n = Number(new URLSearchParams(location.search).get("bench_tokens")) || 16;
   worker.postMessage({ type: "gpuprofile", tokens: n });
 }
@@ -479,7 +716,7 @@ function gpuBench() {
   setBusy(true);
   $("stop").disabled = false;
   $("bench").textContent = "";
-  status("GPU benchmark: running the loaded model under each kernel choice…");
+  status(t("st.bench"));
   // `?bench_tokens=N` in the page's address: N tokens instead of 32 (the browser tests,
   // on a software GPU).
   const n = Number(new URLSearchParams(location.search).get("bench_tokens")) || 32;
@@ -516,7 +753,10 @@ function setupDevice() {
   const opt = $("device").querySelector("option[value=gpu]");
   if (!navigator.gpu) {
     opt.disabled = true;
-    opt.textContent += ": not available (this browser has no navigator.gpu)";
+    // A short label (the Device description says why); setLang keeps it.
+    opt.dataset.i18n = "opt.gpu.na";
+    opt.textContent = t("opt.gpu.na");
+    opt.title = "This browser has no WebGPU (navigator.gpu)";
     if ($("device").value === "gpu") $("device").value = "cpu";
   }
 }
@@ -544,6 +784,7 @@ async function chooseDevice() {
     adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
   } catch {}
   if (!adapter) return { device: "cpu", label: "device CPU: WebGPU offers no adapter here" };
+  await probeAdapter();
   const i = adapter.info || {};
   const name = [i.vendor, i.architecture, i.device, i.description].filter(Boolean).join(" ") || "unnamed adapter";
   if (asked === "gpu") return { device: "gpu", label: `device GPU (Device setting, adapter ${name})` };
@@ -580,7 +821,19 @@ async function gpuInfo() {
   }
 }
 
+// The test models' fold: closed by default, its state kept in this browser.
+const TESTS_OPEN_KEY = "inga.testsOpen";
+try {
+  $("tests-fold").open = localStorage.getItem(TESTS_OPEN_KEY) === "1";
+} catch {}
+$("tests-fold").addEventListener("toggle", () => {
+  try {
+    localStorage.setItem(TESTS_OPEN_KEY, $("tests-fold").open ? "1" : "0");
+  } catch {}
+});
+
 function showSuggested() {
+  $("tests-count").textContent = `(${SUGGESTED.length})`;
   const ul = $("suggested");
   ul.textContent = "";
   for (const s of SUGGESTED) {
@@ -610,6 +863,11 @@ function showSuggested() {
   }
 }
 
+// A stored file's deletion, asked in the page's box.
+function askDeleteFile(name, bytes) {
+  return askBox({ title: t("file.del.t"), message: t("file.del.ask", "{0}", bytes != null ? fmt(bytes) : "?"), strong: name, ok: t("ask.delete"), cancel: t("ask.cancel"), danger: true });
+}
+
 // Every file this site stores (the worker lists OPFS recursively): the models, then
 // anything else (an interrupted disk test, files of older pages), each with a Delete, so
 // no space is used by something the page does not show.
@@ -618,6 +876,8 @@ function showStored(models) {
   ul.textContent = "";
   for (const k of Object.keys(storedSize)) delete storedSize[k];
   for (const m of models) if (m.model && m.complete !== false && !m.error) storedSize[m.name] = m.size;
+  sendHint();
+  noModelStatus();
   showDraftChoices();
   showSuggested();
   picker.render();
@@ -655,7 +915,9 @@ function showStored(models) {
     del.className = "ghost";
     del.dataset.act = "1";
     del.textContent = "Delete";
-    del.onclick = () => worker.postMessage({ type: "delete", path: m.path });
+    del.onclick = async () => {
+      if (await askDeleteFile(m.name ?? m.path, m.size)) worker.postMessage({ type: "delete", path: m.path });
+    };
     row.append(del);
     li.append(d, row);
     ul.append(li);
@@ -677,8 +939,11 @@ async function persist() {
   if (navigator.storage?.persist && !(await navigator.storage.persisted())) await navigator.storage.persist();
 }
 
+// The Settings' context window: a number set, or 0 for Auto (the field left empty:
+// the model's training context, lowered only when its KV cache does not fit; ctx.js's
+// autoContext, run by the worker on the model's header).
 function ctx() {
-  return Number($("ctx").value) || 2048;
+  return Math.max(0, Math.round(Number($("ctx").value) || 0));
 }
 
 // `from`: the catalog's model and variant the link is of, for a clearer message when
@@ -688,13 +953,15 @@ async function fromUrl(url, from = null) {
   try {
     url = new URL(url, location.href).href;
   } catch {
-    status("That is not a link.", true);
+    status(t("st.nolink"), true);
     return;
   }
   const name = fileName(url);
+  // A catalog model's family (its mark); a link's has none.
+  setMark(name, from ? familyOf(from.model) : null);
   setBusy(true);
   await persist();
-  status(`Downloading ${name}…`);
+  status(t("st.downloading", name));
   source = null;
   const done = new Promise((resolve) => {
     const prev = worker.onmessage;
@@ -706,8 +973,13 @@ async function fromUrl(url, from = null) {
       }
     };
   });
+  dlRate = null;
   worker.postMessage({ type: "download", url, name });
-  if (await done) loadStored(name);
+  const ok = await done;
+  // The speed measured, for the picker's estimate of the next download.
+  if (ok && dlRate?.rate) saveSpeed(dlRate.rate);
+  dlRate = null;
+  if (ok) loadStored(name);
   else if (from && /HTTP (404|401|403)/.test($("status").textContent)) {
     status(`${$("status").textContent}. This is the model catalog's ${from.model.name}, ${from.variant.quant}: the file is not ` +
       `(or no longer) where the catalog says${from.variant.approx ? " (the catalog has not been checked against Hugging Face yet)" : ""}. ` +
@@ -729,8 +1001,13 @@ let lastLoad = null; // the last load of a stored model, for a retry on the CPU
 
 async function loadStored(name) {
   source = { name };
+  // What the variants are judged on, for the load line (variantLine).
+  deviceEnv().then((e) => (lastEnv = e), () => {});
   setBusy(true);
-  status(`Loading ${name}…`);
+  status(t("st.loading", name));
+  // The context the catalog gives this model, unless set by hand (preset.js).
+  await presetBeforeLoad(name);
+  snapLoad();
   freshWorker();
   used = true;
   const { budget, label } = memoryLimit();
@@ -738,11 +1015,13 @@ async function loadStored(name) {
   deviceUsed = await chooseDevice();
   const gpuBudget = gpuLimit(budget);
   const separate = gpuSeparate();
+  gpuUsed = `${Math.round(gpuBudget.bytes / MB)} MB`;
+  gpuLabel = deviceUsed.device === "cpu" ? "" : gpuBudget.label;
   if (deviceUsed.device === "gpu") limitUsed += `, GPU memory ${gpuBudget.label}`;
   // A draft model drafts on the CPU only: on the GPU the model answers without it.
   const draft = deviceUsed.device === "gpu" ? null : draftFor(name);
   if (deviceUsed.device === "gpu" && draftFor(name)) deviceUsed.label += "; no draft model on the GPU yet (Draft model ignored)";
-  lastLoad = { type: "load", name, ctx: ctx(), budget, draft, device: deviceUsed.device, gpuBudget: gpuBudget.bytes, gpuSeparate: separate, auto: !!deviceUsed.auto };
+  lastLoad = { type: "load", name, ctx: ctx(), kv: $("kv").value, budget, draft, device: deviceUsed.device, gpuBudget: gpuBudget.bytes, gpuSeparate: separate, auto: !!deviceUsed.auto };
   startLoading();
   worker.postMessage(lastLoad);
 }
@@ -760,40 +1039,127 @@ async function loadFile(file) {
     return;
   }
   source = { file };
+  snapLoad();
   setBusy(true);
-  status(`Loading ${file.name}…`);
+  status(t("st.loading", file.name));
   freshWorker();
   used = true;
   deviceUsed = { device: "cpu", label: gpu ? "device CPU: the GPU reads a model from this site's storage, which this browser lacks" : (await chooseDevice()).label };
   limitUsed = budget == null ? "everything in memory (All in memory)" : "everything in memory (a file of this device smaller than the limit)";
   lastLoad = null;
   startLoading();
-  worker.postMessage({ type: "load", file, ctx: ctx(), device: "cpu" });
+  worker.postMessage({ type: "load", file, ctx: ctx(), kv: $("kv").value, device: "cpu" });
+}
+
+// The options of a question: Max tokens, the sampler's Settings, Think.
+function sendOpts() {
+  const opts = { max_tokens: maxTokens(), temperature: Number($("temp").value), thinking: $("think").checked };
+  // The sampler's Settings: each one sent when it is a number (empty: Inga's default).
+  for (const [id, key] of [["topp", "top_p"], ["topk", "top_k"], ["minp", "min_p"], ["rep", "repeat_penalty"], ["pres", "presence_penalty"], ["freq", "frequency_penalty"]]) {
+    const v = $(id).value.trim();
+    if (v !== "" && Number.isFinite(Number(v))) opts[key] = Number(v);
+  }
+  // The seed: the Settings' (reproducible answers), or a fresh one per answer, so asking
+  // again (Regenerate too) draws again; the answer keeps it (its line, the export).
+  const seed = $("seed").value.trim();
+  opts.seed = /^\d+$/.test(seed) ? Number(seed) : randomSeed();
+  return opts;
+}
+
+// A random seed for an answer: 32 bits.
+function randomSeed() {
+  return crypto.getRandomValues(new Uint32Array(1))[0];
 }
 
 function send() {
   const text = $("prompt").value.trim();
   if (!text || busy || !source) return;
   $("prompt").value = "";
-  const opts = { max_tokens: Number($("max").value) || 256, temperature: Number($("temp").value), thinking: $("think").checked };
-  ask(text, opts);
+  ask(text, sendOpts());
+}
+
+// The last answer asked again: its exchange taken off the conversation, the question
+// sent with the Settings' options and `over` (a larger Max tokens, Think off).
+function regenerate(over = {}) {
+  if (busy || !source || messages.at(-1)?.role !== "assistant" || messages.at(-2)?.role !== "user") return;
+  messages.pop();
+  const q = messages.pop();
+  renderChat();
+  ask(q.content, { ...sendOpts(), ...over });
+}
+
+// What the model is sent: the system prompt (Settings), then the conversation's last
+// messages ("Past messages sent", 0 for all), as {role, content}.
+function wire(list) {
+  const past = Math.max(0, Math.round(Number($("past").value) || 0));
+  // The last question always goes, and the cut never starts on an answer.
+  let msgs = past ? list.slice(-past) : list;
+  while (msgs.length > 1 && msgs[0].role !== "user") msgs = msgs.slice(1);
+  const out = msgs.map((m) => ({ role: m.role, content: m.content }));
+  const sys = $("sys").value.trim();
+  if ($("sys-on").checked && sys) out.unshift({ role: "system", content: sys });
+  return out;
+}
+
+// The answer's speed while it streams, under it: tokens (the worker's pieces, one per
+// token) per second since the first, and why it is slow (layers on the CPU, layers read
+// from storage) when it is; redrawn at most twice a second, by the pieces themselves
+// (no timer). The final line (speedLine) replaces it.
+let live = null; // {n, t0, shown}
+let liveRate = null; // the last live speed (the Info panel's)
+function liveSpeed() {
+  const el = answerBox?.querySelector(".speed");
+  if (!live || !el) return;
+  const now = performance.now();
+  live.n++;
+  if (live.t0 == null) {
+    live.t0 = now;
+    return;
+  }
+  if (now - live.shown < 500 || now - live.t0 < 300) return;
+  live.shown = now;
+  liveRate = (live.n - 1) / ((now - live.t0) / 1000);
+  el.textContent = t("st.live", num(liveRate, 1)) + (slowLine ? " · " + slowLine : "");
 }
 
 // Sends `text` as the user's next message with `opts`.
+let askedOpts = null; // the options of the answer running (its Max tokens, Think)
 function ask(text, opts) {
-  messages.push({ role: "user", content: text });
-  const u = document.createElement("div");
-  u.className = "u";
-  u.textContent = text;
-  answer = document.createElement("div");
-  answer.className = "a md";
+  askedOpts = opts;
+  // The ways out of an earlier answer's limit go: they act on the last answer only.
+  for (const r of document.querySelectorAll("#chat .limit .row")) r.remove();
+  const mine = { role: "user", content: text, at: Date.now() };
+  messages.push(mine);
+  startChat(text);
+  // The settings of this question, kept with the conversation (its backup carries them).
+  if (!stdRunning) {
+    chat.settings = { params: { ...opts }, system: $("sys-on").checked ? $("sys").value.trim() : "" };
+  }
+  // Saved at once: a new chat has its title, its count and its place at the top of the
+  // list while its first answer streams.
+  persistChat();
+  $("chat").querySelector(".empty")?.remove();
+  $("chat").append(userBubble(mine));
+  answerBox = botBubble(null);
+  answer = answerBox.querySelector(".a");
   answerText = "";
-  $("chat").append(u, answer);
+  live = { n: 0, t0: null, shown: 0 };
+  $("chat").append(answerBox);
+  answerBox.scrollIntoView({ block: "end" });
   setBusy(true);
   $("stop").disabled = false;
-  status("Answering…");
+  status(t("st.answering"));
   stopFlag = self.crossOriginIsolated ? new Int32Array(new SharedArrayBuffer(4)) : null;
-  worker.postMessage({ type: "chat", messages, opts, stop: stopFlag?.buffer });
+  // The Standard test sends its prompt alone, whatever the Settings.
+  const sent = stdRunning ? messages.map((m) => ({ role: m.role, content: m.content })) : wire(messages);
+  // A conversation longer than the context loses its oldest messages (the worker cuts
+  // them, ctx.js), the answer's room kept.
+  trimmedNote = "";
+  const fit = stdRunning ? undefined : promptLimit(ctxSize(), opts.max_tokens);
+  // The seed the answer draws with (the module's default, 0x5EED, without one: the
+  // Standard test's).
+  answerSeed = opts.seed ?? 0x5eed;
+  worker.postMessage({ type: "chat", messages: sent, opts: thinkOpts(opts), stop: stopFlag?.buffer, fit });
   armQuiet();
 }
 
@@ -803,13 +1169,12 @@ const STD_PROMPT = "Ciao, presentati in tre frasi.";
 const STD_OPTS = { max_tokens: 64, temperature: 0, thinking: false };
 const STD_KEY = "inga.standard-tests";
 let stdRunning = false;
-let loadedInfo = null; // the last "loaded" message: info, memory, gpu, note
 
 function standardTest() {
   if (busy || !source) return;
-  // A fresh chat: the worker's conversation too.
-  messages = [];
-  $("chat").textContent = "";
+  // A new conversation: the worker's too. The Settings' system prompt and past
+  // messages do not apply (`stdRunning`).
+  newChat();
   $("stats").textContent = "";
   worker.postMessage({ type: "reset" });
   stdRunning = true;
@@ -879,14 +1244,14 @@ function keepResult(line) {
 async function copyText(text, el) {
   try {
     await navigator.clipboard.writeText(text);
-    status("Copied.");
+    status(t("copied"));
   } catch {
     const r = document.createRange();
     r.selectNodeContents(el);
     const sel = getSelection();
     sel.removeAllRanges();
     sel.addRange(r);
-    status("Selected: copy it with the system's Copy.");
+    status(t("st.selected"));
   }
 }
 
@@ -903,15 +1268,16 @@ function stop() {
   // Without cross-origin isolation the worker cannot be told while it computes: it is
   // ended, and the model loaded again (from OPFS or the same file).
   worker.terminate();
-  if (answer) messages.push({ role: "assistant", content: answerText });
+  if (answer) messages.push({ role: "assistant", content: answerText, model: modelName, ...(modelMark ? { mark: modelMark } : {}), at: Date.now() });
   endAnswer();
+  persistChat();
   $("stop").disabled = true;
   keepChat = true;
   startWorker();
   // Messages to a worker wait until it has started.
   if (source?.file) loadFile(source.file);
   else if (source) loadStored(source.name);
-  status("Stopped; loading the model again…");
+  status(t("st.stopped"));
 }
 
 // ---- Memory for the model: what does not fit is read from OPFS while it runs ----
@@ -955,20 +1321,77 @@ function memoryLimit() {
 // within `budget`, the memory limit (bytes, null: none), which counts the GPU's bytes
 // too: Auto is 1024 MB on iOS (Llama 3.2 1B, about 0.9 GiB on the GPU, is the largest
 // model measured to load on an iPhone 16 Pro's GPU page), the memory limit elsewhere.
-// Elsewhere 3 GiB: a guess (WebGPU tells no GPU's memory), which a 4 GB card holds,
-// with the GPU's bytes apart from the memory limit (gpuSeparate): a 4B Q4_K_M model,
-// about 2.5 GB, then runs whole on the GPU of a 4 GB desktop card.
+// Elsewhere, with the GPU's bytes apart from the memory limit (gpuSeparate), it follows
+// the adapter (autoGpu): WebGPU tells no GPU's memory, so 3 GiB, which a 4 GB card
+// holds, unless the adapter says more (an Apple GPU shares the Mac's memory; a large
+// maxBufferSize, a large navigator.deviceMemory). 3 GiB on a 128 GB Mac left a 7B Q4
+// model (4.4 GB) a third of its layers on the CPU: 4 tok/s.
 const AUTO_GPU_OTHER = 3072 * MB;
 const AUTO_GPU_IOS = 1024 * MB;
+const GIB = 1024 * MB;
+const AUTO_GPU_MAX = 16 * GIB;
+let adapterFacts = null; // the adapter's vendor and limits, once asked (probeAdapter)
+
+// The WebGPU adapter's facts that Auto's GPU memory follows, asked once.
+async function probeAdapter() {
+  if (adapterFacts || !navigator.gpu) return adapterFacts;
+  try {
+    const a = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+    if (a) {
+      const i = a.info || {};
+      adapterFacts = {
+        vendor: i.vendor || "", architecture: i.architecture || "",
+        maxBufferSize: Number(a.limits?.maxBufferSize) || 0,
+        maxStorageBufferBindingSize: Number(a.limits?.maxStorageBufferBindingSize) || 0,
+      };
+    }
+  } catch {}
+  return adapterFacts;
+}
+
+// Auto's GPU memory off iOS, with the GPU's bytes apart: {bytes, why}. An Apple GPU
+// (unified memory: the Mac's memory is the GPU's) gets 3/4 of navigator.deviceMemory
+// (Chrome tells at most 8 GB, so 6 GB at least: a 7B Q4 model and its KV cache fit), or
+// the adapter's maxBufferSize when larger; another adapter whose maxBufferSize and
+// navigator.deviceMemory are large (4 GiB, 8 GB) gets 4 GiB; 16 GiB at most.
+function autoGpu(f = adapterFacts) {
+  const dm = Number(navigator.deviceMemory) || 0;
+  const buf = f?.maxBufferSize || 0;
+  const gb = (b) => `${Math.round(b / GIB * 10) / 10} GB`;
+  if (f && /apple/i.test(f.vendor)) {
+    const fromMem = Math.max(dm, 8) * 0.75 * GIB;
+    const bytes = Math.min(AUTO_GPU_MAX, Math.max(fromMem, buf > 4 * GIB ? buf : 0));
+    const src = bytes > fromMem
+      ? `the adapter's maxBufferSize ${gb(buf)}`
+      : `3/4 of navigator.deviceMemory ${dm ? dm + " GB" : "unknown, taken as 8 GB"}${dm === 8 ? " (Chrome tells at most 8)" : ""}`;
+    return { bytes, why: `an Apple GPU, which shares the Mac's memory: ${src}` };
+  }
+  if (buf >= 4 * GIB && dm >= 8) {
+    return { bytes: 4 * GIB, why: `the adapter's maxBufferSize ${gb(buf)} and navigator.deviceMemory ${dm} GB` };
+  }
+  return { bytes: AUTO_GPU_OTHER, why: "a guess, WebGPU does not tell the GPU's memory" };
+}
+
 function gpuLimit(budget) {
   if ($("gmem").value === "mb") {
     const mb = Math.max(1, Math.round(Number($("gmem-mb").value) || 0));
     return { bytes: mb * MB, label: `${mb} MB (Limit in MB)` };
   }
   if (isIOS()) return { bytes: AUTO_GPU_IOS, label: `${AUTO_GPU_IOS / MB} MB (Auto on iOS)` };
-  if (gpuSeparate()) return { bytes: AUTO_GPU_OTHER, label: `${AUTO_GPU_OTHER / MB} MB (Auto: a guess, WebGPU does not tell the GPU's memory; set it in MB)` };
+  if (gpuSeparate()) {
+    const a = autoGpu();
+    return { bytes: a.bytes, label: `${Math.round(a.bytes / MB)} MB (Auto: ${a.why}; set it in MB)` };
+  }
   const b = budget ?? 4096 * MB;
   return { bytes: b, label: `${Math.round(b / MB)} MB (Auto: the memory limit)` };
+}
+
+// The Settings' line under GPU memory: what Auto gives here, and why.
+async function gmemHint() {
+  const el = $("gmem-hint");
+  if (!el) return;
+  if (navigator.gpu) await probeAdapter();
+  el.textContent = $("gmem").value === "auto" && navigator.gpu ? t("gmem.auto", gpuLimit(memoryLimit().budget).label) : "";
 }
 
 // Whether the GPU's bytes are planned apart from "Memory for the model" (which then
@@ -994,11 +1417,60 @@ function streamNote(i) {
   return t + ` ${fmt(i.resident_weights)} of weights in memory, ${fmt(i.memory_planned)} planned with the KV cache and activations.`;
 }
 
+// The context loaded, said with its reason when it is less than asked: the memory
+// limit (the worker's `ctx_cut`: the largest its KV cache fits), or the model's
+// training context. "" when it is the one asked.
+let ctxLine = "";
+let slowLine = "";
+let autoLine = ""; // the context and KV cache the load chose (autoText)
+
+// The context and KV cache of a load (the worker's `ctx_auto`, ctx.js's autoContext):
+// "Auto: 32768 (model, KV Q8_0 2.13 GiB)", "Auto: 12288 (memory; model 131072, KV F16
+// 1.50 GiB)", or for a context set by hand "Context 4096 (set), KV F16 64.0 MiB"; with
+// a KV type other than f16 asked on the GPU, that the GPU keeps f16. "" without one.
+function autoText(a) {
+  if (!a) return "";
+  const kv = `KV ${a.kv.toUpperCase()} ${fmt(a.bytes)}`;
+  let s = a.why === "set" ? t("ctx.auto.set", a.ctx, kv)
+    : a.why === "memory" ? t("ctx.auto.mem", a.ctx, a.trained, kv) : t("ctx.auto.model", a.ctx, kv);
+  if (a.gpuF16) s += t("kv.gpuf16", ($("kv").value || "").toUpperCase());
+  return s;
+}
+
+// The Settings' context field and KV cache line: what Auto chose for the model loaded.
+function showAuto() {
+  $("ctx").placeholder = autoLine && !ctx() ? autoLine : t("ctx.auto");
+  $("kv-hint").textContent = loadedInfo?.ctx_auto ? t("kv.loaded", loadedInfo.ctx_auto.kv.toUpperCase()) : "";
+}
+function ctxNote(m) {
+  const got = m.info?.ctx;
+  const asked = m.ctx_asked;
+  if (!got || !asked || got >= asked) return "";
+  const c = m.ctx_cut;
+  let why;
+  if (c?.device === "gpu") why = t("ctx.cut.gpu", fmt(c.gpuBudget ?? 0), fmt(c.budget ?? 0), got);
+  else if (c) why = t("ctx.cut.mem", fmt(c.budget), got);
+  else why = t("ctx.cut.train", got);
+  return t("ctx.cut", got, asked, why);
+}
+
+// Why the model answers slower than it could, said plainly: layers on the CPU because
+// the GPU's memory limit does not hold them, layers read from storage at every token.
+function slowNote(i) {
+  const out = [];
+  const g = lastLoad?.device === "gpu" && i.device === "webgpu";
+  if (g && i.gpu_layers < i.layers) out.push(t("slow.cpu", i.layers - i.gpu_layers, i.layers, gpuUsed));
+  if (i.streamed_layers) {
+    out.push(t("slow.stream", i.streamed_layers, i.layers, g ? t("slow.stream.gpu") : t("slow.stream.cpu", limitUsed.replace(/, GPU memory.*$/, ""))));
+  }
+  return out.join(" ");
+}
+
 function readNote(s) {
   if (!s.stream_read_bytes) return "";
   const secs = s.stream_read_secs;
-  const per = s.read_per_token ? `; ${fmt(s.read_per_token)} per token after the first` : "";
-  return ` · read ${fmt(s.stream_read_bytes)} from storage in ${secs.toFixed(1)} s (${(s.stream_read_bytes / 1e6 / Math.max(secs, 1e-9)).toFixed(0)} MB/s${per})`;
+  const per = s.read_per_token ? t("st.read.per", size(s.read_per_token)) : "";
+  return " · " + t("st.read", size(s.stream_read_bytes), num(secs, 1), num(s.stream_read_bytes / 1e6 / Math.max(secs, 1e-9)), per);
 }
 
 // ---- Draft model: a smaller stored model of the same vocabulary guesses tokens that
@@ -1016,12 +1488,16 @@ function showDraftChoices() {
   sel.textContent = "";
   const none = document.createElement("option");
   none.value = "";
-  none.textContent = "None";
+  none.dataset.i18n = "opt.none";
+  none.textContent = t("opt.none");
   sel.append(none);
   for (const name of Object.keys(storedSize).sort()) {
     const o = document.createElement("option");
     o.value = name;
-    o.textContent = `${name} (${fmt(storedSize[name])})`;
+    // A short label (a long file name cut in the middle); the whole name in its tooltip.
+    const base = name.replace(/\.gguf$/i, "");
+    o.textContent = base.length > 24 ? `${base.slice(0, 12)}…${base.slice(-11)}` : base;
+    o.title = `${name} (${fmt(storedSize[name])})`;
     sel.append(o);
   }
   sel.value = storedSize[draftWanted] != null ? draftWanted : "";
@@ -1036,14 +1512,13 @@ function draftNote(i) {
 
 function draftStats(s) {
   if (!s.draft_tokens && !s.draft_paused) return "";
-  const paused = s.draft_paused ? `; paused ${s.draft_paused}× for not paying` : "";
-  return ` · draft: ${s.draft_tokens} proposed, ${s.draft_accepted} accepted, ${s.accepted_per_check.toFixed(2)} accepted per check` +
-    ` (${s.draft_checks} checks, ${s.decode_passes} passes of the model)${paused}`;
+  const paused = s.draft_paused ? t("st.draft.paused", num(s.draft_paused)) : "";
+  return " · " + t("st.draft", num(s.draft_tokens), num(s.draft_accepted), num(s.accepted_per_check, 2), num(s.draft_checks), num(s.decode_passes), paused);
 }
 
 function importFile(file) {
   setBusy(true);
-  status(`Copying ${file.name} into this site's storage…`);
+  status(t("st.copying", file.name));
   const prev = worker.onmessage;
   worker.onmessage = ({ data: m }) => {
     onMessage(m);
@@ -1057,9 +1532,12 @@ function importFile(file) {
 
 // ---- Settings, kept in this browser (localStorage, when it allows) ----
 
-const SETTINGS = ["ctx", "max", "temp", "think", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct"];
+const SETTINGS = ["ctx", "kv", "max", "temp", "seed", "think", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct",
+  "topp", "topk", "minp", "rep", "pres", "freq", "sys-on", "sys", "past", "sendkey", "theme", "fontsize", "lang", "loglevel"];
 // The settings that are a choice among options, and those options.
-const CHOICES = { wmem: ["auto", "all", "mb"], device: ["cpu", "auto", "gpu"], gmem: ["auto", "mb"], gacct: ["auto", "one", "apart"] };
+const CHOICES = { kv: ["auto", "f16", "q8_0", "q4_0"], wmem: ["auto", "all", "mb"], device: ["cpu", "auto", "gpu"], gmem: ["auto", "mb"], gacct: ["auto", "one", "apart"],
+  sendkey: ["enter", "ctrl"], theme: ["auto", "light", "dark"], fontsize: ["small", "normal", "large", "xlarge"], lang: ["en", "it"],
+  loglevel: ["all", "summary", "off"] };
 const SETTINGS_KEY = "inga.settings";
 
 function saveSettings() {
@@ -1067,10 +1545,17 @@ function saveSettings() {
   for (const id of SETTINGS) v[id] = $(id).type === "checkbox" ? $(id).checked : $(id).value;
   // The draft is kept by name even while its file is not listed.
   v.draft = draftWanted;
+  // The preset fields changed by hand (preset.js).
+  v.hand = [...hand];
+  v.maxHand = maxHand;
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(v));
   } catch {}
 }
+
+// The defaults before Max tokens 1024 and the Auto context (migrated when not set by hand).
+const OLD_MAX = "256";
+const OLD_CTX = "2048";
 
 function restoreSettings() {
   let v = null;
@@ -1083,6 +1568,16 @@ function restoreSettings() {
     if (BETA && navigator.gpu && !isIOS()) $("device").value = "gpu";
     return;
   }
+  // A page saved before the presets: the fields not at their default were set by hand.
+  // (Its context's default was 2048 then.)
+  hand = Array.isArray(v.hand) ? new Set(v.hand.filter((id) => PRESET_FIELDS.includes(id))) : handFromSaved(v, { ...PRESET_BASE, ctx: OLD_CTX });
+  // A page saved before: a Max tokens not at the default (1024, or 256 before) was set by hand.
+  maxHand = typeof v.maxHand === "boolean" ? v.maxHand : v.max != null && ![$("max").defaultValue, OLD_MAX].includes(String(v.max));
+  // The old defaults, never changed by hand, become the new ones: Max tokens 256 to
+  // 1024, the context 2048 to Auto (a context 2048 a model's preset wrote is the
+  // model's, and its preset writes it again at the next load).
+  if (!maxHand && String(v.max) === OLD_MAX) v.max = $("max").defaultValue;
+  if (!hand.has("ctx") && String(v.ctx) === OLD_CTX) v.ctx = "";
   for (const id of SETTINGS) {
     if (!(id in v)) continue;
     if (id === "draft") draftWanted = typeof v.draft === "string" ? v.draft : "";
@@ -1091,44 +1586,142 @@ function restoreSettings() {
   }
 }
 
+// ---- Per-model presets (preset.js): the sampling and context a model comes with ----
+
+// The page's own defaults of the preset fields (its markup), before the saved settings.
+const PRESET_BASE = Object.fromEntries(PRESET_FIELDS.map((id) => [id, $(id).value]));
+// The preset fields changed by hand: the user's, kept over any model's preset.
+let hand = new Set();
+// The loaded model's preset, and its catalog entry's name.
+let preset = null;
+let presetModel = "";
+let catalogData;
+
+// The catalog (catalog.json), once; null when it cannot be read.
+async function catalogOnce() {
+  if (catalogData === undefined) {
+    try {
+      const r = await fetch("catalog.json", { cache: "no-cache" });
+      catalogData = r.ok ? await r.json() : null;
+    } catch {
+      catalogData = null;
+    }
+  }
+  return catalogData;
+}
+
+// Writes `values` (field id -> value) into the Settings.
+function setFields(values) {
+  for (const [id, v] of Object.entries(values)) $(id).value = String(v);
+}
+
+// Before a load of the stored file `name`: the context of its catalog entry (or the
+// page's default), unless set by hand.
+async function presetBeforeLoad(name) {
+  if (hand.has("ctx")) return;
+  const entry = catalogEntry(await catalogOnce(), name);
+  setFields({ ctx: presetOf({}, entry).values.ctx ?? PRESET_BASE.ctx });
+  saveSettings();
+}
+
+// A model loaded (its `info`): its preset into the Settings' fields not set by hand.
+async function presetAfterLoad(info) {
+  const name = source?.name ?? source?.file?.name ?? "";
+  const entry = catalogEntry(await catalogOnce(), name);
+  preset = presetOf(info.recommended_sampling ?? {}, entry);
+  presetModel = entry?.name ?? info.name ?? name;
+  setFields(presetValues(preset, PRESET_BASE, hand));
+  saveSettings();
+  presetLine();
+}
+
+// The Settings' line on the preset: whose values the answers use.
+function presetLine() {
+  const el = $("preset-line");
+  if (!el) return;
+  const mine = PRESET_FIELDS.filter((id) => hand.has(id));
+  $("preset-reset").hidden = !mine.length;
+  if (!preset) {
+    el.textContent = mine.length ? t("preset.yours.none", mine.map(fieldName).join(", ")) : t("preset.none");
+    return;
+  }
+  const what = describePreset(preset);
+  const where = Object.values(preset.from).includes("catalog")
+    ? t("preset.src.catalog", preset.source ?? "catalog.json")
+    : t("preset.src.gguf");
+  const model = what ? t("preset.model", presetModel, what, where) : t("preset.empty", presetModel);
+  el.textContent = mine.length ? `${t("preset.yours", mine.map(fieldName).join(", "))} ${model}` : model;
+}
+
+// A field's label in the Settings.
+function fieldName(id) {
+  return document.querySelector(`label[for="${id}"]`)?.textContent ?? id;
+}
+
+// "Use the model's settings": the fields set by hand back to the model's preset (or
+// the page's defaults without a model).
+function presetReset() {
+  const ctxBefore = $("ctx").value;
+  for (const id of PRESET_FIELDS) hand.delete(id);
+  setFields(presetValues(preset, PRESET_BASE, hand));
+  saveSettings();
+  presetLine();
+  // A context changed: the model reloads when Settings is left.
+  if (source && $("ctx").value !== ctxBefore) {
+    loadTouched.add("ctx");
+    $("wmem-hint").textContent = t("set.reloadnote");
+  }
+}
+
 restoreSettings();
+applyLook();
+$("preset-reset").onclick = presetReset;
 $("wmem-mb").hidden = $("wmem").value !== "mb";
 $("gmem-mb").hidden = $("gmem").value !== "mb";
 for (const id of SETTINGS) {
   $(id).addEventListener("change", () => {
     if (id === "draft") draftWanted = $("draft").value;
+    if (id === "max") maxHand = true;
+    // A preset field changed by hand: the user's from now on.
+    if (PRESET_FIELDS.includes(id)) {
+      hand.add(id);
+      presetLine();
+    }
     saveSettings();
     if (id === "wmem") $("wmem-mb").hidden = $("wmem").value !== "mb";
     if (id === "gmem") $("gmem-mb").hidden = $("gmem").value !== "mb";
+    if (["gmem", "gacct", "wmem", "wmem-mb", "lang"].includes(id)) gmemHint();
+    if (["theme", "fontsize", "lang", "sendkey"].includes(id)) applyLook();
+    // What the model reads, or the context it has: the gauge again.
+    if (["sys-on", "sys", "past", "ctx", "lang"].includes(id)) countSoon(0);
+    // The answer's room in the ring's panel.
+    else if (id === "max") drawGauge();
     // The context, the memory limits, the draft and the device are a load's: say so
     // while a model is loaded.
-    if (source && ["ctx", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct"].includes(id)) {
-      $(id.startsWith("device") || id.startsWith("g") ? "device-hint" : "wmem-hint").textContent = "Applies at the next Load.";
+    if (LOAD_IDS.includes(id)) loadTouched.add(id);
+    if (source && ["ctx", "kv", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct"].includes(id)) {
+      $(id.startsWith("device") || id.startsWith("g") ? "device-hint" : "wmem-hint").textContent = t("set.reloadnote");
     }
   });
 }
-// "Delete all stored data": confirmed inside the page, then the worker removes the whole
+// "Delete all stored data": asked in the page's box, then the worker removes the whole
 // OPFS tree (closing the model it reads first).
-$("wipe").onclick = () => {
-  $("wipe-confirm").hidden = false;
-  $("wipe").hidden = true;
-};
-$("wipe-no").onclick = () => {
-  $("wipe-confirm").hidden = true;
-  $("wipe").hidden = false;
-};
-$("wipe-yes").onclick = () => {
-  $("wipe-confirm").hidden = true;
-  $("wipe").hidden = false;
+$("wipe").onclick = async () => {
+  if (!(await askBox({ title: t("wipe.t"), message: t("wipe.ask"), ok: t("wipe.ok"), cancel: t("ask.cancel"), danger: true }))) return;
   if (source?.name) source = null;
   setBusy(true);
-  status("Deleting all stored data…");
+  status(t("st.wiping"));
+  // The conversations too (IndexedDB).
+  chats.clear().catch(() => {}).then(() => {
+    newChat();
+    showConvs();
+  });
   const prev = worker.onmessage;
   worker.onmessage = ({ data: m }) => {
     onMessage(m);
     if (m.type === "models" || m.type === "error") {
       worker.onmessage = prev;
-      if (m.type === "models") status("All stored data deleted.");
+      if (m.type === "models") status(t("st.wiped"));
       setBusy(false);
     }
   };
@@ -1137,7 +1730,7 @@ $("wipe-yes").onclick = () => {
 $("disktest").onclick = () => {
   setBusy(true);
   $("disktest-out").textContent = "";
-  status("Disk speed test: writing and reading 256 MiB…");
+  status(t("st.disktest"));
   worker.postMessage({ type: "disktest" });
 };
 
@@ -1150,7 +1743,9 @@ $("gpuprofile").onclick = gpuProfile;
 $("stdtest").onclick = standardTest;
 $("std-copy").onclick = () => copyText($("std-line").textContent, $("std-line"));
 $("std-copy-all").onclick = () => copyText(storedResults().join("\n"), $("std-list"));
-$("std-clear").onclick = () => {
+$("std-clear").onclick = async () => {
+  if (!storedResults().length) return;
+  if (!(await askBox({ title: t("std.clear.t"), message: t("std.clear.ask", storedResults().length), ok: t("std.clear.ok"), cancel: t("ask.cancel"), danger: true }))) return;
   try {
     localStorage.removeItem(STD_KEY);
   } catch {}
@@ -1158,18 +1753,700 @@ $("std-clear").onclick = () => {
 };
 showResults();
 $("stop").onclick = stop;
-$("reset").onclick = () => {
-  messages = [];
-  $("chat").textContent = "";
-  $("stats").textContent = "";
-  worker.postMessage({ type: "reset" });
+$("reset").onclick = () => newChat();
+$("new-chat").onclick = () => {
+  newChat();
+  showView("chat");
 };
+// The draft counts too, once the typing pauses.
+$("prompt").addEventListener("input", () => countSoon());
+$("think").addEventListener("change", () => countSoon(0));
+// A click or a tap opens the ring's panel (a touch screen has no tooltip), a second one
+// closes it, as do Escape and a tap outside it.
+$("ctx-gauge").onclick = () => ($("ctx-pop").hidden ? openDetail() : closeDetail());
+document.addEventListener("pointerdown", (e) => {
+  if (!$("ctx-pop").hidden && !e.target.closest?.("#ctx-pop, #ctx-gauge")) closeDetail();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("ctx-pop").hidden) {
+    e.preventDefault();
+    closeDetail(true);
+  }
+});
+// The send key of the Settings: Enter (Shift+Enter a new line), or Ctrl / ⌘ + Enter
+// (Enter a new line). A composition (an IME) is never cut short.
 $("prompt").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
+  if (e.key !== "Enter" || e.isComposing) return;
+  const ctrl = $("sendkey").value === "ctrl";
+  if (ctrl ? e.ctrlKey || e.metaKey : !e.shiftKey && !e.ctrlKey && !e.metaKey) {
     e.preventDefault();
     send();
   }
 });
+
+// ---- Conversations (chats.js): the side bar's list, kept in this browser ----
+
+// In the page's language (its dates as its numbers).
+const when = (ms) => new Date(ms).toLocaleString(document.documentElement.lang === "it" ? "it-IT" : undefined, { dateStyle: "short", timeStyle: "short" });
+
+function userBubble(m) {
+  const row = document.createElement("div");
+  row.className = "msg me";
+  const u = document.createElement("div");
+  u.className = "u";
+  u.textContent = m.content;
+  row.append(u);
+  return row;
+}
+
+// An answer's message: Inga's mark, the model's name, its text (Markdown), its speeds.
+// `m` null: the answer about to stream.
+// Under an answer that ran out of Max tokens, or ended with no answer after its
+// reasoning: what happened, and, on the last answer, the ways out (Max tokens doubled,
+// Think off). The engine cannot continue an answer it stopped (no assistant prefill), so
+// a cut answer is asked again with more room.
+function limitNote(row, m, last) {
+  const empty = !m.content?.trim();
+  const cut = m.stop === "max_tokens";
+  // The context filled before the answer ended: the question and the answer did not
+  // fit together.
+  const full = m.stop === "context_full";
+  if (!cut && !full && !(empty && m.reasoning)) return;
+  row.querySelector(".limit")?.remove();
+  const a = row.querySelector(".a");
+  const n = m.max ?? maxTokens();
+  const box = document.createElement("div");
+  box.className = "limit" + (empty ? " empty" : "");
+  const p = document.createElement("p");
+  const size = m.ctx ?? ctxSize();
+  // A context lowered by the limits at the load: raising it would be lowered again, so
+  // the note says why instead (the limits to raise).
+  const capped = full && last && size === loadedInfo?.info?.ctx && ctxLine;
+  p.textContent = full ? t("limit.ctx", size, m.stats?.prompt_tokens ?? "?", m.stats?.gen_tokens ?? "?") + " " + (capped ? ctxLine : t("limit.ctx.more"))
+    : empty ? (cut ? t("limit.think", n) : t("limit.noanswer")) : t("limit.max", n);
+  if (full) box.classList.add("ctxfull");
+  box.append(p);
+  if (empty) a.hidden = true;
+  if (last) {
+    const row2 = document.createElement("div");
+    row2.className = "row";
+    const btn = (id, label, fn, ghost) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.id = id;
+      b.dataset.act = "1";
+      b.disabled = busy;
+      if (ghost) b.className = "ghost";
+      b.textContent = label;
+      b.onclick = fn;
+      row2.append(b);
+    };
+    if (full && !capped) btn("limit-ctx", t("limit.ctx.raise", 2 * size), () => raiseContext(2 * size));
+    // Raise: at least 1024, else double, at most the context of the model loaded.
+    const to = Math.min(Math.max(MAX_DEFAULT, 2 * n), loadedInfo?.info?.ctx || Infinity);
+    if (cut && to > n) btn("limit-raise", t("limit.raise", to), () => {
+      $("max").value = String(to);
+      maxHand = true;
+      saveSettings();
+      regenerate({ max_tokens: to });
+    });
+    if (empty && m.think !== false && thinks()) btn("limit-nothink", t("limit.nothink"), () => regenerate({ thinking: false }), cut);
+    if (row2.firstChild) box.append(row2);
+  }
+  a.after(box);
+}
+
+// "Raise the context and regenerate": the Settings' context set (by hand), the model
+// loaded again with it, the conversation kept, then the last answer asked again.
+let afterLoad = null;
+function raiseContext(n) {
+  if (busy || !source) return;
+  $("ctx").value = String(n);
+  hand.add("ctx");
+  loadTouched.add("ctx");
+  saveSettings();
+  presetLine();
+  if (!changedLoad()) return;
+  afterLoad = () => regenerate();
+  reloadIfChanged();
+}
+
+function botBubble(m, last = false) {
+  const row = document.createElement("div");
+  row.className = "msg bot";
+  const img = avatar(m ? m.mark : modelMark);
+  const col = document.createElement("div");
+  col.className = "col";
+  const who = document.createElement("div");
+  who.className = "who";
+  who.textContent = m?.model || modelName || "Inga";
+  const a = document.createElement("div");
+  a.className = "a md";
+  const speed = document.createElement("div");
+  speed.className = "speed";
+  col.append(who, a, speed);
+  row.append(img, col);
+  if (m) {
+    if (m.reasoning) {
+      const d = document.createElement("details");
+      d.className = "think";
+      const s = document.createElement("summary");
+      s.textContent = "Thinking";
+      const body = document.createElement("div");
+      body.className = "body";
+      body.textContent = m.reasoning;
+      d.append(s, body);
+      a.before(d);
+    }
+    markdown(a, m.content);
+    a.dataset.raw = m.content;
+    speedLine(row, m);
+    limitNote(row, m, last);
+  }
+  return row;
+}
+
+// ---- A load's settings: changed in Settings, the model reloads when Settings is left
+// (after the answer running, if one is); the sampler's settings never reload it ----
+const LOAD_IDS = ["device", "ctx", "kv", "wmem", "wmem-mb", "gmem", "gmem-mb", "gacct", "draft"];
+let loadedWith = null; // the load settings of the model's load
+// The load settings changed by hand since (a change event): the page's own changes (a
+// model's preset) never reload.
+const loadTouched = new Set();
+let reloadPending = false;
+let reloadWhy = null; // [model, where, setting] of a reload asked by a setting, for its status line
+function snapLoad() {
+  loadedWith = Object.fromEntries(LOAD_IDS.map((id) => [id, $(id).value]));
+  loadTouched.clear();
+}
+// The first load setting that differs from the load's, or null. A limit in MB counts
+// only while its setting is "Limit in MB".
+function changedLoad() {
+  if (!source || !loadedWith) return null;
+  return LOAD_IDS.find((id) => {
+    if (!loadTouched.has(id)) return false;
+    if (id.endsWith("-mb") && $(id.slice(0, -3)).value !== "mb" && loadedWith[id.slice(0, -3)] !== "mb") return false;
+    // The draft counts by the one the model would load with: none for the model itself
+    // (the draft chosen may be the model loaded), or on the GPU.
+    if (id === "draft") return source.name ? (lastLoad?.device === "gpu" ? false : draftFor(source.name) !== (lastLoad?.draft ?? null)) : !!draftFor(source.file?.name);
+    return $(id).value !== loadedWith[id];
+  }) ?? null;
+}
+function reloadIfChanged() {
+  const id = changedLoad();
+  if (!id) return;
+  if (busy || answer) {
+    reloadPending = true;
+    return;
+  }
+  reloadPending = false;
+  const dev = $("device").value;
+  const where = dev === "cpu" ? t("reload.cpu") : dev === "gpu" ? t("reload.gpu") : "";
+  const setting = document.querySelector(`label[for="${id.replace(/-mb$/, "")}"]`)?.textContent.trim() ?? id;
+  reloadWhy = [modelName || source?.name || source?.file?.name || "", where, setting];
+  const why = t("reload", ...reloadWhy);
+  // The conversation stays: the same model, loaded again.
+  keepChat = true;
+  if (source.name) loadStored(source.name);
+  else if (source.file) loadFile(source.file);
+  else return;
+  status(why);
+}
+// Once free again (an answer ended, a load done), a reload asked meanwhile.
+function reloadLater() {
+  if (reloadPending) setTimeout(() => !busy && !answer && reloadIfChanged(), 0);
+}
+
+// The avatar of an answer: its model's mark (`mark`: its catalog family's logo, else its
+// emoji, on a round tile), or Inga's logo for a model the catalog did not give.
+function avatar(mark) {
+  if (!mark?.logo && !mark?.icon) {
+    const img = document.createElement("img");
+    img.className = "avatar";
+    img.src = "logo.svg";
+    img.alt = "";
+    return img;
+  }
+  const el = document.createElement(mark.logo ? "img" : "span");
+  el.className = "avatar fam";
+  el.dataset.family = mark.family ?? "";
+  el.title = mark.label ?? "";
+  if (mark.logo) {
+    el.src = mark.logo;
+    el.alt = "";
+  } else {
+    el.textContent = mark.icon;
+    el.setAttribute("aria-hidden", "true");
+  }
+  return el;
+}
+
+// ---- The model's mark: a file downloaded through the model catalog keeps its family
+// (by file name, in this browser), so the answers it writes carry its logo or emoji; a
+// model loaded by link or from a file of this device has none (Inga's logo) ----
+const MARKS_KEY = "inga.marks";
+let markOf = {};
+try {
+  markOf = JSON.parse(localStorage.getItem(MARKS_KEY) || "{}") || {};
+} catch {}
+let modelMark = null; // the loaded model's: {family, label, icon, logo?}, or null
+function setMark(file, fam) {
+  if (fam) markOf[file] = { family: fam.id, label: fam.label, icon: fam.icon ?? "", ...(fam.logo ? { logo: fam.logo } : {}) };
+  else delete markOf[file];
+  try {
+    localStorage.setItem(MARKS_KEY, JSON.stringify(markOf));
+  } catch {}
+}
+const familyOf = (model) => picker.catalog?.families.find((f) => f.id === model?.family) ?? null;
+// The model chip: the mark, or the package icon; Emma's chip in her colour.
+function showMark() {
+  const chip = $("model-chip");
+  chip.dataset.family = modelMark?.family ?? "";
+  const box = $("model-mark");
+  box.textContent = "";
+  if (modelMark?.logo || modelMark?.icon) {
+    const a = avatar(modelMark);
+    a.className = "fam-logo";
+    box.append(a);
+  }
+  box.hidden = !box.firstChild;
+  chip.querySelector("svg.ic").style.display = box.hidden ? "" : "none";
+}
+
+// The line under an answer: its prompt (prefill) and answer (decode) speeds and its time.
+function speedLine(row, m) {
+  const el = row?.querySelector(".speed");
+  if (!el || !m) return;
+  const s = m.stats;
+  el.textContent = (s ? t("st.speed", num(s.prompt_tps, 1), num(s.gen_tps, 1)) : "") +
+    (m.seed != null ? t("st.seed", m.seed) + ", " : "") + when(m.at ?? Date.now());
+}
+
+function showHeader() {
+  $("conv-title").textContent = chat?.title ?? t("chat.new");
+  const n = messages.length;
+  $("conv-count").textContent = n === 1 ? t("conv.count.one") : t("conv.count", n);
+  for (const id of ["conv-rename", "conv-export", "conv-download"]) $(id).disabled = !chat;
+}
+
+function renderChat() {
+  const box = $("chat");
+  box.textContent = "";
+  if (!messages.length) {
+    const e = document.createElement("div");
+    e.className = "empty";
+    e.dataset.loaded = String(!!source);
+    e.innerHTML = `<img src="logo.svg" alt=""><p></p>`;
+    e.lastChild.textContent = t(source ? "chat.empty" : "empty.nomodel");
+    if (!source) e.append(emptyActions());
+    box.append(e);
+  }
+  messages.forEach((m, i) => box.append(m.role === "user" ? userBubble(m) : botBubble(m, i === messages.length - 1)));
+  box.scrollTop = box.scrollHeight;
+  showHeader();
+  if (pageReady) sendHint();
+}
+
+// No model loaded: the empty chat's calls to action. "Choose a model" opens the model
+// picker (Models); "Try a small one" loads the catalog's smallest starter that fits this
+// browser (picker.js, starterPick), shown once the catalog says there is one.
+function emptyActions() {
+  const row = document.createElement("div");
+  row.className = "row empty-act";
+  const choose = document.createElement("button");
+  choose.id = "empty-choose";
+  choose.type = "button";
+  choose.dataset.act = "1";
+  choose.innerHTML = `<svg class="ic"><use href="#i-package"/></svg><span></span>`;
+  choose.lastChild.textContent = t("empty.choose");
+  choose.disabled = busy;
+  choose.onclick = () => {
+    showView("models");
+    picker.open();
+  };
+  const small = document.createElement("button");
+  small.id = "empty-small";
+  small.type = "button";
+  small.className = "ghost";
+  small.dataset.act = "1";
+  small.hidden = true;
+  small.disabled = busy;
+  row.append(choose, small);
+  picker.starter().then((p) => {
+    if (!p || source) return;
+    small.textContent = t("empty.small", `${p.model.name} ${p.variant.quant}`, (p.variant.size / 1e9).toFixed(p.variant.size < 1e9 ? 2 : 1));
+    small.title = t("empty.small.t");
+    small.hidden = false;
+    small.onclick = () => picker.load(p.model, p.variant);
+  });
+  return row;
+}
+
+// The hint under the composer: the send key, or, with no model, where to get one.
+function sendHint() {
+  // Before the page's script has run to its end, nothing to reload yet.
+  const r = pageReady && !source && reopenTarget();
+  $("send-hint").textContent = r ? t("hint.reopen", r.label) : !source ? t("hint.nomodel") : t($("sendkey").value === "ctrl" ? "hint.ctrl" : "hint.enter");
+  if (pageReady) drawReopen();
+}
+
+// ---- No model, a chat open: Reload the model it was with ----
+
+// The open chat is kept for this tab (sessionStorage: it survives a reload, F5, and a
+// tab Chrome discarded in the background), and opened again when the page starts; its
+// model is not loaded by itself (gigabytes the user did not ask for): the status bar and
+// the composer offer "Reload <model>" when that model is stored in this browser, else
+// "Choose a model".
+const OPEN_KEY = "inga.open";
+function keepOpen() {
+  try {
+    if (chat) sessionStorage.setItem(OPEN_KEY, chat.id);
+    else sessionStorage.removeItem(OPEN_KEY);
+  } catch {}
+}
+
+// The stored file of each model name loaded (the name the GGUF gives, as a chat keeps
+// it), for the chats saved before they kept their file.
+const FILES_KEY = "inga.modelFiles";
+let fileByName = {};
+try {
+  fileByName = JSON.parse(localStorage.getItem(FILES_KEY) || "{}") || {};
+} catch {}
+function rememberFile(name, file) {
+  if (!name || fileByName[name] === file) return;
+  fileByName[name] = file;
+  try {
+    localStorage.setItem(FILES_KEY, JSON.stringify(fileByName));
+  } catch {}
+}
+
+// What Reload would load: {file, label} when no model is loaded and the open chat's
+// model is stored here; else null.
+function reopenTarget() {
+  if (source || !chat) return null;
+  let file = chat.file;
+  // A chat saved before it kept its file: by its model's name.
+  if (file === undefined) file = storedSize[chat.model] != null ? chat.model : (fileByName[chat.model] ?? null);
+  if (!file || storedSize[file] == null) return null;
+  return { file, label: chat.model || file };
+}
+
+// No model, a chat open (the page started with one, or another opened): the status line
+// says how to go on with it, in place of the "pick a model" it said, or of its own.
+function noModelStatus() {
+  if (source || busy || !/^(Ready: pick a model\.|Pronto: scegli un modello\.|Ready: press Reload |Pronto: premi Ricarica )/.test($("status").textContent)) return;
+  const r = reopenTarget();
+  status(r ? t("reopen.status", r.label) : t("st.pick"));
+}
+
+function reopen() {
+  const r = reopenTarget();
+  if (!r || busy) return;
+  released = null;
+  keepChat = true;
+  loadStored(r.file);
+}
+
+// The buttons: in the status bar and above the composer, while no model is loaded and a
+// chat with messages is open (an empty chat has its own call to action).
+function drawReopen() {
+  const r = reopenTarget();
+  const show = !source && !busy && pageReady && (!!r || messages.length > 0);
+  const label = r ? t("reopen", r.label) : t("empty.choose");
+  for (const id of ["reopen-status", "reopen-go"]) {
+    const b = $(id);
+    b.lastChild.textContent = label;
+    b.title = r ? t("reopen.t", r.label) : "";
+    b.querySelector("use").setAttribute("href", r ? "#i-retry" : "#i-package");
+  }
+  $("reopen-status").hidden = !show;
+  $("reopen-bar").hidden = !show;
+  $("reopen-why").textContent = !show ? "" : r ? t("reopen.why", r.label) : t("reopen.choose.why");
+}
+for (const id of ["reopen-status", "reopen-go"]) {
+  $(id).onclick = () => {
+    if (reopenTarget()) reopen();
+    else {
+      showView("models");
+      picker.open();
+    }
+  };
+}
+
+// A new conversation: nothing stored until its first message.
+function newChat() {
+  if (answer) return;
+  chat = null;
+  keepOpen();
+  messages = [];
+  $("stats").textContent = "";
+  worker?.postMessage({ type: "reset" });
+  renderChat();
+  noModelStatus();
+  showConvs();
+  ctxUsed = 0;
+  ctxParts = null;
+  countSoon(0);
+}
+
+// The first message of a new conversation creates it, titled after that message.
+function startChat(text) {
+  if (chat) return;
+  const title = text.replace(/\s+/g, " ").trim();
+  chat = { id: chats.newId(), title: title.length > 48 ? title.slice(0, 47) + "…" : title || t("chat.new"), created: Date.now(), updated: Date.now(), model: modelName,
+    file: source?.name ?? null, messages };
+  keepOpen();
+}
+
+async function persistChat() {
+  if (!chat) return;
+  chat.messages = messages;
+  chat.updated = Date.now();
+  chat.model = modelName || chat.model;
+  // The stored model it was last with (null: a file of this device), for Reload.
+  if (source) chat.file = source.name ?? null;
+  showHeader();
+  try {
+    await chats.save(chat);
+  } catch (e) {
+    loadLog(`the conversation could not be saved: ${e?.message ?? e}`);
+  }
+  showConvs();
+}
+
+async function openChat(id) {
+  if (busy) return;
+  const c = (await chats.list()).find((x) => x.id === id);
+  if (!c) return;
+  chat = c;
+  messages = c.messages;
+  keepOpen();
+  // The worker's conversation starts again from these messages at the next question.
+  worker?.postMessage({ type: "reset" });
+  $("stats").textContent = "";
+  renderChat();
+  noModelStatus();
+  showConvs();
+  showView("chat");
+  countSoon(0);
+}
+
+async function showConvs() {
+  const ul = $("convs");
+  let all = [];
+  try {
+    all = await chats.list();
+  } catch {}
+  ul.textContent = "";
+  if (!all.length) {
+    const li = document.createElement("li");
+    li.className = "meta";
+    li.style.padding = "6px 10px";
+    li.textContent = t("conv.none") + (chats.persistent ? "" : " (this browser keeps no conversations: private window?)");
+    ul.append(li);
+  }
+  for (const c of all) {
+    const li = document.createElement("li");
+    li.dataset.id = c.id;
+    li.setAttribute("aria-current", String(c.id === chat?.id));
+    const open = document.createElement("button");
+    open.className = "open";
+    open.type = "button";
+    open.innerHTML = `<span class="t"></span><span class="m"></span>`;
+    open.firstChild.textContent = c.title;
+    const n = c.messages.length;
+    open.lastChild.textContent = `${n === 1 ? t("conv.count.one") : t("conv.count", n)} · ${when(c.updated)}`;
+    open.onclick = () => openChat(c.id);
+    const del = document.createElement("button");
+    del.className = "icon del";
+    del.type = "button";
+    del.title = t("conv.delete");
+    del.innerHTML = `<svg class="ic"><use href="#i-trash"/></svg>`;
+    // Asked first, with its title, as the native web UI asks ("Delete this chat?").
+    del.onclick = async () => {
+      if (!(await askBox({ title: t("conv.delask.t"), message: t("conv.delask", "{0}"), strong: c.title, ok: t("ask.delete"), cancel: t("ask.cancel"), danger: true }))) return;
+      await chats.remove(c.id).catch(() => {});
+      if (chat?.id === c.id) newChat();
+      else showConvs();
+    };
+    li.append(open, del);
+    ul.append(li);
+  }
+  $("convs-export").disabled = $("convs-export-md").disabled = $("convs-clear").disabled = !all.length;
+  setBusy(busy);
+}
+
+// Downloads `text` as a file named `name`.
+function download(name, type, text) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const fileTitle = () => (chat?.title || "chat").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").slice(0, 40) || "chat";
+
+$("conv-rename").onclick = async () => {
+  if (!chat) return;
+  const title = await askBox({ title: t("conv.rename"), input: { value: chat.title, label: t("conv.renameask") }, ok: t("ask.rename"), cancel: t("ask.cancel") });
+  if (title == null || !title.trim()) return;
+  chat.title = title.trim().slice(0, 120);
+  await persistChat();
+};
+$("conv-export").onclick = () => chat && download(`${fileTitle()}.md`, "text/markdown", chats.markdown(chat, `Inga in the browser ${pageVersion()}`));
+$("conv-download").onclick = () => chat && download(`${fileTitle()}.json`, "application/json", JSON.stringify(chat, null, 1));
+
+// Every conversation at once (the side bar's archive button): a backup in JSON (the
+// native web UI's "Every chat" format, chats.js), the same in Markdown, an import that
+// adds what is not here yet, and "Delete all", confirmed in the bar, export offered.
+const stamp = () => new Date().toISOString().slice(0, 10);
+// A count's words: the key's `.one` form for 1.
+const tn = (key, n) => (n === 1 ? t(key + ".one") : t(key, n));
+$("convs-more").onclick = () => {
+  const open = $("convs-actions").hidden;
+  $("convs-actions").hidden = !open;
+  $("convs-more").setAttribute("aria-expanded", String(open));
+};
+async function exportAll(md) {
+  const all = await chats.list().catch(() => []);
+  if (!all.length) return;
+  if (md) download(`inga-chats-${stamp()}.md`, "text/markdown", chats.markdownAll(all, `Inga in the browser ${pageVersion()}`));
+  else download(`inga-chats-${stamp()}.json`, "application/json", chats.backup(all));
+  status(tn("convs.exported", all.length));
+}
+$("convs-export").onclick = () => exportAll(false);
+$("convs-export-md").onclick = () => exportAll(true);
+$("convs-import").onclick = () => $("convs-file").click();
+$("convs-file").onchange = async () => {
+  const f = $("convs-file").files[0];
+  $("convs-file").value = "";
+  if (!f) return;
+  try {
+    const got = chats.parseImport(JSON.parse(await f.text()));
+    const { add, skipped, renamed } = chats.merge(await chats.list(), got);
+    for (const c of add) await chats.save(c);
+    status(tn("imp.done", add.length) + (skipped ? tn("imp.skipped", skipped) : "") + (renamed ? tn("imp.renamed", renamed) : "") + ".");
+  } catch (e) {
+    status(t("imp.error", e?.message ?? e), true);
+  }
+  showConvs();
+};
+// Delete all: asked in the page's box, which offers the export first.
+$("convs-clear").onclick = async () => {
+  const n = (await chats.list().catch(() => [])).length;
+  if (!n) return;
+  const yes = await askBox({
+    title: t("convs.clear.t"), message: n === 1 ? t("convs.clearask.one") : t("convs.clearask", n),
+    ok: t("convs.clear"), cancel: t("ask.cancel"), danger: true, secondary: { label: t("convs.exportfirst"), act: () => exportAll(false) },
+  });
+  if (!yes || busy) return;
+  await chats.clear().catch(() => {});
+  newChat();
+  status(t("convs.cleared"));
+};
+// About: what Inga is, who makes it, the links (a dialog; Escape closes it too).
+$("about-btn").onclick = () => $("about").showModal();
+$("about-close").onclick = () => $("about").close();
+if (!document.fullscreenEnabled) $("fullscreen").hidden = true;
+$("fullscreen").onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {});
+
+// ---- The views (Chat, Models, Settings, Tests and report) and the side bar's drawer ----
+
+function showView(name) {
+  // Leaving Settings: a load setting changed reloads the model.
+  const leaving = !$("view-settings").hidden && name !== "settings";
+  for (const v of ["chat", "models", "settings", "diag"]) {
+    $("view-" + v).hidden = v !== name;
+    if (v === name) $("nav-" + v).setAttribute("aria-current", "page");
+    else $("nav-" + v).removeAttribute("aria-current");
+  }
+  $("app").classList.remove("drawer");
+  if (leaving) reloadIfChanged();
+}
+for (const b of document.querySelectorAll(".navb")) b.onclick = () => showView(b.dataset.view);
+$("menu").onclick = () => $("app").classList.toggle("drawer");
+$("scrim").onclick = () => $("app").classList.remove("drawer");
+$("model-chip").onclick = () => picker.open();
+$("log-toggle").onclick = () => {
+  const on = $("statusbar").classList.toggle("log");
+  $("log-toggle").setAttribute("aria-expanded", String(on));
+  $("log-toggle").title = on ? "Hide the load log" : "Show the load log";
+};
+
+// ---- The page's version: Inga's (Cargo.toml) and the build's commit and UTC date ----
+
+// From the meta tags the Pages workflow writes ("0.31.0", "abc1234 2026-10-16"):
+// "v0.31.0 · 16 Oct 2026 · abc1234", the date in the page's language ("16 ott 2026" in
+// Italian); "dev" without them (a local page).
+function pageVersion() {
+  const meta = (n) => document.querySelector(`meta[name="${n}"]`)?.content?.trim() ?? "";
+  const v = meta("inga-version");
+  const m = /^([0-9a-f]{7,40})\s+(\d{4}-\d{2}-\d{2})/.exec(meta("inga-build"));
+  if (!v || v === "dev" || !m) return "dev";
+  const lang = $("lang")?.value === "it" ? "it-IT" : "en-GB";
+  const date = new Intl.DateTimeFormat(lang, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(m[2] + "T00:00:00Z"));
+  return `v${v} · ${date} · ${m[1]}`;
+}
+
+function showVersion() {
+  const v = pageVersion();
+  $("page-version").textContent = v;
+  $("about-version").textContent = v;
+}
+
+// ---- Appearance: theme, font size, language, the send key's hint ----
+
+function applyLook() {
+  const THEME_ICON = { auto: "i-theme-auto", light: "i-sun", dark: "i-moon" };
+  const th = $("theme").value;
+  if (th === "auto") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = th;
+  $("theme-btn").innerHTML = `<svg class="ic"><use href="#${THEME_ICON[th]}"/></svg>`;
+  $("theme-btn").title = `Theme: ${th}`;
+  const fs = $("fontsize").value;
+  if (fs === "normal") delete document.documentElement.dataset.fs;
+  else document.documentElement.dataset.fs = fs;
+  setLang($("lang").value);
+  showVersion();
+  if (pageReady) showAuto();
+  sendHint();
+  if (!source) $("model-name").textContent = t("chat.nomodel");
+  presetLine();
+  showHeader();
+  if (pageReady && !messages.length) renderChat();
+}
+$("theme-btn").onclick = () => {
+  const order = ["auto", "light", "dark"];
+  $("theme").value = order[(order.indexOf($("theme").value) + 1) % 3];
+  saveSettings();
+  applyLook();
+};
+
+// "Reset all settings": every setting back to its default (the page's own markup).
+$("settings-reset").onclick = () => {
+  try {
+    localStorage.removeItem(SETTINGS_KEY);
+  } catch {}
+  location.reload();
+};
+
+// "Delete model files": every stored model and its download record; conversations,
+// settings and other files stay.
+$("wipe-models").onclick = async () => {
+  const names = Object.keys(storedSize);
+  if (!names.length) {
+    status(t("st.nomodels"));
+    return;
+  }
+  const what = names.length === 1 ? t("wipem.ask.one", "{0}") : t("wipem.ask", names.length);
+  if (!(await askBox({ title: t("wipem.t"), message: what, strong: names[0], ok: t("ask.delete"), cancel: t("ask.cancel"), danger: true }))) return;
+  if (source?.name && names.includes(source.name)) source = null;
+  for (const name of names) worker.postMessage({ type: "delete", name });
+  status(names.length === 1 ? t("st.deleted.one") : t("st.deleted", names.length));
+  setBusy(false);
+};
 
 // What the beta's report button (report.js) adds to its issue: the load and the last answer.
 window.ingaState = () => ({
@@ -1180,10 +2457,172 @@ window.ingaState = () => ({
   memory: loadedInfo?.memory ?? null,
   device: deviceUsed.label,
   limit: limitUsed,
+  version: pageVersion(),
   stats: lastStats,
+  // The Info panel's (info.js), the report's "Model info" too.
+  ctx_auto: loadedInfo?.ctx_auto ?? null,
+  ctxWhy: !loadedInfo ? "" : autoLine || ctxLine || (ctx() ? t("info.ctx.manual") : ""),
+  ctxUsed,
+  gpu: loadedInfo?.gpu ?? null,
+  gpuLimit: gpuLabel,
+  slow: slowLine,
+  live: answer ? liveRate : null,
+  preset: $("preset-line")?.textContent ?? "",
+  env: lastEnv,
+  variant: variantLine(source?.name),
 });
 
+// The model's Info panel (the ⓘ next to the model chip): info.js's sections, Copy.
+async function openInfo() {
+  try {
+    lastEnv = await deviceEnv();
+  } catch {}
+  const sections = await infoSections(window.ingaState());
+  renderInfo($("info-body"), sections);
+  $("info-out").textContent = "";
+  $("info").dataset.text = infoText(sections);
+  if (!$("info").open) $("info").showModal();
+}
+$("info-btn").onclick = openInfo;
+$("info-close").onclick = () => $("info").close();
+$("info").addEventListener("click", (e) => e.target === $("info") && $("info").close());
+$("info-copy").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText($("info").dataset.text ?? "");
+    $("info-out").textContent = t("info.copied");
+  } catch {
+    const r = document.createRange();
+    r.selectNodeContents($("info-body"));
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+    $("info-out").textContent = t("st.selected");
+  }
+};
+
+// ---- A hidden tab, and a GPU lost ----
+
+// While the page is idle it runs nothing: no interval, no animation frame, the mark's
+// loop only while busy, the timers one-shot (the context count, the render of an answer
+// streaming, the watchdogs of a load or an answer). Hidden, it also stops the mark and
+// the pending count; hidden for RELEASE_MS with a model on the GPU and nothing running,
+// it ends the model's worker (its WebAssembly memory and its WebGPU device, several GB
+// with a 7B model, go back to the system: a tab left for hours with them froze its
+// Chrome window on a Mac) and loads the model again when the tab is shown.
+// Only a model stored in this site's storage (OPFS) is given back: one loaded from the
+// catalog or a link is stored first, so it is opened again by name. A file of this
+// device loaded as it is (source.file) is never given back: it runs on the CPU (a file
+// for the GPU is copied into OPFS first, and then has a name), and the page could not
+// be sure to read it again once its worker ended (the user would have to pick it again).
+// `?release_ms=N` in the page's address shortens it (the browser tests).
+const RELEASE_MS = Number(new URLSearchParams(location.search).get("release_ms")) || 10 * 60000;
+let releaseTimer = null;
+let released = null; // the model given back while hidden: {name}, stored in OPFS
+document.addEventListener("visibilitychange", () => {
+  const hidden = document.visibilityState === "hidden";
+  document.documentElement.classList.toggle("tab-hidden", hidden);
+  clearTimeout(releaseTimer);
+  releaseTimer = null;
+  if (hidden) {
+    clearTimeout(countTimer);
+    countTimer = null;
+    if (onGpu && source?.name && !busy && !answer) releaseTimer = setTimeout(releaseModel, RELEASE_MS);
+  } else if (released) {
+    const r = released;
+    released = null;
+    // Busy meanwhile (the user pressed Reload, or loaded another model): nothing to do.
+    if (busy || source) return;
+    keepChat = true;
+    loadStored(r.name);
+    status(t("hidden.reload"));
+  }
+});
+
+// ---- The same model in several tabs ----
+
+// Each tab of the page loads its own copy of a model (its memory, its GPU buffers); the
+// worker reads the stored file with a "read-only" handle (or no lock at all), so several
+// tabs can run the same one. A tab holding a model takes a shared Web Lock named after
+// it; a tab that loads a model another tab holds says so once in its status line.
+let modelLock = null; // {name, release}: the lock of the model this tab holds
+function holdModel(name) {
+  if (modelLock?.name === name) return;
+  dropModelLock();
+  if (!name || !navigator.locks?.request) return;
+  const key = "inga-model:" + name;
+  let release;
+  const held = new Promise((r) => (release = r));
+  const mine = (modelLock = { name, release });
+  navigator.locks.request(key, { mode: "shared" }, async () => {
+    try {
+      const q = await navigator.locks.query();
+      if (modelLock === mine && q.held.filter((l) => l.name === key).length > 1 && !$("status").className) {
+        status($("status").textContent + " " + t("tabs.shared"));
+      }
+    } catch {}
+    return held;
+  }).catch(() => {});
+}
+function dropModelLock() {
+  modelLock?.release();
+  modelLock = null;
+}
+
+// The model chip with no model: "No model: pick one", no mark.
+function noModelChip() {
+  modelMark = null;
+  showMark();
+  $("model-name").textContent = t("chat.nomodel");
+  $("model-chip").title = "";
+}
+
+function releaseModel() {
+  releaseTimer = null;
+  if (document.visibilityState !== "hidden" || busy || answer || !source?.name) return;
+  released = { name: source.name };
+  worker.terminate();
+  startWorker();
+  source = null;
+  loadedInfo = null;
+  onGpu = false;
+  noModelChip();
+  setBusy(false);
+  const min = Math.max(1, Math.round(RELEASE_MS / 60000));
+  status(min === 1 ? t("hidden.released.one") : t("hidden.released", min));
+  drawReopen();
+}
+
+// The WebGPU device was lost (the worker's `gpulost`: the GPU reset, the driver
+// restarted, the system took its memory back): the model on it is gone. Said once,
+// nothing retried: the user loads the model again.
+function gpuLost(m) {
+  afterLoad = null;
+  stopLoading();
+  progress(0, 0);
+  stdRunning = false;
+  if (answer) {
+    endAnswer();
+    messages.pop();
+  }
+  source = null;
+  loadedInfo = null;
+  onGpu = false;
+  noModelChip();
+  worker.terminate();
+  startWorker();
+  $("stop").disabled = true;
+  setBusy(false);
+  status(t("gpu.lost", m.message || m.reason || "no reason given"), true);
+}
+
 // ---- The model picker (picker.js): the catalog, and what fits this browser ----
+
+// The GPU memory a probe measured (bytes), once it lands: `window.ingaGpuMemory(bytes)`
+// (the hook for the VRAM probe of inga-webgpu); the picker judges against it from then on.
+let gpuVram = null;
+window.ingaGpuMemory = (bytes) => {
+  gpuVram = Number(bytes) > 0 ? Number(bytes) : null;
+  picker.refresh();
+};
 
 // What the picker judges each variant against: the memory limit of the Settings, the
 // 4 GiB of a wasm32 module (the build does not use Memory64), navigator.deviceMemory,
@@ -1202,11 +2641,16 @@ async function deviceEnv() {
       const a = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
       if (a) {
         const i = a.info || {};
+        await probeAdapter();
         const g = gpuLimit(budget);
+        // The GPU's memory measured (the VRAM probe, ingaGpuMemory) rules over Auto's
+        // guess; a value set in the Settings stays the user's.
+        const measured = gpuVram && $("gmem").value !== "mb" ? gpuVram : null;
         env.gpu = {
           name: [i.vendor, i.architecture, i.device, i.description].filter(Boolean).join(" ") || "unnamed adapter",
-          budget: g.bytes,
-          guess: $("gmem").value !== "mb",
+          budget: measured ?? g.bytes,
+          measured: !!measured,
+          guess: !measured && $("gmem").value !== "mb",
           separate: gpuSeparate(),
           maxBufferSize: a.limits.maxBufferSize,
           maxStorageBufferBindingSize: a.limits.maxStorageBufferBindingSize,
@@ -1217,27 +2661,99 @@ async function deviceEnv() {
   return env;
 }
 
+// Before a catalog model that would not run on the GPU here (picker.js gpuFit; without
+// a GPU, one that does not fit memory): a short question, with a smaller variant or
+// model that does fit when the catalog has one (a 4 GB card: Qwen2.5 Coder 3B for the
+// 7B). Resolves to true (load it anyway), false (cancelled) or {model, variant} (the
+// suggestion). The inputs of the estimate are in the Info panel.
+let lastEnv = null;
+
+// The catalog variant of a stored file, and the model's others with their size and
+// where they would run here ("Q8_0 · others: Q4_K_M 1.9 GB (fits the GPU)"): in the
+// load line and the Info panel, so a smaller variant is not missed. "" for a file the
+// catalog does not have.
+function variantLine(file) {
+  for (const m of picker?.catalog?.models ?? []) {
+    const v = file && m.variants.find((x) => fileOf(x) === file);
+    if (!v) continue;
+    const others = m.variants.filter((x) => x !== v).map((x) => {
+      const g = lastEnv && gpuFit(x.size, x.approx, lastEnv);
+      const f = lastEnv && fitOf(x.size, x.approx, lastEnv);
+      const where = g ? g.label : f ? { fits: t("fit.mem"), tight: t("fit.tight"), big: t("fit.big") }[f.mark] : "";
+      return `${x.quant} ${num(x.size / 1e9, 1)} GB${where ? ` (${where.charAt(0).toLowerCase() + where.slice(1)})` : ""}`;
+    });
+    return t("var.line", v.quant) + (others.length ? " · " + t("var.others", others.join(", ")) : "");
+  }
+  return "";
+}
+async function fitConfirm(model, variant) {
+  let env;
+  try {
+    env = lastEnv = await deviceEnv();
+  } catch {
+    return true;
+  }
+  const g = gpuFit(variant.size, variant.approx, env);
+  const f = fitOf(variant.size, variant.approx, env);
+  if (g ? g.mark === "gpu" : f.mark === "fits") return true;
+  const label = `${model.name} ${variant.quant}`;
+  const s = smallerPick(picker.catalog, model, variant, env);
+  const sLabel = s && `${s.model.name} ${s.variant.quant}`;
+  let pick = false;
+  const msg = (g?.mark === "big" || (!g && f.mark === "big") ? t("fit.ask.big", "{0}", (g ?? f).why) : t("fit.ask.part", "{0}", (g ?? f).why)) +
+    (s ? " " + t("fit.ask.try", sLabel) : "");
+  const ok = await askBox({
+    title: t("fit.ask.t"), message: msg, strong: label, ok: t("fit.ask.anyway"), cancel: t("ask.cancel"),
+    secondary: s ? { label: t("fit.ask.other", sLabel), act: () => { pick = true; $("ask-cancel").click(); } } : undefined,
+  });
+  return pick ? s : ok;
+}
+
 const picker = createPicker({
   dialog: $("picker"),
   url: "catalog.json",
   getEnv: deviceEnv,
   getStored: () => storedSize,
+  // "~N min at your last measured speed", once a download measured one.
+  speedHint: (bytes) => {
+    const r = lastSpeed();
+    return r ? t("dl.pick", estimate(bytes, r)) : "";
+  },
   afterRender: () => setBusy(busy),
-  onLoad: (model, variant, url) => {
+  onLoad: async (model, variant, url) => {
+    const other = await fitConfirm(model, variant);
+    if (other === false) return;
+    if (typeof other === "object") [model, variant, url] = [other.model, other.variant, variantUrl(other.model, other.variant)];
     const name = url.split("/").pop().split("?")[0];
     const file = decodeURIComponent(name);
-    if (storedSize[file] != null) loadStored(file);
-    else fromUrl(url, { model, variant });
+    if (storedSize[file] != null) {
+      setMark(file, familyOf(model));
+      loadStored(file);
+    } else fromUrl(url, { model, variant });
   },
-  onDelete: (file) => {
+  onDelete: async (file) => {
+    if (!(await askDeleteFile(file, storedSize[file]))) return;
     if (source?.name === file) source = null;
     worker.postMessage({ type: "delete", name: file });
   },
 });
 $("picker-open").onclick = () => picker.open();
+setupAsk();
+pageReady = true;
 
 showSuggested();
 setupDevice();
+gmemHint();
+renderChat();
 setBusy(false);
-if (!navigator.storage?.getDirectory) status("This browser has no Origin Private File System: only files of this device can be loaded.", true);
+chats.open().then(async () => {
+  await showConvs();
+  // The chat open before a reload (F5) or a discard: opened again, its model not loaded.
+  let id = null;
+  try {
+    id = sessionStorage.getItem(OPEN_KEY);
+  } catch {}
+  if (id && !chat && !busy && !source) await openChat(id);
+});
+if (!navigator.storage?.getDirectory) status(t("st.noopfs"), true);
 startWorker();

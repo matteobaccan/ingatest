@@ -7,10 +7,16 @@ SPDX-License-Identifier: MIT
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Inga in the browser</title>
-<!-- The commit of a published build (the Pages workflow writes it), for the report. -->
-<meta name="inga-build" content="a8898ba 2026-10-16">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inga (beta)</title>
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<!-- The commit and UTC date of a published build ("abc1234 2026-10-16") and Inga's version
+(Cargo.toml), which the Pages workflow writes: the side bar, About and the report show them;
+"dev" here. -->
+<meta name="inga-build" content="82d0bf5 2026-10-16">
+<meta name="inga-version" content="0.30.1">
+<!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
+<script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
 <!-- Where "Report on GitHub" opens an issue, and with which issue form (empty: a plain issue with the
 report as its text); the beta's guide. The Pages workflow sets them for the public build. -->
 <meta name="inga-report-repo" content="matteobaccan/ingatest">
@@ -19,247 +25,730 @@ report as its text); the beta's guide. The Pages workflow sets them for the publ
 <!-- Cross-origin isolation on GitHub Pages (the beta): a service worker, before app.js. -->
 <script src="coi.js"></script>
 <style>
+/* Inga's own colours: the tokens and values of the native web UI's Light and Dark themes
+   (crates/inga-server/src/webui.html), and --warn for the "tight" marks. */
 :root {
-  --bg: #fafaf9; --fg: #1c1917; --muted: #57534e; --line: #d6d3d1; --card: #ffffff;
-  --accent: #0f766e; --accent-fg: #ffffff; --warn: #b45309; --err: #b91c1c;
+  color-scheme: light;
+  --bg: #f5f6fa; --panel: #ffffff; --hover: #f0f1f8; --text: #1b1d2a; --muted: #5f6380;
+  --line: #e1e3ee; --accent: #4f46e5; --on-accent: #ffffff; --user: #eef0ff;
+  --code: #f3f4f9; --danger: #c4271b; --ok: #15803d; --warn: #b45309; --shadow: 0 1px 3px rgba(20, 20, 60, .08);
+  --emma: #008088; /* Emma's family (Egomnia's teal): her avatar's ring and her model chip */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --aside-w: 270px; --chat-w: 820px;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1c1917; --fg: #f5f5f4; --muted: #a8a29e; --line: #44403c; --card: #292524;
-    --accent: #2dd4bf; --accent-fg: #042f2e; --warn: #fbbf24; --err: #f87171;
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --bg: #0f1020; --panel: #171a2e; --hover: #20233a; --text: #e8e9f3; --muted: #9ea2c0;
+    --line: #2a2d48; --accent: #818cf8; --on-accent: #0f1020; --user: #262a4d;
+    --code: #20233a; --danger: #f97066; --ok: #4ade80; --warn: #fbbf24; --shadow: 0 1px 3px rgba(0, 0, 0, .4); --emma: #1a9aa2;
   }
 }
+:root[data-theme=dark] {
+  color-scheme: dark;
+  --bg: #0f1020; --panel: #171a2e; --hover: #20233a; --text: #e8e9f3; --muted: #9ea2c0;
+  --line: #2a2d48; --accent: #818cf8; --on-accent: #0f1020; --user: #262a4d;
+  --code: #20233a; --danger: #f97066; --ok: #4ade80; --warn: #fbbf24; --shadow: 0 1px 3px rgba(0, 0, 0, .4); --emma: #1a9aa2;
+}
+:root[data-fs=small] { font-size: 14px; } :root[data-fs=large] { font-size: 17px; } :root[data-fs=xlarge] { font-size: 19px; }
+/* The icons of the sprite (#icons): sized to the text, in its colour, as the native UI's. */
+.ic { width: 1.25em; height: 1.25em; vertical-align: -.3em; flex: none; fill: none; stroke: currentColor;
+  stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; overflow: visible; pointer-events: none; }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, -apple-system, sans-serif; }
-main { max-width: 760px; margin: 0 auto; padding: 16px; }
-h1 { font-size: 1.35rem; margin: 0 0 4px; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 1rem/1.45 var(--font); }
+#app { display: flex; height: 100dvh; }
+h1 { font-size: 1.05rem; margin: 0; }
 h2 { font-size: 1rem; margin: 0 0 8px; }
-p.note { color: var(--muted); margin: 0 0 12px; font-size: 0.9rem; }
-section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 0 0 12px; }
+h3 { font-size: .95rem; margin: 14px 0 6px; }
+p.note { color: var(--muted); margin: 0 0 12px; font-size: .9rem; overflow-wrap: anywhere; }
+.meta { color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
+a { color: var(--accent); }
+section.card, .box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 0 0 12px; box-shadow: var(--shadow); }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-input[type=url], input[type=text], textarea { flex: 1 1 220px; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
-select { padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; max-width: 100%; }
-input[type=number] { width: 6.5em; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
-textarea { width: 100%; min-height: 4.5em; resize: vertical; }
-button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-fg); font: inherit; cursor: pointer; }
+input[type=url], input[type=text], input[type=search], textarea { flex: 1 1 220px; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font: inherit; }
+select, input[type=number] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font: inherit; max-width: 100%; }
+/* A select as wide as its longest option at most, never wider than its column (a long one is cut). */
+select { min-width: 0; text-overflow: ellipsis; }
+input[type=number] { width: 6.5em; }
+textarea { width: 100%; resize: vertical; }
+button { display: inline-flex; gap: 6px; align-items: center; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font: inherit; cursor: pointer; }
 button.ghost { background: transparent; color: var(--accent); }
-button:disabled { opacity: 0.45; cursor: default; }
+button.icon { padding: 6px; border: 1px solid transparent; background: transparent; color: var(--muted); border-radius: 8px; }
+button.icon:hover, button.ghost:hover, .navb:hover { background: var(--hover); }
+button:disabled { opacity: .45; cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 ul.list { list-style: none; padding: 0; margin: 0; }
 ul.list li { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line); }
 ul.list li:first-child { border-top: 0; }
-.meta { color: var(--muted); font-size: 0.85rem; }
-#status { font-size: 0.9rem; color: var(--muted); min-height: 1.4em; word-break: break-word; }
-#status.err { color: var(--err); }
-progress { width: 100%; height: 8px; }
-#chat { white-space: pre-wrap; word-break: break-word; }
-#chat .u { font-weight: 600; margin-top: 10px; }
-#chat .a { margin-top: 4px; }
+progress { width: 100%; height: 6px; accent-color: var(--accent); }
+details summary { cursor: pointer; color: var(--muted); }
+
+/* The side bar: Inga's mark, the views, the conversations, New chat. A drawer on phones. */
+#side { width: var(--aside-w); flex: none; display: flex; flex-direction: column; gap: 10px; padding: 14px 10px; background: var(--panel); border-right: 1px solid var(--line); }
+#side .brand { display: flex; gap: 10px; align-items: center; padding: 0 6px; }
+#side .brand #brand-mark { display: block; width: 38px; height: 38px; flex: none; line-height: 0; }
+#side .brand #brand-mark svg { width: 38px; height: 38px; }
+/* The mark's loop (its pieces burst apart and come back) runs while a model loads or an
+   answer is written, faster, as inga serve's #logo.busy; still otherwise, and always for
+   prefers-reduced-motion (the SVG's own rule). */
+#brand-mark:not(.busy) .ia-piece, #brand-mark:not(.busy) .ia-whole, #brand-mark:not(.busy) .ia-flash, #brand-mark:not(.busy) .ia-spark { animation: none; }
+#brand-mark.busy svg { --ia-cycle: 1.4s; }
+/* A hidden tab animates nothing (app.js's visibilitychange). */
+.tab-hidden #brand-mark svg * { animation: none !important; }
+#side .brand .name { font-weight: 700; font-size: 1.15rem; display: flex; gap: 6px; align-items: center; }
+/* The beta's mark: a small pill in the accent. */
+.beta { font-size: .62rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 1; padding: 3px 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent); cursor: help; }
+#side .brand .sub { color: var(--muted); font-size: .8rem; }
+.reload-note { display: block; font-style: italic; }
+#side .brand .by { color: var(--muted); font-size: .72rem; overflow-wrap: anywhere; }
+#side .brand .by a { color: var(--accent); }
+dialog#about { width: min(440px, calc(100vw - 32px)); padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--text); box-sizing: border-box; }
+dialog#ask { width: min(420px, calc(100vw - 24px)); padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--text); box-sizing: border-box; box-shadow: 0 10px 40px rgb(0 0 0 / .25); }
+dialog#ask::backdrop { background: rgb(0 0 0 / .45); }
+/* The model's Info panel: styled as the question box. */
+dialog#info { width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--text); box-sizing: border-box; box-shadow: 0 10px 40px rgb(0 0 0 / .25); }
+dialog#info::backdrop { background: rgb(0 0 0 / .45); }
+dialog#info h2 { margin: 0; font-size: 1.1rem; }
+dialog#info h3 { margin: 14px 0 4px; font-size: .95rem; }
+dialog#info table { width: 100%; border-collapse: collapse; font-size: .85rem; table-layout: fixed; }
+dialog#info th { text-align: left; font-weight: normal; color: var(--muted); width: 42%; padding: 2px 8px 2px 0; vertical-align: top; overflow-wrap: anywhere; }
+dialog#info td { padding: 2px 0; overflow-wrap: anywhere; }
+dialog#info .ask-buttons { margin-top: 14px; }
+dialog#ask h2 { margin: 0 0 8px; font-size: 1.1rem; }
+dialog#ask p { margin: 0 0 14px; overflow-wrap: anywhere; color: var(--text); }
+dialog#ask p[hidden], dialog#ask input[hidden], dialog#ask button[hidden] { display: none; }
+dialog#ask input { width: 100%; box-sizing: border-box; margin: 0 0 14px; }
+.ask-buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ask-buttons .grow { flex: 1; }
+dialog#about::backdrop { background: rgb(0 0 0 / .45); }
+dialog#about p { margin: 10px 0; } dialog#about ul { margin: 8px 0 0; padding-left: 20px; } dialog#about li { margin: 4px 0; }
+dialog#about a { color: var(--accent); }
+.navs { display: flex; flex-direction: column; gap: 2px; }
+.navb { display: flex; gap: 10px; align-items: center; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--text); text-align: left; }
+.navb[aria-current=page] { background: var(--user); color: var(--accent); font-weight: 600; }
+.side-h { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; padding: 4px 4px 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.side-h button.icon { padding: 4px; }
+.side-h button.icon[aria-expanded=true] { background: var(--hover); color: var(--accent); }
+/* Every conversation at once: export, import, delete (a confirmation in the bar). */
+#convs-actions { display: flex; flex-direction: column; gap: 2px; padding: 0 2px; }
+#convs-actions[hidden] { display: none; }
+#convs-actions > button { width: 100%; border: 0; padding: 6px 10px; justify-content: flex-start; text-align: left; font-size: .9rem; }
+#convs-actions > button.danger { color: var(--danger); }
+button.danger:not(.ghost) { background: var(--danger); border-color: var(--danger); color: var(--on-accent); }
+button.ghost.danger { color: var(--danger); }
+#convs { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; min-height: 60px; }
+#convs li { display: flex; align-items: center; gap: 4px; border-radius: 10px; }
+#convs li:hover, #convs li[aria-current=true] { background: var(--hover); }
+#convs li[aria-current=true] { box-shadow: inset 3px 0 0 var(--accent); }
+#convs .open { flex: 1; min-width: 0; display: block; text-align: left; padding: 7px 10px; border: 0; background: transparent; color: var(--text); }
+#convs .t { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#convs .m { display: block; color: var(--muted); font-size: .75rem; }
+#convs .del { visibility: hidden; }
+#convs li:hover .del, #convs li[aria-current=true] .del { visibility: visible; }
+/* A short screen with every conversation's actions open: the side bar scrolls. */
+#side { overflow-y: auto; }
+#side > * { flex-shrink: 0; } #side > #convs { flex-shrink: 1; }
+#side .foot { display: flex; gap: 4px; align-items: center; border-top: 1px solid var(--line); padding-top: 10px; }
+#side .foot #new-chat { margin-left: auto; }
+#side .ver { color: var(--muted); font-size: .7rem; padding: 0 6px; margin-top: -4px; overflow-wrap: anywhere; }
+#scrim { display: none; }
+
+/* The main pane: the conversation's header, the status line, a view. */
+#main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#top { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel); }
+#top .title { flex: 1; min-width: 0; }
+#top h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#menu { display: none; }
+#statusbar { padding: 6px 14px; border-bottom: 1px solid var(--line); background: var(--bg); }
+#status { font-size: .85rem; color: var(--muted); word-break: break-word; }
+#status.err { color: var(--danger); }
+#load-log { white-space: pre-wrap; font-size: .75rem; margin: 4px 0; max-height: 12em; overflow: auto; color: var(--muted); }
+#statusbar:not(.log) #load-log { display: none; }
+.view { flex: 1; overflow-y: auto; padding: 16px; }
+.view > .inner { max-width: var(--chat-w); margin: 0 auto; }
+#view-chat { display: flex; flex-direction: column; padding: 0; }
+#view-chat[hidden], .view[hidden] { display: none; }
+
+/* Messages: the answers on the left with Inga's mark and the model's name, the user's on the right. */
+#chat { flex: 1; overflow-y: auto; padding: 16px; }
+#chat > * { max-width: var(--chat-w); margin-left: auto; margin-right: auto; }
+.empty { text-align: center; color: var(--muted); padding: 10vh 16px 0; }
+.empty img { width: 64px; height: 64px; border-radius: 14px; }
+@media (max-height: 700px) { .empty { padding-top: 3vh; } }
+.empty p { max-width: 34em; margin-left: auto; margin-right: auto; }
+.empty .empty-act { justify-content: center; margin-top: 12px; }
+.empty .empty-act button { max-width: 100%; white-space: normal; text-align: left; }
+.empty .empty-act button[hidden] { display: none; }
+/* The test models: folded by default (their open state kept in this browser). */
+details.fold > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+details.fold[open] > summary::before { transform: rotate(90deg); }
+details.fold > summary h2 { margin: 0; }
+details.fold > summary .meta { font-weight: normal; }
+.msg { display: flex; gap: 10px; margin-top: 14px; }
+.msg.me { justify-content: flex-end; }
+#chat .u { white-space: pre-wrap; word-break: break-word; max-width: 85%; background: var(--accent); color: var(--on-accent); padding: 8px 12px; border-radius: 16px 16px 4px 16px; }
+.msg.bot .avatar { width: 30px; height: 30px; border-radius: 8px; flex: none; margin-top: 2px; }
+/* A model's mark (its catalog family's): an emoji on a round tile, or its logo on white. */
+.msg.bot .avatar.fam { border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 17px; line-height: 1; background: var(--user); border: 1px solid var(--line); box-sizing: border-box; }
+.msg.bot img.avatar.fam { background: #fff; padding: 3px; object-fit: contain; }
+.msg.bot .avatar.fam[data-family=emma] { border-color: var(--emma); }
+.fam-logo { width: 1.15em; height: 1.15em; vertical-align: -.2em; object-fit: contain; }
+#model-mark { display: inline-flex; line-height: 1; } #model-mark[hidden] { display: none; }
+#model-mark .fam-logo { background: #fff; border-radius: 50%; padding: 1px; box-sizing: border-box; width: 1.3em; height: 1.3em; }
+#model-chip[data-family=emma] { border-color: var(--emma); color: var(--emma); }
+.msg.bot .col { min-width: 0; max-width: calc(100% - 40px); }
+.msg.bot .who { font-size: .8rem; color: var(--muted); margin-bottom: 2px; }
+#chat .a { white-space: pre-wrap; word-break: break-word; background: var(--panel); border: 1px solid var(--line); padding: 8px 12px; border-radius: 4px 16px 16px 16px; }
+#chat .a:empty::before { content: "…"; color: var(--muted); }
 #chat .a.md { white-space: normal; }
+/* An answer that ran out of Max tokens, or had none after its reasoning: the note and its buttons. */
+.msg.bot .limit { margin-top: 6px; padding: 8px 12px; border: 1px solid var(--warn); border-radius: 12px; background: var(--panel); font-size: .9rem; }
+.msg.bot .limit p { margin: 0; overflow-wrap: anywhere; }
+.msg.bot .limit .row { margin-top: 8px; }
+.msg.bot .limit button { white-space: normal; text-align: left; }
+.msg.bot .limit:not(.empty) { border-color: var(--line); color: var(--muted); font-size: .8rem; padding: 4px 10px; }
+.msg.bot .speed { font-size: .75rem; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
 #chat .md p, #chat .md ul, #chat .md ol, #chat .md blockquote { margin: 6px 0; }
+#chat .md > :first-child { margin-top: 0; } #chat .md > :last-child { margin-bottom: 0; }
 #chat .md ul, #chat .md ol { padding-left: 22px; }
 #chat .md blockquote { padding-left: 8px; border-left: 3px solid var(--line); color: var(--muted); }
 #chat .md h3, #chat .md h4, #chat .md h5, #chat .md h6 { margin: 10px 0 4px; font-size: 1rem; }
-#chat .md code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em; background: var(--card); padding: 0 3px; border-radius: 4px; }
-#chat .md .code { position: relative; margin: 6px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
-#chat .md .code .lang { position: absolute; left: 8px; top: 4px; font-size: 0.75rem; color: var(--muted); }
-#chat .md .code .copy { position: absolute; right: 4px; top: 4px; padding: 2px 8px; font-size: 0.75rem; }
-#chat .md pre { margin: 0; padding: 24px 10px 8px; overflow-x: auto; white-space: pre; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; }
-#chat .md a { color: var(--accent); }
-#stats { font-variant-numeric: tabular-nums; }
-details summary { cursor: pointer; color: var(--muted); }
-#chat details.think { margin-top: 4px; padding: 4px 8px; border-left: 3px solid var(--line); color: var(--muted); font-size: 0.9rem; }
-#chat details.think .body { margin-top: 4px; }
-select { padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
-label.check { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex-basis: 100%; }
+#chat .md code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .9em; background: var(--code); padding: 0 3px; border-radius: 4px; }
+#chat .md .code { position: relative; margin: 6px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--code); }
+#chat .md .code .lang { position: absolute; left: 8px; top: 4px; font-size: .75rem; color: var(--muted); }
+#chat .md .code .copy { position: absolute; right: 4px; top: 4px; padding: 2px 8px; font-size: .75rem; }
+#chat .md pre { margin: 0; padding: 24px 10px 8px; overflow-x: auto; white-space: pre; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; }
+#chat details.think { margin-bottom: 4px; padding: 4px 8px; border-left: 3px solid var(--line); color: var(--muted); font-size: .9rem; }
+#chat details.think .body { margin-top: 4px; white-space: pre-wrap; }
+
+/* The composer: the message, its tools, the model's chip, Send. */
+#composer { padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--bg); }
+#composer .box { max-width: var(--chat-w); margin: 0 auto; padding: 8px; border-radius: 16px; }
+#prompt { border: 0; background: transparent; min-height: 2.6em; max-height: 40vh; padding: 6px; outline: none; }
+#composer .tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+#composer .tools .grow { flex: 1; }
+/* No model, a chat open: Reload its model (or Choose a model), above the composer and in the status bar. */
+#reopen-bar { max-width: var(--chat-w); margin: 0 auto 8px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+#reopen-bar[hidden], button.reopen[hidden] { display: none; }
+button.reopen { max-width: 100%; white-space: normal; text-align: left; font-weight: 600; }
+#reopen-status { padding: 4px 10px; font-size: .85rem; flex-shrink: 1; max-width: 50%; }
+.chip { display: inline-flex; gap: 6px; align-items: center; max-width: 100%; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: .85rem; }
+.chip.on { border-color: var(--accent); color: var(--accent); }
+#model-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14em; }
+label.chip input { margin: 0; }
+/* The context used, as a ring that closes as it fills (inga serve's web UI's): the
+   accent, amber past 75 %, red past 90 % (ctx.js). */
+#ctx-gauge { gap: 5px; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; cursor: pointer; }
+#ctx-gauge[aria-expanded=true] { background: var(--hover); border-color: var(--line); }
+#ctx-gauge svg { width: 18px; height: 18px; transform: rotate(-90deg); }
+#ctx-gauge circle { fill: none; stroke-width: 3; }
+#ctx-gauge circle.track { stroke: var(--line); }
+#ctx-ring { stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray .4s; }
+#ctx-gauge.warn { color: var(--warn); }
+#ctx-gauge.warn #ctx-ring { stroke: var(--warn); }
+#ctx-gauge.full { color: var(--danger); }
+#ctx-gauge.full #ctx-ring { stroke: var(--danger); }
+@media (prefers-reduced-motion: reduce) { #ctx-ring { transition: none; } }
+/* The ring's panel (a click or a tap on it), above the composer's tools at their right
+   end, as inga serve's: what fills the context, in bars of its size. */
+#composer .tools { position: relative; }
+#ctx-pop { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 20; width: min(340px, calc(100vw - 32px));
+  max-height: 60vh; overflow-y: auto; background: var(--panel); color: var(--text); border: 1px solid var(--line);
+  border-radius: 10px; box-shadow: 0 8px 30px rgba(0, 0, 0, .18); padding: 10px 12px; font-size: .85rem; overflow-wrap: anywhere; }
+#ctx-pop .note { color: var(--muted); margin: 2px 0 8px; }
+#ctx-pop .note.warn { color: var(--warn); margin: 8px 0 0; }
+#ctx-pop .note.small { font-size: .75rem; margin: 8px 0 0; }
+#ctx-pop .part { display: grid; grid-template-columns: minmax(0, 1fr) minmax(40px, 90px) auto; gap: 8px; align-items: center; margin: 4px 0; }
+#ctx-pop .track { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+#ctx-pop .bar { display: block; height: 100%; background: var(--accent); }
+#ctx-pop .bar.past { background: #0ea5e9; }
+#ctx-pop .bar.draft { background: var(--ok); }
+#ctx-pop .bar.room { background: repeating-linear-gradient(45deg, var(--muted) 0 3px, transparent 3px 6px); }
+#ctx-pop .part.room { color: var(--muted); }
+#ctx-pop .num { text-align: right; font-variant-numeric: tabular-nums; min-width: 3ch; }
+#send-hint, #stats { max-width: var(--chat-w); margin: 4px auto 0; font-variant-numeric: tabular-nums; }
+
+/* Settings and the other views. */
+/* minmax(0, 1fr), not 1fr: a column of 1fr is as wide as its widest content at least (a select's
+   longest option), which made the whole Settings view wider than a phone's screen. */
+.set { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); gap: 6px 14px; align-items: start; padding: 8px 0; border-top: 1px solid var(--line); }
+.set > * { min-width: 0; }
+.set:first-of-type { border-top: 0; }
+.set > label:first-child, .set > span:first-child { font-weight: 600; padding-top: 6px; }
+.set .meta { display: block; margin-top: 4px; }
+@media (max-width: 640px) { .set { grid-template-columns: minmax(0, 1fr); } }
 #bench, #kernels { overflow-x: auto; }
-#bench table, #kernels table { border-collapse: collapse; font-size: 0.85rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
+#bench table, #kernels table { border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
 #bench th, #bench td, #kernels th, #kernels td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: right; white-space: nowrap; }
 #bench th:first-child, #bench td:first-child, #kernels th:first-child, #kernels td:first-child { text-align: left; white-space: normal; }
-dialog#picker { width: min(980px, calc(100vw - 16px)); max-height: calc(100vh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--fg); }
-dialog#picker::backdrop { background: rgb(0 0 0 / 0.45); }
+pre.out { white-space: pre-wrap; word-break: break-word; font-size: .8rem; }
+
+/* The model picker (picker.js). */
+dialog#picker { width: min(980px, calc(100vw - 16px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); color: var(--text); }
+dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
 #picker .top { position: sticky; top: 0; background: var(--bg); padding: 12px 12px 8px; border-bottom: 1px solid var(--line); z-index: 1; }
 #picker .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 4px; }
-#picker .chip { padding: 4px 10px; border-radius: 999px; background: transparent; color: var(--fg); border: 1px solid var(--line); font-size: 0.85rem; }
-#picker .chip.on { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+#picker .chip.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 #picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 10px; padding: 12px; }
-#picker .card { display: flex; flex-direction: column; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
-#picker .card[data-fit=big] { opacity: 0.7; }
+#picker .card { display: flex; flex-direction: column; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+#picker .card[data-fit=big] { opacity: .7; }
 #picker .card-head { display: flex; gap: 8px; align-items: center; }
 #picker .card-head .icon { font-size: 1.3rem; width: 1.6em; text-align: center; }
 #picker .card select { width: 100%; }
-#picker .fit.fits { color: var(--accent); } #picker .fit.tight { color: var(--warn); } #picker .fit.big { color: var(--err); }
-#picker .card .row a { font-size: 0.85rem; color: var(--accent); }
+#picker .variants { display: flex; flex-wrap: wrap; gap: 4px; }
+#picker .vchip { padding: 3px 8px; font-size: .8rem; border-radius: 999px; background: transparent; color: var(--text); border: 1px solid var(--line); }
+#picker .vchip[aria-checked="true"] { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+#picker .vchip:hover { background: var(--hover); }
+#picker .vchip[aria-checked="true"]:hover { background: var(--accent); }
+#picker .fit.fits { color: var(--ok); } #picker .fit.tight { color: var(--warn); } #picker .fit.big { color: var(--danger); }
+#picker .card .row a { font-size: .85rem; }
+
+/* Phones: the side bar is a drawer over the page. */
+@media (max-width: 820px) {
+  #side { position: fixed; z-index: 20; inset: 0 auto 0 0; width: min(86vw, 320px); transform: translateX(-102%); transition: transform .2s; padding-top: calc(14px + env(safe-area-inset-top)); }
+  #app.drawer #side { transform: none; box-shadow: 0 0 24px rgb(0 0 0 / .3); }
+  #app.drawer #scrim { display: block; position: fixed; inset: 0; z-index: 19; background: rgb(0 0 0 / .35); }
+  #menu { display: inline-flex; }
+  #top { padding-top: calc(10px + env(safe-area-inset-top)); }
+  .view { padding: 12px; }
+  #chat { padding: 12px; }
+  #composer { padding-left: 8px; padding-right: 8px; }
+  #convs .del { visibility: visible; }
+}
+@media (prefers-reduced-motion: reduce) { #side { transition: none; } }
 </style>
 </head>
 <body>
-<main>
-  <h1>Inga in the browser</h1>
-  <p class="note" id="beta-note" hidden><strong>Beta.</strong> A first public test of Inga in the browser:
-  pick a model, chat, run the Standard test, then press "Report on GitHub" at the bottom (what works and what
-  does not: <a id="beta-guide" href="https://github.com/matteobaccan/inga/blob/main/docs/wasm-beta.md">the beta's guide</a>).</p>
-  <p class="note">An experiment: Inga compiled to WebAssembly, running on this device's CPU (WebAssembly
-  SIMD; one thread, or every core when the page is cross-origin isolated), or with its layers on the GPU
-  through WebGPU (Settings, Device: experimental). A model larger than the tab's memory runs with part of it
-  read from this site's storage at every token. Nothing is sent anywhere: the model runs in this page. Tested in
-  headless Chromium on Linux and in Safari on an iPhone 16 Pro.</p>
-
-  <section style="position:sticky;top:0;z-index:1">
-    <div id="status">Starting…</div>
+<!-- The icons: symbols of the native web UI's sprite (crates/inga-server/src/webui.html, docs/icons.html), and three drawn in their style. -->
+<svg xmlns="http://www.w3.org/2000/svg" id="icons" aria-hidden="true" width="0" height="0" style="position:absolute">
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4 3.5V16h-.5A2.5 2.5 0 0 1 4 13.5v-7A2.5 2.5 0 0 1 6.5 4Z"/><path d="M8 8.5h8M8 12h5"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9M8 5.25l8 4.5"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M18.53 9.76L20.82 10.21L20.82 13.79L18.53 14.24L18.2 15.03L19.5 16.97L16.97 19.5L15.03 18.2L14.24 18.53L13.79 20.82L10.21 20.82L9.76 18.53L8.97 18.2L7.03 19.5L4.5 16.97L5.8 15.03L5.47 14.24L3.18 13.79L3.18 10.21L5.47 9.76L5.8 8.97L4.5 7.03L7.03 4.5L8.97 5.8L9.76 5.47L10.21 3.18L13.79 3.18L14.24 5.47L15.03 5.8L16.97 4.5L19.5 7.03L18.2 8.97Z"/><circle cx="12" cy="12" r="2.75"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M3.5 16.5a8.5 8.5 0 1 1 17 0"/><path d="M12 16.5l4-4.5M6.5 16.5h.01M7.6 11.6h.01M12 8.6v.01M17.5 16.5h.01"/><circle cx="12" cy="16.5" r="1.25"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.5h5V7"/><path d="M6.5 7l.9 12.1A1.5 1.5 0 0 0 8.9 20.5h6.2a1.5 1.5 0 0 0 1.5-1.4L17.5 7M10 11v5.5M14 11v5.5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.75"/><path d="M18.6 12L20.6 12M16.67 16.67L18.08 18.08M12 18.6L12 20.6M7.33 16.67L5.92 18.08M5.4 12L3.4 12M7.33 7.33L5.92 5.92M12 5.4L12 3.4M16.67 7.33L18.08 5.92"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.6A8 8 0 1 1 9.4 4.5a6.4 6.4 0 0 0 10.1 10.1Z"/></symbol>
+  <symbol id="i-theme-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17M12 7H7M12 10H4.3M12 13.5H3.7M12 17H6"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5.5 21V3.5"/><path d="M5.5 4.5h12.5l-3 4.25 3 4.25H5.5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.25 15.25 20.5 20.5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><path d="M10.5 9h8A1.5 1.5 0 0 1 20 10.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 9 18.5v-8A1.5 1.5 0 0 1 10.5 9Z"/><path d="M15 9V5.5A1.5 1.5 0 0 0 13.5 4h-8A1.5 1.5 0 0 0 4 5.5v8A1.5 1.5 0 0 0 5.5 15H9"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.75 9.25h4.5a.5.5 0 0 1 .5.5v4.5a.5.5 0 0 1-.5.5h-4.5a.5.5 0 0 1-.5-.5v-4.5a.5.5 0 0 1 .5-.5Z"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 11.7V5A1.5 1.5 0 0 1 5 3.5h6.7a1.5 1.5 0 0 1 1.1.4l7.3 7.4a1.5 1.5 0 0 1 0 2.1l-6.8 6.8a1.5 1.5 0 0 1-2.1 0L3.9 12.8a1.5 1.5 0 0 1-.4-1.1Z"/><circle cx="8" cy="8" r="1.5"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8.5 8.5M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/></symbol>
+  <symbol id="i-markdown" viewBox="0 0 24 24"><path d="M4.5 5.5H19.5a2 2 0 0 1 2 2V16.5a2 2 0 0 1 -2 2H4.5a2 2 0 0 1 -2 -2V7.5a2 2 0 0 1 2 -2Z"/><path d="M6 15V9l2.5 3L11 9v6M16.5 9v6M14.25 12.75 16.5 15l2.25-2.25"/></symbol>
+  <symbol id="i-braces" viewBox="0 0 24 24"><path d="M9 4.5H8.5a2 2 0 0 0-2 2v3A2.5 2.5 0 0 1 4 12a2.5 2.5 0 0 1 2.5 2.5v3a2 2 0 0 0 2 2H9M15 4.5h.5a2 2 0 0 1 2 2v3A2.5 2.5 0 0 0 20 12a2.5 2.5 0 0 0-2.5 2.5v3a2 2 0 0 1-2 2H15"/></symbol>
+  <symbol id="i-brain" viewBox="0 0 24 24"><path d="M11.5 5.2A3 3 0 0 0 6.6 6.8 3 3 0 0 0 4.6 11.3a3.2 3.2 0 0 0 1 5 3 3 0 0 0 4 3.2 2.5 2.5 0 0 0 1.9-1.6Z"/><path d="M12.5 5.2a3 3 0 0 1 4.9 1.6 3 3 0 0 1 2 4.5 3.2 3.2 0 0 1-1 5 3 3 0 0 1-4 3.2 2.5 2.5 0 0 1-1.9-1.6Z"/><path d="M7.5 10.5c1.2.4 2.4 0 3-.9M16.5 10.5c-1.2.4-2.4 0-3-.9M8 15.2c1-.6 2.2-.5 3 .3M16 15.2c-1-.6-2.2-.5-3 .3"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><path d="M7.75 6H16.25a1.75 1.75 0 0 1 1.75 1.75V16.25a1.75 1.75 0 0 1 -1.75 1.75H7.75a1.75 1.75 0 0 1 -1.75 -1.75V7.75a1.75 1.75 0 0 1 1.75 -1.75Z"/><path d="M10.25 9.5H13.75a0.75 0.75 0 0 1 0.75 0.75V13.75a0.75 0.75 0 0 1 -0.75 0.75H10.25a0.75 0.75 0 0 1 -0.75 -0.75V10.25a0.75 0.75 0 0 1 0.75 -0.75Z"/><path d="M9.5 3.5v2.5M9.5 18v2.5M3.5 9.5h2.5M18 9.5h2.5M12 3.5v2.5M12 18v2.5M3.5 12h2.5M18 12h2.5M14.5 3.5v2.5M14.5 18v2.5M3.5 14.5h2.5M18 14.5h2.5"/></symbol>
+  <symbol id="i-gpu" viewBox="0 0 24 24"><path d="M3.5 4.5v15M3.5 6.5h16a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1h-16"/><circle cx="11" cy="11.75" r="3.25"/><path d="M11 11.75h.01"/><path d="M16.5 9.5v5M7.5 17v2.5h8V17"/></symbol>
+  <symbol id="i-database" viewBox="0 0 24 24"><path d="M5 6.5a7 2.5 0 1 0 14 0 7 2.5 0 1 0-14 0"/><path d="M5 6.5v11a7 2.5 0 0 0 14 0v-11"/><path d="M5 12a7 2.5 0 0 0 14 0"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 24 24"><path d="M4 4.5H20a1 1 0 0 1 1 1V7.5a1 1 0 0 1 -1 1H4a1 1 0 0 1 -1 -1V5.5a1 1 0 0 1 1 -1Z"/><path d="M4.5 8.5v10A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-10M10 12.5h4"/></symbol> <!-- Every chat (a backup) -->
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.75h.01"/></symbol> <!-- About (the native web UI's) -->
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 20V9M7.5 13.5 12 9l4.5 4.5M5 4.5h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-retry" viewBox="0 0 24 24"><path d="M19.5 12A7.5 7.5 0 1 1 12 4.5"/><path d="M9.5 2l2.5 2.5L9.5 7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol> <!-- New chat (drawn for the browser page) -->
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="M13.5 6.5l4 4"/></symbol> <!-- Rename (drawn for the browser page) -->
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol> <!-- Full screen (drawn for the browser page) -->
+</svg>
+<div id="app">
+<aside id="side" aria-label="Inga">
+  <div class="brand"><span id="brand-mark" aria-hidden="true"><!-- Inga's animated mark, copied from crates/inga-server/src/webui.html (#logo): keep the two in sync. --><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="38" height="38" aria-hidden="true">
+    <!-- Inga by Matteo Baccan: the mark, animated. The brain appears, then, in a loop, its
+       pieces burst apart in a flash of sparks and come back together: a model at work.
+       Still for prefers-reduced-motion. -->
+  <style>
+    .ia-all { transform-origin: 256px 258px; animation: ia-in .7s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes ia-in { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .ia-pl0 { animation: ia-pl0 var(--ia-cycle, 6s) cubic-bezier(.3,0,.2,1) 1s infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes ia-pl0 { 0%, 52%, 96%, 100% { transform: none; } 64%, 74% { transform: translate(-38px, -34px) rotate(-14deg); } }
+    .ia-pl1 { animation: ia-pl1 var(--ia-cycle, 6s) cubic-bezier(.3,0,.2,1) 1s infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes ia-pl1 { 0%, 52%, 96%, 100% { transform: none; } 64%, 74% { transform: translate(-50px, 2px) rotate(-6deg); } }
+    .ia-pl2 { animation: ia-pl2 var(--ia-cycle, 6s) cubic-bezier(.3,0,.2,1) 1s infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes ia-pl2 { 0%, 52%, 96%, 100% { transform: none; } 64%, 74% { transform: translate(-36px, 38px) rotate(12deg); } }
+    .ia-pr0 { animation: ia-pr0 var(--ia-cycle, 6s) cubic-bezier(.3,0,.2,1) 1s infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes ia-pr0 { 0%, 52%, 96%, 100% { transform: none; } 64%, 74% { transform: translate(38px, -34px) rotate(14deg); } }
+    .ia-pr1 { animation: ia-pr1 var(--ia-cycle, 6s) cubic-bezier(.3,0,.2,1) 1s infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes ia-pr1 { 0%, 52%, 96%, 100% { transform: none; } 64%, 74% { transform: translate(50px, 2px) rotate(6deg); } }
+    .ia-pr2 { animation: ia-pr2 var(--ia-cycle, 6s) cubic-bezier(.3,0,.2,1) 1s infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes ia-pr2 { 0%, 52%, 96%, 100% { transform: none; } 64%, 74% { transform: translate(36px, 38px) rotate(-12deg); } }
+    .ia-whole { animation: ia-whole var(--ia-cycle, 6s) linear 1s infinite; }
+    @keyframes ia-whole { 0%, 52% { opacity: 1; } 52.5%, 95.5% { opacity: 0; } 96%, 100% { opacity: 1; } }
+    .ia-flash { opacity: 0; transform-origin: 256px 258px; animation: ia-flash var(--ia-cycle, 6s) ease-out 1s infinite; }
+    @keyframes ia-flash { 0%, 54% { opacity: 0; transform: scale(.2); } 63% { opacity: 1; transform: scale(1); } 80%, 100% { opacity: 0; transform: scale(1.3); } }
+    .ia-s0 { animation: ia-s0 var(--ia-cycle, 6s) ease-out 1s infinite; opacity: 0; }
+    @keyframes ia-s0 { 0%, 56% { opacity: 0; transform: none; } 60% { opacity: 1; } 80% { opacity: 0; transform: translate(186px, 38px); } 100% { opacity: 0; } }
+    .ia-s1 { animation: ia-s1 var(--ia-cycle, 6s) ease-out 1s infinite; opacity: 0; }
+    @keyframes ia-s1 { 0%, 56% { opacity: 0; transform: none; } 60% { opacity: 1; } 80% { opacity: 0; transform: translate(142px, 126px); } 100% { opacity: 0; } }
+    .ia-s2 { animation: ia-s2 var(--ia-cycle, 6s) ease-out 1s infinite; opacity: 0; }
+    @keyframes ia-s2 { 0%, 56% { opacity: 0; transform: none; } 60% { opacity: 1; } 80% { opacity: 0; transform: translate(60px, 180px); } 100% { opacity: 0; } }
+    .ia-s3 { animation: ia-s3 var(--ia-cycle, 6s) ease-out 1s infinite; opacity: 0; }
+    @keyframes ia-s3 { 0%, 56% { opacity: 0; transform: none; } 60% { opacity: 1; } 80% { opacity: 0; transform: translate(-38px, 186px); } 100% { opacity: 0; } }
+    .ia-s4 { animation: ia-s4 var(--ia-cycle, 6s) ease-out 1s infinite; opacity: 0; }
+    @keyframes ia-s4 { 0%, 56% { opacity: 0; transform: none; } 60% { opacity: 1; } 80% { opacity: 0; transform: translate(-126px, 142px); } 100% { opacity: 0; } }
+    .ia-s5 { animation: ia-s5 var(--ia-cycle, 6s) ease-out 1s infinite; opacity: 0; }
+    @keyframes ia-s5 { 0%, 56% { opacity: 0; transform: none; } 60% { opacity: 1; } 80% { opacity: 0; transform: translate(-180px, 60px); } 100% { opacity: 0; } }
+    .ia-s6 { animation: ia-s6 var(--ia-cycle, 6s) ease-out 1s infinite; opacity: 0; }
+    @keyframes ia-s6 { 0%, 56% { opacity: 0; transform: none; } 60% { opacity: 1; } 80% { opacity: 0; transform: translate(-186px, -38px); } 100% { opacity: 0; } }
+    .ia-s7 { animation: ia-s7 var(--ia-cycle, 6s) ease-out 1s infinite; opacity: 0; }
+    @keyframes ia-s7 { 0%, 56% { opacity: 0; transform: none; } 60% { opacity: 1; } 80% { opacity: 0; transform: translate(-142px, -126px); } 100% { opacity: 0; } }
+    .ia-s8 { animation: ia-s8 var(--ia-cycle, 6s) ease-out 1s infinite; opacity: 0; }
+    @keyframes ia-s8 { 0%, 56% { opacity: 0; transform: none; } 60% { opacity: 1; } 80% { opacity: 0; transform: translate(-60px, -180px); } 100% { opacity: 0; } }
+    .ia-s9 { animation: ia-s9 var(--ia-cycle, 6s) ease-out 1s infinite; opacity: 0; }
+    @keyframes ia-s9 { 0%, 56% { opacity: 0; transform: none; } 60% { opacity: 1; } 80% { opacity: 0; transform: translate(38px, -186px); } 100% { opacity: 0; } }
+    .ia-s10 { animation: ia-s10 var(--ia-cycle, 6s) ease-out 1s infinite; opacity: 0; }
+    @keyframes ia-s10 { 0%, 56% { opacity: 0; transform: none; } 60% { opacity: 1; } 80% { opacity: 0; transform: translate(126px, -142px); } 100% { opacity: 0; } }
+    .ia-s11 { animation: ia-s11 var(--ia-cycle, 6s) ease-out 1s infinite; opacity: 0; }
+    @keyframes ia-s11 { 0%, 56% { opacity: 0; transform: none; } 60% { opacity: 1; } 80% { opacity: 0; transform: translate(180px, -60px); } 100% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .ia-all, .ia-piece, .ia-flash, .ia-spark, .ia-whole { animation: none; } }
+  </style>
+  <defs>
+    <linearGradient id="ia-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#312E81"/><stop offset="1" stop-color="#1E1B4B"/></linearGradient>
+    <linearGradient id="ia-brain" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F9A8D4"/><stop offset=".55" stop-color="#C4B5FD"/><stop offset="1" stop-color="#818CF8"/></linearGradient>
+    <radialGradient id="ia-flash" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFFBEB"/><stop offset=".35" stop-color="#FDE68A"/><stop offset="1" stop-color="#F59E0B" stop-opacity="0"/></radialGradient>
+    <clipPath id="ia-cl0"><rect x="0" y="80" width="256" height="127"/></clipPath><clipPath id="ia-hl"><path d="M249.0 101.0 L249.0 102.0 L243.3 101.1 L237.4 99.0 L231.3 97.0 L225.3 96.6 L219.6 98.3 L214.3 101.6 L209.2 105.3 L204.1 108.0 L198.4 109.0 L192.2 108.7 L185.8 108.3 L179.8 109.1 L174.6 112.0 L170.3 116.4 L166.6 121.4 L162.5 125.6 L157.6 128.3 L151.7 129.8 L145.4 131.1 L139.7 133.3 L135.2 137.1 L132.3 142.3 L130.1 148.1 L127.6 153.4 L124.0 157.6 L118.9 160.7 L113.2 163.6 L108.1 167.1 L104.7 171.7 L103.1 177.4 L102.6 183.5 L102.0 189.4 L100.0 194.5 L96.4 199.0 L91.8 203.2 L87.7 207.8 L85.3 213.1 L85.1 218.9 L86.3 224.9 L87.6 230.8 L87.6 236.3 L85.7 241.6 L82.6 246.9 L79.8 252.3 L78.7 258.0 L79.8 263.4 L82.6 268.7 L85.7 273.8 L87.6 278.9 L87.6 284.2 L86.3 289.8 L85.1 295.6 L85.3 301.2 L87.7 306.2 L91.8 310.7 L96.4 314.7 L100.0 319.0 L102.0 324.0 L102.6 329.6 L103.1 335.5 L104.7 341.0 L108.1 345.4 L113.2 348.8 L118.9 351.5 L124.0 354.5 L127.6 358.6 L130.1 363.7 L132.3 369.2 L135.2 374.3 L139.7 377.9 L145.4 380.0 L151.7 381.2 L157.6 382.7 L162.5 385.3 L166.6 389.4 L170.3 394.1 L174.6 398.4 L179.8 401.1 L185.8 402.0 L192.2 401.6 L198.4 401.3 L204.1 402.2 L209.2 404.8 L214.3 408.4 L219.6 411.6 L225.3 413.2 L231.3 412.8 L237.4 410.9 L243.3 408.9 L249.0 408.0 L249.0 408.0 Z"/></clipPath><clipPath id="ia-cl1"><rect x="0" y="205" width="256" height="104"/></clipPath><clipPath id="ia-cl2"><rect x="0" y="307" width="256" height="133"/></clipPath><clipPath id="ia-cr0"><rect x="256" y="80" width="256" height="127"/></clipPath><clipPath id="ia-hr"><path d="M263.0 101.0 L263.0 102.0 L268.7 101.1 L274.6 99.0 L280.7 97.0 L286.7 96.6 L292.4 98.3 L297.7 101.6 L302.8 105.3 L307.9 108.0 L313.6 109.0 L319.8 108.7 L326.2 108.3 L332.2 109.1 L337.4 112.0 L341.7 116.4 L345.4 121.4 L349.5 125.6 L354.4 128.3 L360.3 129.8 L366.6 131.1 L372.3 133.3 L376.8 137.1 L379.7 142.3 L381.9 148.1 L384.4 153.4 L388.0 157.6 L393.1 160.7 L398.8 163.6 L403.9 167.1 L407.3 171.7 L408.9 177.4 L409.4 183.5 L410.0 189.4 L412.0 194.5 L415.6 199.0 L420.2 203.2 L424.3 207.8 L426.7 213.1 L426.9 218.9 L425.7 224.9 L424.4 230.8 L424.4 236.3 L426.3 241.6 L429.4 246.9 L432.2 252.3 L433.3 258.0 L432.2 263.4 L429.4 268.7 L426.3 273.8 L424.4 278.9 L424.4 284.2 L425.7 289.8 L426.9 295.6 L426.7 301.2 L424.3 306.2 L420.2 310.7 L415.6 314.7 L412.0 319.0 L410.0 324.0 L409.4 329.6 L408.9 335.5 L407.3 341.0 L403.9 345.4 L398.8 348.8 L393.1 351.5 L388.0 354.5 L384.4 358.6 L381.9 363.7 L379.7 369.2 L376.8 374.3 L372.3 377.9 L366.6 380.0 L360.3 381.2 L354.4 382.7 L349.5 385.3 L345.4 389.4 L341.7 394.1 L337.4 398.4 L332.2 401.1 L326.2 402.0 L319.8 401.6 L313.6 401.3 L307.9 402.2 L302.8 404.8 L297.7 408.4 L292.4 411.6 L286.7 413.2 L280.7 412.8 L274.6 410.9 L268.7 408.9 L263.0 408.0 L263.0 408.0 Z"/></clipPath><clipPath id="ia-cr1"><rect x="256" y="205" width="256" height="104"/></clipPath><clipPath id="ia-cr2"><rect x="256" y="307" width="256" height="133"/></clipPath>
+    <clipPath id="iw-cl0"><rect x="0" y="0" width="256" height="512"/></clipPath><clipPath id="iw-hl"><path d="M249.0 101.0 L249.0 102.0 L243.3 101.1 L237.4 99.0 L231.3 97.0 L225.3 96.6 L219.6 98.3 L214.3 101.6 L209.2 105.3 L204.1 108.0 L198.4 109.0 L192.2 108.7 L185.8 108.3 L179.8 109.1 L174.6 112.0 L170.3 116.4 L166.6 121.4 L162.5 125.6 L157.6 128.3 L151.7 129.8 L145.4 131.1 L139.7 133.3 L135.2 137.1 L132.3 142.3 L130.1 148.1 L127.6 153.4 L124.0 157.6 L118.9 160.7 L113.2 163.6 L108.1 167.1 L104.7 171.7 L103.1 177.4 L102.6 183.5 L102.0 189.4 L100.0 194.5 L96.4 199.0 L91.8 203.2 L87.7 207.8 L85.3 213.1 L85.1 218.9 L86.3 224.9 L87.6 230.8 L87.6 236.3 L85.7 241.6 L82.6 246.9 L79.8 252.3 L78.7 258.0 L79.8 263.4 L82.6 268.7 L85.7 273.8 L87.6 278.9 L87.6 284.2 L86.3 289.8 L85.1 295.6 L85.3 301.2 L87.7 306.2 L91.8 310.7 L96.4 314.7 L100.0 319.0 L102.0 324.0 L102.6 329.6 L103.1 335.5 L104.7 341.0 L108.1 345.4 L113.2 348.8 L118.9 351.5 L124.0 354.5 L127.6 358.6 L130.1 363.7 L132.3 369.2 L135.2 374.3 L139.7 377.9 L145.4 380.0 L151.7 381.2 L157.6 382.7 L162.5 385.3 L166.6 389.4 L170.3 394.1 L174.6 398.4 L179.8 401.1 L185.8 402.0 L192.2 401.6 L198.4 401.3 L204.1 402.2 L209.2 404.8 L214.3 408.4 L219.6 411.6 L225.3 413.2 L231.3 412.8 L237.4 410.9 L243.3 408.9 L249.0 408.0 L249.0 408.0 Z"/></clipPath><clipPath id="iw-cr0"><rect x="256" y="0" width="256" height="512"/></clipPath><clipPath id="iw-hr"><path d="M263.0 101.0 L263.0 102.0 L268.7 101.1 L274.6 99.0 L280.7 97.0 L286.7 96.6 L292.4 98.3 L297.7 101.6 L302.8 105.3 L307.9 108.0 L313.6 109.0 L319.8 108.7 L326.2 108.3 L332.2 109.1 L337.4 112.0 L341.7 116.4 L345.4 121.4 L349.5 125.6 L354.4 128.3 L360.3 129.8 L366.6 131.1 L372.3 133.3 L376.8 137.1 L379.7 142.3 L381.9 148.1 L384.4 153.4 L388.0 157.6 L393.1 160.7 L398.8 163.6 L403.9 167.1 L407.3 171.7 L408.9 177.4 L409.4 183.5 L410.0 189.4 L412.0 194.5 L415.6 199.0 L420.2 203.2 L424.3 207.8 L426.7 213.1 L426.9 218.9 L425.7 224.9 L424.4 230.8 L424.4 236.3 L426.3 241.6 L429.4 246.9 L432.2 252.3 L433.3 258.0 L432.2 263.4 L429.4 268.7 L426.3 273.8 L424.4 278.9 L424.4 284.2 L425.7 289.8 L426.9 295.6 L426.7 301.2 L424.3 306.2 L420.2 310.7 L415.6 314.7 L412.0 319.0 L410.0 324.0 L409.4 329.6 L408.9 335.5 L407.3 341.0 L403.9 345.4 L398.8 348.8 L393.1 351.5 L388.0 354.5 L384.4 358.6 L381.9 363.7 L379.7 369.2 L376.8 374.3 L372.3 377.9 L366.6 380.0 L360.3 381.2 L354.4 382.7 L349.5 385.3 L345.4 389.4 L341.7 394.1 L337.4 398.4 L332.2 401.1 L326.2 402.0 L319.8 401.6 L313.6 401.3 L307.9 402.2 L302.8 404.8 L297.7 408.4 L292.4 411.6 L286.7 413.2 L280.7 412.8 L274.6 410.9 L268.7 408.9 L263.0 408.0 L263.0 408.0 Z"/></clipPath>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#ia-bg)"/>
+  <g class="ia-all">
+    <circle class="ia-flash" cx="256" cy="258" r="130" fill="url(#ia-flash)"/>
+    <g class="ia-piece ia-pl0"><g clip-path="url(#ia-cl0)"><path d="M249.0 101.0 L249.0 102.0 L243.3 101.1 L237.4 99.0 L231.3 97.0 L225.3 96.6 L219.6 98.3 L214.3 101.6 L209.2 105.3 L204.1 108.0 L198.4 109.0 L192.2 108.7 L185.8 108.3 L179.8 109.1 L174.6 112.0 L170.3 116.4 L166.6 121.4 L162.5 125.6 L157.6 128.3 L151.7 129.8 L145.4 131.1 L139.7 133.3 L135.2 137.1 L132.3 142.3 L130.1 148.1 L127.6 153.4 L124.0 157.6 L118.9 160.7 L113.2 163.6 L108.1 167.1 L104.7 171.7 L103.1 177.4 L102.6 183.5 L102.0 189.4 L100.0 194.5 L96.4 199.0 L91.8 203.2 L87.7 207.8 L85.3 213.1 L85.1 218.9 L86.3 224.9 L87.6 230.8 L87.6 236.3 L85.7 241.6 L82.6 246.9 L79.8 252.3 L78.7 258.0 L79.8 263.4 L82.6 268.7 L85.7 273.8 L87.6 278.9 L87.6 284.2 L86.3 289.8 L85.1 295.6 L85.3 301.2 L87.7 306.2 L91.8 310.7 L96.4 314.7 L100.0 319.0 L102.0 324.0 L102.6 329.6 L103.1 335.5 L104.7 341.0 L108.1 345.4 L113.2 348.8 L118.9 351.5 L124.0 354.5 L127.6 358.6 L130.1 363.7 L132.3 369.2 L135.2 374.3 L139.7 377.9 L145.4 380.0 L151.7 381.2 L157.6 382.7 L162.5 385.3 L166.6 389.4 L170.3 394.1 L174.6 398.4 L179.8 401.1 L185.8 402.0 L192.2 401.6 L198.4 401.3 L204.1 402.2 L209.2 404.8 L214.3 408.4 L219.6 411.6 L225.3 413.2 L231.3 412.8 L237.4 410.9 L243.3 408.9 L249.0 408.0 L249.0 408.0 Z" fill="url(#ia-brain)"/><g clip-path="url(#ia-hl)"><path d="M222 136 C186 118 160 158 124 142" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M234 180 C198 198 176 160 138 186 S106 202 98 224" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M218 234 C190 256 158 220 128 250" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M234 284 C200 266 178 310 140 288 S108 298 96 278" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M220 336 C192 318 166 356 130 334" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M208 382 C182 366 160 394 142 376" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/></g><path d="M249.0 101.0 L249.0 102.0 L243.3 101.1 L237.4 99.0 L231.3 97.0 L225.3 96.6 L219.6 98.3 L214.3 101.6 L209.2 105.3 L204.1 108.0 L198.4 109.0 L192.2 108.7 L185.8 108.3 L179.8 109.1 L174.6 112.0 L170.3 116.4 L166.6 121.4 L162.5 125.6 L157.6 128.3 L151.7 129.8 L145.4 131.1 L139.7 133.3 L135.2 137.1 L132.3 142.3 L130.1 148.1 L127.6 153.4 L124.0 157.6 L118.9 160.7 L113.2 163.6 L108.1 167.1 L104.7 171.7 L103.1 177.4 L102.6 183.5 L102.0 189.4 L100.0 194.5 L96.4 199.0 L91.8 203.2 L87.7 207.8 L85.3 213.1 L85.1 218.9 L86.3 224.9 L87.6 230.8 L87.6 236.3 L85.7 241.6 L82.6 246.9 L79.8 252.3 L78.7 258.0 L79.8 263.4 L82.6 268.7 L85.7 273.8 L87.6 278.9 L87.6 284.2 L86.3 289.8 L85.1 295.6 L85.3 301.2 L87.7 306.2 L91.8 310.7 L96.4 314.7 L100.0 319.0 L102.0 324.0 L102.6 329.6 L103.1 335.5 L104.7 341.0 L108.1 345.4 L113.2 348.8 L118.9 351.5 L124.0 354.5 L127.6 358.6 L130.1 363.7 L132.3 369.2 L135.2 374.3 L139.7 377.9 L145.4 380.0 L151.7 381.2 L157.6 382.7 L162.5 385.3 L166.6 389.4 L170.3 394.1 L174.6 398.4 L179.8 401.1 L185.8 402.0 L192.2 401.6 L198.4 401.3 L204.1 402.2 L209.2 404.8 L214.3 408.4 L219.6 411.6 L225.3 413.2 L231.3 412.8 L237.4 410.9 L243.3 408.9 L249.0 408.0 L249.0 408.0 Z" fill="none" stroke="#1E1B4B" stroke-width="10" stroke-linejoin="round"/></g></g><g class="ia-piece ia-pl1"><g clip-path="url(#ia-cl1)"><path d="M249.0 101.0 L249.0 102.0 L243.3 101.1 L237.4 99.0 L231.3 97.0 L225.3 96.6 L219.6 98.3 L214.3 101.6 L209.2 105.3 L204.1 108.0 L198.4 109.0 L192.2 108.7 L185.8 108.3 L179.8 109.1 L174.6 112.0 L170.3 116.4 L166.6 121.4 L162.5 125.6 L157.6 128.3 L151.7 129.8 L145.4 131.1 L139.7 133.3 L135.2 137.1 L132.3 142.3 L130.1 148.1 L127.6 153.4 L124.0 157.6 L118.9 160.7 L113.2 163.6 L108.1 167.1 L104.7 171.7 L103.1 177.4 L102.6 183.5 L102.0 189.4 L100.0 194.5 L96.4 199.0 L91.8 203.2 L87.7 207.8 L85.3 213.1 L85.1 218.9 L86.3 224.9 L87.6 230.8 L87.6 236.3 L85.7 241.6 L82.6 246.9 L79.8 252.3 L78.7 258.0 L79.8 263.4 L82.6 268.7 L85.7 273.8 L87.6 278.9 L87.6 284.2 L86.3 289.8 L85.1 295.6 L85.3 301.2 L87.7 306.2 L91.8 310.7 L96.4 314.7 L100.0 319.0 L102.0 324.0 L102.6 329.6 L103.1 335.5 L104.7 341.0 L108.1 345.4 L113.2 348.8 L118.9 351.5 L124.0 354.5 L127.6 358.6 L130.1 363.7 L132.3 369.2 L135.2 374.3 L139.7 377.9 L145.4 380.0 L151.7 381.2 L157.6 382.7 L162.5 385.3 L166.6 389.4 L170.3 394.1 L174.6 398.4 L179.8 401.1 L185.8 402.0 L192.2 401.6 L198.4 401.3 L204.1 402.2 L209.2 404.8 L214.3 408.4 L219.6 411.6 L225.3 413.2 L231.3 412.8 L237.4 410.9 L243.3 408.9 L249.0 408.0 L249.0 408.0 Z" fill="url(#ia-brain)"/><g clip-path="url(#ia-hl)"><path d="M222 136 C186 118 160 158 124 142" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M234 180 C198 198 176 160 138 186 S106 202 98 224" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M218 234 C190 256 158 220 128 250" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M234 284 C200 266 178 310 140 288 S108 298 96 278" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M220 336 C192 318 166 356 130 334" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M208 382 C182 366 160 394 142 376" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/></g><path d="M249.0 101.0 L249.0 102.0 L243.3 101.1 L237.4 99.0 L231.3 97.0 L225.3 96.6 L219.6 98.3 L214.3 101.6 L209.2 105.3 L204.1 108.0 L198.4 109.0 L192.2 108.7 L185.8 108.3 L179.8 109.1 L174.6 112.0 L170.3 116.4 L166.6 121.4 L162.5 125.6 L157.6 128.3 L151.7 129.8 L145.4 131.1 L139.7 133.3 L135.2 137.1 L132.3 142.3 L130.1 148.1 L127.6 153.4 L124.0 157.6 L118.9 160.7 L113.2 163.6 L108.1 167.1 L104.7 171.7 L103.1 177.4 L102.6 183.5 L102.0 189.4 L100.0 194.5 L96.4 199.0 L91.8 203.2 L87.7 207.8 L85.3 213.1 L85.1 218.9 L86.3 224.9 L87.6 230.8 L87.6 236.3 L85.7 241.6 L82.6 246.9 L79.8 252.3 L78.7 258.0 L79.8 263.4 L82.6 268.7 L85.7 273.8 L87.6 278.9 L87.6 284.2 L86.3 289.8 L85.1 295.6 L85.3 301.2 L87.7 306.2 L91.8 310.7 L96.4 314.7 L100.0 319.0 L102.0 324.0 L102.6 329.6 L103.1 335.5 L104.7 341.0 L108.1 345.4 L113.2 348.8 L118.9 351.5 L124.0 354.5 L127.6 358.6 L130.1 363.7 L132.3 369.2 L135.2 374.3 L139.7 377.9 L145.4 380.0 L151.7 381.2 L157.6 382.7 L162.5 385.3 L166.6 389.4 L170.3 394.1 L174.6 398.4 L179.8 401.1 L185.8 402.0 L192.2 401.6 L198.4 401.3 L204.1 402.2 L209.2 404.8 L214.3 408.4 L219.6 411.6 L225.3 413.2 L231.3 412.8 L237.4 410.9 L243.3 408.9 L249.0 408.0 L249.0 408.0 Z" fill="none" stroke="#1E1B4B" stroke-width="10" stroke-linejoin="round"/></g></g><g class="ia-piece ia-pl2"><g clip-path="url(#ia-cl2)"><path d="M249.0 101.0 L249.0 102.0 L243.3 101.1 L237.4 99.0 L231.3 97.0 L225.3 96.6 L219.6 98.3 L214.3 101.6 L209.2 105.3 L204.1 108.0 L198.4 109.0 L192.2 108.7 L185.8 108.3 L179.8 109.1 L174.6 112.0 L170.3 116.4 L166.6 121.4 L162.5 125.6 L157.6 128.3 L151.7 129.8 L145.4 131.1 L139.7 133.3 L135.2 137.1 L132.3 142.3 L130.1 148.1 L127.6 153.4 L124.0 157.6 L118.9 160.7 L113.2 163.6 L108.1 167.1 L104.7 171.7 L103.1 177.4 L102.6 183.5 L102.0 189.4 L100.0 194.5 L96.4 199.0 L91.8 203.2 L87.7 207.8 L85.3 213.1 L85.1 218.9 L86.3 224.9 L87.6 230.8 L87.6 236.3 L85.7 241.6 L82.6 246.9 L79.8 252.3 L78.7 258.0 L79.8 263.4 L82.6 268.7 L85.7 273.8 L87.6 278.9 L87.6 284.2 L86.3 289.8 L85.1 295.6 L85.3 301.2 L87.7 306.2 L91.8 310.7 L96.4 314.7 L100.0 319.0 L102.0 324.0 L102.6 329.6 L103.1 335.5 L104.7 341.0 L108.1 345.4 L113.2 348.8 L118.9 351.5 L124.0 354.5 L127.6 358.6 L130.1 363.7 L132.3 369.2 L135.2 374.3 L139.7 377.9 L145.4 380.0 L151.7 381.2 L157.6 382.7 L162.5 385.3 L166.6 389.4 L170.3 394.1 L174.6 398.4 L179.8 401.1 L185.8 402.0 L192.2 401.6 L198.4 401.3 L204.1 402.2 L209.2 404.8 L214.3 408.4 L219.6 411.6 L225.3 413.2 L231.3 412.8 L237.4 410.9 L243.3 408.9 L249.0 408.0 L249.0 408.0 Z" fill="url(#ia-brain)"/><g clip-path="url(#ia-hl)"><path d="M222 136 C186 118 160 158 124 142" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M234 180 C198 198 176 160 138 186 S106 202 98 224" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M218 234 C190 256 158 220 128 250" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M234 284 C200 266 178 310 140 288 S108 298 96 278" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M220 336 C192 318 166 356 130 334" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M208 382 C182 366 160 394 142 376" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/></g><path d="M249.0 101.0 L249.0 102.0 L243.3 101.1 L237.4 99.0 L231.3 97.0 L225.3 96.6 L219.6 98.3 L214.3 101.6 L209.2 105.3 L204.1 108.0 L198.4 109.0 L192.2 108.7 L185.8 108.3 L179.8 109.1 L174.6 112.0 L170.3 116.4 L166.6 121.4 L162.5 125.6 L157.6 128.3 L151.7 129.8 L145.4 131.1 L139.7 133.3 L135.2 137.1 L132.3 142.3 L130.1 148.1 L127.6 153.4 L124.0 157.6 L118.9 160.7 L113.2 163.6 L108.1 167.1 L104.7 171.7 L103.1 177.4 L102.6 183.5 L102.0 189.4 L100.0 194.5 L96.4 199.0 L91.8 203.2 L87.7 207.8 L85.3 213.1 L85.1 218.9 L86.3 224.9 L87.6 230.8 L87.6 236.3 L85.7 241.6 L82.6 246.9 L79.8 252.3 L78.7 258.0 L79.8 263.4 L82.6 268.7 L85.7 273.8 L87.6 278.9 L87.6 284.2 L86.3 289.8 L85.1 295.6 L85.3 301.2 L87.7 306.2 L91.8 310.7 L96.4 314.7 L100.0 319.0 L102.0 324.0 L102.6 329.6 L103.1 335.5 L104.7 341.0 L108.1 345.4 L113.2 348.8 L118.9 351.5 L124.0 354.5 L127.6 358.6 L130.1 363.7 L132.3 369.2 L135.2 374.3 L139.7 377.9 L145.4 380.0 L151.7 381.2 L157.6 382.7 L162.5 385.3 L166.6 389.4 L170.3 394.1 L174.6 398.4 L179.8 401.1 L185.8 402.0 L192.2 401.6 L198.4 401.3 L204.1 402.2 L209.2 404.8 L214.3 408.4 L219.6 411.6 L225.3 413.2 L231.3 412.8 L237.4 410.9 L243.3 408.9 L249.0 408.0 L249.0 408.0 Z" fill="none" stroke="#1E1B4B" stroke-width="10" stroke-linejoin="round"/></g></g><g class="ia-piece ia-pr0"><g clip-path="url(#ia-cr0)"><path d="M263.0 101.0 L263.0 102.0 L268.7 101.1 L274.6 99.0 L280.7 97.0 L286.7 96.6 L292.4 98.3 L297.7 101.6 L302.8 105.3 L307.9 108.0 L313.6 109.0 L319.8 108.7 L326.2 108.3 L332.2 109.1 L337.4 112.0 L341.7 116.4 L345.4 121.4 L349.5 125.6 L354.4 128.3 L360.3 129.8 L366.6 131.1 L372.3 133.3 L376.8 137.1 L379.7 142.3 L381.9 148.1 L384.4 153.4 L388.0 157.6 L393.1 160.7 L398.8 163.6 L403.9 167.1 L407.3 171.7 L408.9 177.4 L409.4 183.5 L410.0 189.4 L412.0 194.5 L415.6 199.0 L420.2 203.2 L424.3 207.8 L426.7 213.1 L426.9 218.9 L425.7 224.9 L424.4 230.8 L424.4 236.3 L426.3 241.6 L429.4 246.9 L432.2 252.3 L433.3 258.0 L432.2 263.4 L429.4 268.7 L426.3 273.8 L424.4 278.9 L424.4 284.2 L425.7 289.8 L426.9 295.6 L426.7 301.2 L424.3 306.2 L420.2 310.7 L415.6 314.7 L412.0 319.0 L410.0 324.0 L409.4 329.6 L408.9 335.5 L407.3 341.0 L403.9 345.4 L398.8 348.8 L393.1 351.5 L388.0 354.5 L384.4 358.6 L381.9 363.7 L379.7 369.2 L376.8 374.3 L372.3 377.9 L366.6 380.0 L360.3 381.2 L354.4 382.7 L349.5 385.3 L345.4 389.4 L341.7 394.1 L337.4 398.4 L332.2 401.1 L326.2 402.0 L319.8 401.6 L313.6 401.3 L307.9 402.2 L302.8 404.8 L297.7 408.4 L292.4 411.6 L286.7 413.2 L280.7 412.8 L274.6 410.9 L268.7 408.9 L263.0 408.0 L263.0 408.0 Z" fill="url(#ia-brain)"/><g clip-path="url(#ia-hr)"><path d="M290 136 C326 118 352 158 388 142" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M278 180 C314 198 336 160 374 186 S406 202 414 224" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M294 234 C322 256 354 220 384 250" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M278 284 C312 266 334 310 372 288 S404 298 416 278" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M292 336 C320 318 346 356 382 334" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M304 382 C330 366 352 394 370 376" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/></g><path d="M263.0 101.0 L263.0 102.0 L268.7 101.1 L274.6 99.0 L280.7 97.0 L286.7 96.6 L292.4 98.3 L297.7 101.6 L302.8 105.3 L307.9 108.0 L313.6 109.0 L319.8 108.7 L326.2 108.3 L332.2 109.1 L337.4 112.0 L341.7 116.4 L345.4 121.4 L349.5 125.6 L354.4 128.3 L360.3 129.8 L366.6 131.1 L372.3 133.3 L376.8 137.1 L379.7 142.3 L381.9 148.1 L384.4 153.4 L388.0 157.6 L393.1 160.7 L398.8 163.6 L403.9 167.1 L407.3 171.7 L408.9 177.4 L409.4 183.5 L410.0 189.4 L412.0 194.5 L415.6 199.0 L420.2 203.2 L424.3 207.8 L426.7 213.1 L426.9 218.9 L425.7 224.9 L424.4 230.8 L424.4 236.3 L426.3 241.6 L429.4 246.9 L432.2 252.3 L433.3 258.0 L432.2 263.4 L429.4 268.7 L426.3 273.8 L424.4 278.9 L424.4 284.2 L425.7 289.8 L426.9 295.6 L426.7 301.2 L424.3 306.2 L420.2 310.7 L415.6 314.7 L412.0 319.0 L410.0 324.0 L409.4 329.6 L408.9 335.5 L407.3 341.0 L403.9 345.4 L398.8 348.8 L393.1 351.5 L388.0 354.5 L384.4 358.6 L381.9 363.7 L379.7 369.2 L376.8 374.3 L372.3 377.9 L366.6 380.0 L360.3 381.2 L354.4 382.7 L349.5 385.3 L345.4 389.4 L341.7 394.1 L337.4 398.4 L332.2 401.1 L326.2 402.0 L319.8 401.6 L313.6 401.3 L307.9 402.2 L302.8 404.8 L297.7 408.4 L292.4 411.6 L286.7 413.2 L280.7 412.8 L274.6 410.9 L268.7 408.9 L263.0 408.0 L263.0 408.0 Z" fill="none" stroke="#1E1B4B" stroke-width="10" stroke-linejoin="round"/></g></g><g class="ia-piece ia-pr1"><g clip-path="url(#ia-cr1)"><path d="M263.0 101.0 L263.0 102.0 L268.7 101.1 L274.6 99.0 L280.7 97.0 L286.7 96.6 L292.4 98.3 L297.7 101.6 L302.8 105.3 L307.9 108.0 L313.6 109.0 L319.8 108.7 L326.2 108.3 L332.2 109.1 L337.4 112.0 L341.7 116.4 L345.4 121.4 L349.5 125.6 L354.4 128.3 L360.3 129.8 L366.6 131.1 L372.3 133.3 L376.8 137.1 L379.7 142.3 L381.9 148.1 L384.4 153.4 L388.0 157.6 L393.1 160.7 L398.8 163.6 L403.9 167.1 L407.3 171.7 L408.9 177.4 L409.4 183.5 L410.0 189.4 L412.0 194.5 L415.6 199.0 L420.2 203.2 L424.3 207.8 L426.7 213.1 L426.9 218.9 L425.7 224.9 L424.4 230.8 L424.4 236.3 L426.3 241.6 L429.4 246.9 L432.2 252.3 L433.3 258.0 L432.2 263.4 L429.4 268.7 L426.3 273.8 L424.4 278.9 L424.4 284.2 L425.7 289.8 L426.9 295.6 L426.7 301.2 L424.3 306.2 L420.2 310.7 L415.6 314.7 L412.0 319.0 L410.0 324.0 L409.4 329.6 L408.9 335.5 L407.3 341.0 L403.9 345.4 L398.8 348.8 L393.1 351.5 L388.0 354.5 L384.4 358.6 L381.9 363.7 L379.7 369.2 L376.8 374.3 L372.3 377.9 L366.6 380.0 L360.3 381.2 L354.4 382.7 L349.5 385.3 L345.4 389.4 L341.7 394.1 L337.4 398.4 L332.2 401.1 L326.2 402.0 L319.8 401.6 L313.6 401.3 L307.9 402.2 L302.8 404.8 L297.7 408.4 L292.4 411.6 L286.7 413.2 L280.7 412.8 L274.6 410.9 L268.7 408.9 L263.0 408.0 L263.0 408.0 Z" fill="url(#ia-brain)"/><g clip-path="url(#ia-hr)"><path d="M290 136 C326 118 352 158 388 142" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M278 180 C314 198 336 160 374 186 S406 202 414 224" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M294 234 C322 256 354 220 384 250" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M278 284 C312 266 334 310 372 288 S404 298 416 278" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M292 336 C320 318 346 356 382 334" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M304 382 C330 366 352 394 370 376" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/></g><path d="M263.0 101.0 L263.0 102.0 L268.7 101.1 L274.6 99.0 L280.7 97.0 L286.7 96.6 L292.4 98.3 L297.7 101.6 L302.8 105.3 L307.9 108.0 L313.6 109.0 L319.8 108.7 L326.2 108.3 L332.2 109.1 L337.4 112.0 L341.7 116.4 L345.4 121.4 L349.5 125.6 L354.4 128.3 L360.3 129.8 L366.6 131.1 L372.3 133.3 L376.8 137.1 L379.7 142.3 L381.9 148.1 L384.4 153.4 L388.0 157.6 L393.1 160.7 L398.8 163.6 L403.9 167.1 L407.3 171.7 L408.9 177.4 L409.4 183.5 L410.0 189.4 L412.0 194.5 L415.6 199.0 L420.2 203.2 L424.3 207.8 L426.7 213.1 L426.9 218.9 L425.7 224.9 L424.4 230.8 L424.4 236.3 L426.3 241.6 L429.4 246.9 L432.2 252.3 L433.3 258.0 L432.2 263.4 L429.4 268.7 L426.3 273.8 L424.4 278.9 L424.4 284.2 L425.7 289.8 L426.9 295.6 L426.7 301.2 L424.3 306.2 L420.2 310.7 L415.6 314.7 L412.0 319.0 L410.0 324.0 L409.4 329.6 L408.9 335.5 L407.3 341.0 L403.9 345.4 L398.8 348.8 L393.1 351.5 L388.0 354.5 L384.4 358.6 L381.9 363.7 L379.7 369.2 L376.8 374.3 L372.3 377.9 L366.6 380.0 L360.3 381.2 L354.4 382.7 L349.5 385.3 L345.4 389.4 L341.7 394.1 L337.4 398.4 L332.2 401.1 L326.2 402.0 L319.8 401.6 L313.6 401.3 L307.9 402.2 L302.8 404.8 L297.7 408.4 L292.4 411.6 L286.7 413.2 L280.7 412.8 L274.6 410.9 L268.7 408.9 L263.0 408.0 L263.0 408.0 Z" fill="none" stroke="#1E1B4B" stroke-width="10" stroke-linejoin="round"/></g></g><g class="ia-piece ia-pr2"><g clip-path="url(#ia-cr2)"><path d="M263.0 101.0 L263.0 102.0 L268.7 101.1 L274.6 99.0 L280.7 97.0 L286.7 96.6 L292.4 98.3 L297.7 101.6 L302.8 105.3 L307.9 108.0 L313.6 109.0 L319.8 108.7 L326.2 108.3 L332.2 109.1 L337.4 112.0 L341.7 116.4 L345.4 121.4 L349.5 125.6 L354.4 128.3 L360.3 129.8 L366.6 131.1 L372.3 133.3 L376.8 137.1 L379.7 142.3 L381.9 148.1 L384.4 153.4 L388.0 157.6 L393.1 160.7 L398.8 163.6 L403.9 167.1 L407.3 171.7 L408.9 177.4 L409.4 183.5 L410.0 189.4 L412.0 194.5 L415.6 199.0 L420.2 203.2 L424.3 207.8 L426.7 213.1 L426.9 218.9 L425.7 224.9 L424.4 230.8 L424.4 236.3 L426.3 241.6 L429.4 246.9 L432.2 252.3 L433.3 258.0 L432.2 263.4 L429.4 268.7 L426.3 273.8 L424.4 278.9 L424.4 284.2 L425.7 289.8 L426.9 295.6 L426.7 301.2 L424.3 306.2 L420.2 310.7 L415.6 314.7 L412.0 319.0 L410.0 324.0 L409.4 329.6 L408.9 335.5 L407.3 341.0 L403.9 345.4 L398.8 348.8 L393.1 351.5 L388.0 354.5 L384.4 358.6 L381.9 363.7 L379.7 369.2 L376.8 374.3 L372.3 377.9 L366.6 380.0 L360.3 381.2 L354.4 382.7 L349.5 385.3 L345.4 389.4 L341.7 394.1 L337.4 398.4 L332.2 401.1 L326.2 402.0 L319.8 401.6 L313.6 401.3 L307.9 402.2 L302.8 404.8 L297.7 408.4 L292.4 411.6 L286.7 413.2 L280.7 412.8 L274.6 410.9 L268.7 408.9 L263.0 408.0 L263.0 408.0 Z" fill="url(#ia-brain)"/><g clip-path="url(#ia-hr)"><path d="M290 136 C326 118 352 158 388 142" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M278 180 C314 198 336 160 374 186 S406 202 414 224" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M294 234 C322 256 354 220 384 250" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M278 284 C312 266 334 310 372 288 S404 298 416 278" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M292 336 C320 318 346 356 382 334" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M304 382 C330 366 352 394 370 376" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/></g><path d="M263.0 101.0 L263.0 102.0 L268.7 101.1 L274.6 99.0 L280.7 97.0 L286.7 96.6 L292.4 98.3 L297.7 101.6 L302.8 105.3 L307.9 108.0 L313.6 109.0 L319.8 108.7 L326.2 108.3 L332.2 109.1 L337.4 112.0 L341.7 116.4 L345.4 121.4 L349.5 125.6 L354.4 128.3 L360.3 129.8 L366.6 131.1 L372.3 133.3 L376.8 137.1 L379.7 142.3 L381.9 148.1 L384.4 153.4 L388.0 157.6 L393.1 160.7 L398.8 163.6 L403.9 167.1 L407.3 171.7 L408.9 177.4 L409.4 183.5 L410.0 189.4 L412.0 194.5 L415.6 199.0 L420.2 203.2 L424.3 207.8 L426.7 213.1 L426.9 218.9 L425.7 224.9 L424.4 230.8 L424.4 236.3 L426.3 241.6 L429.4 246.9 L432.2 252.3 L433.3 258.0 L432.2 263.4 L429.4 268.7 L426.3 273.8 L424.4 278.9 L424.4 284.2 L425.7 289.8 L426.9 295.6 L426.7 301.2 L424.3 306.2 L420.2 310.7 L415.6 314.7 L412.0 319.0 L410.0 324.0 L409.4 329.6 L408.9 335.5 L407.3 341.0 L403.9 345.4 L398.8 348.8 L393.1 351.5 L388.0 354.5 L384.4 358.6 L381.9 363.7 L379.7 369.2 L376.8 374.3 L372.3 377.9 L366.6 380.0 L360.3 381.2 L354.4 382.7 L349.5 385.3 L345.4 389.4 L341.7 394.1 L337.4 398.4 L332.2 401.1 L326.2 402.0 L319.8 401.6 L313.6 401.3 L307.9 402.2 L302.8 404.8 L297.7 408.4 L292.4 411.6 L286.7 413.2 L280.7 412.8 L274.6 410.9 L268.7 408.9 L263.0 408.0 L263.0 408.0 Z" fill="none" stroke="#1E1B4B" stroke-width="10" stroke-linejoin="round"/></g></g>
+    <g class="ia-whole"><g><g clip-path="url(#iw-cl0)"><path d="M249.0 101.0 L249.0 102.0 L243.3 101.1 L237.4 99.0 L231.3 97.0 L225.3 96.6 L219.6 98.3 L214.3 101.6 L209.2 105.3 L204.1 108.0 L198.4 109.0 L192.2 108.7 L185.8 108.3 L179.8 109.1 L174.6 112.0 L170.3 116.4 L166.6 121.4 L162.5 125.6 L157.6 128.3 L151.7 129.8 L145.4 131.1 L139.7 133.3 L135.2 137.1 L132.3 142.3 L130.1 148.1 L127.6 153.4 L124.0 157.6 L118.9 160.7 L113.2 163.6 L108.1 167.1 L104.7 171.7 L103.1 177.4 L102.6 183.5 L102.0 189.4 L100.0 194.5 L96.4 199.0 L91.8 203.2 L87.7 207.8 L85.3 213.1 L85.1 218.9 L86.3 224.9 L87.6 230.8 L87.6 236.3 L85.7 241.6 L82.6 246.9 L79.8 252.3 L78.7 258.0 L79.8 263.4 L82.6 268.7 L85.7 273.8 L87.6 278.9 L87.6 284.2 L86.3 289.8 L85.1 295.6 L85.3 301.2 L87.7 306.2 L91.8 310.7 L96.4 314.7 L100.0 319.0 L102.0 324.0 L102.6 329.6 L103.1 335.5 L104.7 341.0 L108.1 345.4 L113.2 348.8 L118.9 351.5 L124.0 354.5 L127.6 358.6 L130.1 363.7 L132.3 369.2 L135.2 374.3 L139.7 377.9 L145.4 380.0 L151.7 381.2 L157.6 382.7 L162.5 385.3 L166.6 389.4 L170.3 394.1 L174.6 398.4 L179.8 401.1 L185.8 402.0 L192.2 401.6 L198.4 401.3 L204.1 402.2 L209.2 404.8 L214.3 408.4 L219.6 411.6 L225.3 413.2 L231.3 412.8 L237.4 410.9 L243.3 408.9 L249.0 408.0 L249.0 408.0 Z" fill="url(#ia-brain)"/><g clip-path="url(#iw-hl)"><path d="M222 136 C186 118 160 158 124 142" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M234 180 C198 198 176 160 138 186 S106 202 98 224" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M218 234 C190 256 158 220 128 250" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M234 284 C200 266 178 310 140 288 S108 298 96 278" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M220 336 C192 318 166 356 130 334" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M208 382 C182 366 160 394 142 376" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/></g><path d="M249.0 101.0 L249.0 102.0 L243.3 101.1 L237.4 99.0 L231.3 97.0 L225.3 96.6 L219.6 98.3 L214.3 101.6 L209.2 105.3 L204.1 108.0 L198.4 109.0 L192.2 108.7 L185.8 108.3 L179.8 109.1 L174.6 112.0 L170.3 116.4 L166.6 121.4 L162.5 125.6 L157.6 128.3 L151.7 129.8 L145.4 131.1 L139.7 133.3 L135.2 137.1 L132.3 142.3 L130.1 148.1 L127.6 153.4 L124.0 157.6 L118.9 160.7 L113.2 163.6 L108.1 167.1 L104.7 171.7 L103.1 177.4 L102.6 183.5 L102.0 189.4 L100.0 194.5 L96.4 199.0 L91.8 203.2 L87.7 207.8 L85.3 213.1 L85.1 218.9 L86.3 224.9 L87.6 230.8 L87.6 236.3 L85.7 241.6 L82.6 246.9 L79.8 252.3 L78.7 258.0 L79.8 263.4 L82.6 268.7 L85.7 273.8 L87.6 278.9 L87.6 284.2 L86.3 289.8 L85.1 295.6 L85.3 301.2 L87.7 306.2 L91.8 310.7 L96.4 314.7 L100.0 319.0 L102.0 324.0 L102.6 329.6 L103.1 335.5 L104.7 341.0 L108.1 345.4 L113.2 348.8 L118.9 351.5 L124.0 354.5 L127.6 358.6 L130.1 363.7 L132.3 369.2 L135.2 374.3 L139.7 377.9 L145.4 380.0 L151.7 381.2 L157.6 382.7 L162.5 385.3 L166.6 389.4 L170.3 394.1 L174.6 398.4 L179.8 401.1 L185.8 402.0 L192.2 401.6 L198.4 401.3 L204.1 402.2 L209.2 404.8 L214.3 408.4 L219.6 411.6 L225.3 413.2 L231.3 412.8 L237.4 410.9 L243.3 408.9 L249.0 408.0 L249.0 408.0 Z" fill="none" stroke="#1E1B4B" stroke-width="10" stroke-linejoin="round"/></g></g><g><g clip-path="url(#iw-cr0)"><path d="M263.0 101.0 L263.0 102.0 L268.7 101.1 L274.6 99.0 L280.7 97.0 L286.7 96.6 L292.4 98.3 L297.7 101.6 L302.8 105.3 L307.9 108.0 L313.6 109.0 L319.8 108.7 L326.2 108.3 L332.2 109.1 L337.4 112.0 L341.7 116.4 L345.4 121.4 L349.5 125.6 L354.4 128.3 L360.3 129.8 L366.6 131.1 L372.3 133.3 L376.8 137.1 L379.7 142.3 L381.9 148.1 L384.4 153.4 L388.0 157.6 L393.1 160.7 L398.8 163.6 L403.9 167.1 L407.3 171.7 L408.9 177.4 L409.4 183.5 L410.0 189.4 L412.0 194.5 L415.6 199.0 L420.2 203.2 L424.3 207.8 L426.7 213.1 L426.9 218.9 L425.7 224.9 L424.4 230.8 L424.4 236.3 L426.3 241.6 L429.4 246.9 L432.2 252.3 L433.3 258.0 L432.2 263.4 L429.4 268.7 L426.3 273.8 L424.4 278.9 L424.4 284.2 L425.7 289.8 L426.9 295.6 L426.7 301.2 L424.3 306.2 L420.2 310.7 L415.6 314.7 L412.0 319.0 L410.0 324.0 L409.4 329.6 L408.9 335.5 L407.3 341.0 L403.9 345.4 L398.8 348.8 L393.1 351.5 L388.0 354.5 L384.4 358.6 L381.9 363.7 L379.7 369.2 L376.8 374.3 L372.3 377.9 L366.6 380.0 L360.3 381.2 L354.4 382.7 L349.5 385.3 L345.4 389.4 L341.7 394.1 L337.4 398.4 L332.2 401.1 L326.2 402.0 L319.8 401.6 L313.6 401.3 L307.9 402.2 L302.8 404.8 L297.7 408.4 L292.4 411.6 L286.7 413.2 L280.7 412.8 L274.6 410.9 L268.7 408.9 L263.0 408.0 L263.0 408.0 Z" fill="url(#ia-brain)"/><g clip-path="url(#iw-hr)"><path d="M290 136 C326 118 352 158 388 142" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M278 180 C314 198 336 160 374 186 S406 202 414 224" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M294 234 C322 256 354 220 384 250" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M278 284 C312 266 334 310 372 288 S404 298 416 278" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M292 336 C320 318 346 356 382 334" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M304 382 C330 366 352 394 370 376" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/></g><path d="M263.0 101.0 L263.0 102.0 L268.7 101.1 L274.6 99.0 L280.7 97.0 L286.7 96.6 L292.4 98.3 L297.7 101.6 L302.8 105.3 L307.9 108.0 L313.6 109.0 L319.8 108.7 L326.2 108.3 L332.2 109.1 L337.4 112.0 L341.7 116.4 L345.4 121.4 L349.5 125.6 L354.4 128.3 L360.3 129.8 L366.6 131.1 L372.3 133.3 L376.8 137.1 L379.7 142.3 L381.9 148.1 L384.4 153.4 L388.0 157.6 L393.1 160.7 L398.8 163.6 L403.9 167.1 L407.3 171.7 L408.9 177.4 L409.4 183.5 L410.0 189.4 L412.0 194.5 L415.6 199.0 L420.2 203.2 L424.3 207.8 L426.7 213.1 L426.9 218.9 L425.7 224.9 L424.4 230.8 L424.4 236.3 L426.3 241.6 L429.4 246.9 L432.2 252.3 L433.3 258.0 L432.2 263.4 L429.4 268.7 L426.3 273.8 L424.4 278.9 L424.4 284.2 L425.7 289.8 L426.9 295.6 L426.7 301.2 L424.3 306.2 L420.2 310.7 L415.6 314.7 L412.0 319.0 L410.0 324.0 L409.4 329.6 L408.9 335.5 L407.3 341.0 L403.9 345.4 L398.8 348.8 L393.1 351.5 L388.0 354.5 L384.4 358.6 L381.9 363.7 L379.7 369.2 L376.8 374.3 L372.3 377.9 L366.6 380.0 L360.3 381.2 L354.4 382.7 L349.5 385.3 L345.4 389.4 L341.7 394.1 L337.4 398.4 L332.2 401.1 L326.2 402.0 L319.8 401.6 L313.6 401.3 L307.9 402.2 L302.8 404.8 L297.7 408.4 L292.4 411.6 L286.7 413.2 L280.7 412.8 L274.6 410.9 L268.7 408.9 L263.0 408.0 L263.0 408.0 Z" fill="none" stroke="#1E1B4B" stroke-width="10" stroke-linejoin="round"/></g></g></g>
+    <circle class="ia-spark ia-s0" cx="256" cy="258" r="5" fill="#FDE68A"/><circle class="ia-spark ia-s1" cx="256" cy="258" r="8" fill="#FDE68A"/><circle class="ia-spark ia-s2" cx="256" cy="258" r="5" fill="#FDE68A"/><circle class="ia-spark ia-s3" cx="256" cy="258" r="8" fill="#FDE68A"/><circle class="ia-spark ia-s4" cx="256" cy="258" r="5" fill="#FDE68A"/><circle class="ia-spark ia-s5" cx="256" cy="258" r="8" fill="#FDE68A"/><circle class="ia-spark ia-s6" cx="256" cy="258" r="5" fill="#FDE68A"/><circle class="ia-spark ia-s7" cx="256" cy="258" r="8" fill="#FDE68A"/><circle class="ia-spark ia-s8" cx="256" cy="258" r="5" fill="#FDE68A"/><circle class="ia-spark ia-s9" cx="256" cy="258" r="8" fill="#FDE68A"/><circle class="ia-spark ia-s10" cx="256" cy="258" r="5" fill="#FDE68A"/><circle class="ia-spark ia-s11" cx="256" cy="258" r="8" fill="#FDE68A"/>
+  </g>
+</svg></span><div><div class="name">Inga <span class="beta" title="Beta: Inga in the browser is experimental" data-i18n="brand.beta" data-i18n-title="brand.beta.t">Beta</span></div><div class="sub" data-i18n="brand.sub">AI models running in your browser</div>
+    <div class="by"><span data-i18n="brand.by">A new inference engine, coming soon — by</span> <a href="https://github.com/matteobaccan" target="_blank" rel="noopener">Matteo Baccan</a></div></div></div>
+  <nav class="navs" aria-label="Views">
+    <button class="navb" id="nav-chat" data-view="chat" aria-current="page"><svg class="ic"><use href="#i-chat"/></svg><span data-i18n="nav.chat">Chat</span></button>
+    <button class="navb" id="nav-models" data-view="models"><svg class="ic"><use href="#i-package"/></svg><span data-i18n="nav.models">Models</span></button>
+    <button class="navb" id="nav-settings" data-view="settings"><svg class="ic"><use href="#i-settings"/></svg><span data-i18n="nav.settings">Settings</span></button>
+    <button class="navb" id="nav-diag" data-view="diag"><svg class="ic"><use href="#i-gauge"/></svg><span data-i18n="nav.diag">Tests and report</span></button>
+  </nav>
+  <div class="side-h"><span data-i18n="side.convs">Conversations</span>
+    <button id="convs-more" class="icon" type="button" aria-expanded="false" aria-controls="convs-actions" title="Export, import or delete every conversation" data-i18n-title="convs.more"><svg class="ic"><use href="#i-archive"/></svg></button></div>
+  <div id="convs-actions" hidden>
+    <button id="convs-export" class="ghost" type="button"><svg class="ic"><use href="#i-download"/></svg><span data-i18n="convs.export">Export all (JSON)</span></button>
+    <button id="convs-export-md" class="ghost" type="button"><svg class="ic"><use href="#i-markdown"/></svg><span data-i18n="convs.exportmd">Export all (Markdown)</span></button>
+    <button id="convs-import" class="ghost" type="button"><svg class="ic"><use href="#i-upload"/></svg><span data-i18n="convs.import">Import chats</span></button>
+    <button id="convs-clear" class="ghost danger" type="button"><svg class="ic"><use href="#i-trash"/></svg><span data-i18n="convs.clear">Delete all</span></button>
+    <input type="file" id="convs-file" accept=".json,application/json" hidden>
+  </div>
+  <ul id="convs"></ul>
+  <div class="foot">
+    <button id="about-btn" class="icon" type="button" title="About Inga" aria-label="About Inga" data-i18n-title="about.btn" aria-haspopup="dialog"><svg class="ic"><use href="#i-info"/></svg></button>
+    <button id="theme-btn" class="icon" type="button" title="Theme: auto" aria-label="Theme"><svg class="ic"><use href="#i-theme-auto"/></svg></button>
+    <a class="icon" href="https://github.com/matteobaccan/inga/blob/main/docs/wasm-beta.md" target="_blank" rel="noopener" title="The beta's guide" aria-label="The beta's guide" style="padding:6px;color:var(--muted)"><svg class="ic"><use href="#i-external"/></svg></a>
+    <button id="new-chat" type="button"><svg class="ic"><use href="#i-plus"/></svg><span data-i18n="chat.new">New chat</span></button>
+  </div>
+  <div id="page-version" class="ver">dev</div>
+</aside>
+<div id="scrim"></div>
+<div id="main">
+  <header id="top">
+    <button id="menu" class="icon" type="button" aria-label="Menu"><svg class="ic"><use href="#i-menu"/></svg></button>
+    <div class="title"><h1 id="conv-title">New chat</h1><div class="meta" id="conv-count">0 messages</div></div>
+    <button id="conv-rename" class="icon" type="button" title="Rename this conversation" data-i18n-title="conv.rename"><svg class="ic"><use href="#i-edit"/></svg></button>
+    <button id="conv-export" class="icon" type="button" title="Export as Markdown" data-i18n-title="conv.md"><svg class="ic"><use href="#i-markdown"/></svg></button>
+    <button id="conv-download" class="icon" type="button" title="Download as JSON" data-i18n-title="conv.json"><svg class="ic"><use href="#i-download"/></svg></button>
+    <button id="fullscreen" class="icon" type="button" title="Full screen" data-i18n-title="conv.full"><svg class="ic"><use href="#i-expand"/></svg></button>
+  </header>
+  <div id="statusbar">
+    <div class="row" style="flex-wrap:nowrap"><div id="status" style="flex:1">Starting…</div>
+      <button id="reopen-status" class="reopen" type="button" hidden><svg class="ic"><use href="#i-retry"/></svg><span></span></button>
+      <button id="log-toggle" class="icon" type="button" title="Show the load log" aria-expanded="false"><svg class="ic"><use href="#i-braces"/></svg></button></div>
     <progress id="progress" max="1" value="0" hidden></progress>
-  </section>
+    <pre id="load-log"></pre>
+  </div>
 
-  <section>
-    <h2>Test models</h2>
-    <p class="note">A fixed list, for runs that compare: downloaded once from Hugging Face into this site's
-    private storage (OPFS); an interrupted download resumes. Where "Get" is blocked (a preview frame), "Save
-    file" saves it and option 2 below loads it: a picked file is stored under its own name, which must be the
-    list's file name for "stored ✓" to show.</p>
-    <ul class="list" id="suggested"></ul>
-  </section>
-
-  <section>
-    <h2>Load a model</h2>
-    <div class="row" style="margin-bottom:10px">
-      <span class="meta" style="flex-basis:100%">From the catalog: about fifty GGUF models on Hugging Face that Inga runs
-      (Llama, Qwen, Gemma, Phi, Mistral, DeepSeek R1 distills…), each quantization marked by whether it fits this
-      browser.</span>
-      <button id="picker-open">Browse models</button>
-    </div>
-    <div class="row" style="margin-bottom:10px">
-      <label for="url" class="meta" style="flex-basis:100%">1. From a link to a GGUF file (it must allow cross-origin downloads, as Hugging Face does)</label>
-      <input type="url" id="url" placeholder="https://huggingface.co/…/resolve/main/model-Q8_0.gguf">
-      <button id="url-go">Download and load</button>
-    </div>
-    <div class="row" style="margin-bottom:10px">
-      <label for="file" class="meta" style="flex-basis:100%">2. From a file on this device (on an iPhone or iPad it opens the Files app)</label>
-      <input type="file" id="file" accept=".gguf,application/octet-stream">
-    </div>
-    <div class="row">
-      <span class="meta" style="flex-basis:100%">3. From an <code>inga serve</code> on your network: not available yet. The server
-      does not hand out its model files today; until it does, any web server on your network
-      that sends the GGUF file with CORS headers works through option 1 (over HTTPS, since
-      this page is HTTPS).</span>
-    </div>
-    <details style="margin-top:10px">
-      <summary>Settings</summary>
-      <div class="row" style="margin-top:8px">
-        <label>Context <input type="number" id="ctx" value="2048" min="64" step="64"></label>
-        <label>Max tokens <input type="number" id="max" value="256" min="1"></label>
-        <label>Temperature <input type="number" id="temp" value="0.7" min="0" step="0.1"></label>
-        <label class="check"><input type="checkbox" id="think" checked> Think before answering
-          <span class="meta">(thinking models such as Qwen3; unchecked, they answer at once)</span></label>
-        <label class="check">Memory for the model
-          <select id="wmem"><option value="auto" selected>Auto</option><option value="all">All in memory</option><option value="mb">Limit in MB</option></select>
-          <input type="number" id="wmem-mb" value="1500" min="1" step="64" aria-label="Megabytes for the model">
-          <span class="meta" id="wmem-hint"></span>
-          <span class="meta">Everything the model keeps in memory: its weights, its KV cache for the context, its
-          working buffers. What does not fit is read from this site's storage while it runs (the embeddings a row
-          per token, the output layer and the last layers whole at every token): much slower, but a model larger
-          than the tab's memory runs; one that cannot fit is refused. A longer context leaves less for the
-          weights. Auto: 1600 MB on an iPhone or iPad, under the measured ceiling (Safari kept the tab at 1.75 GiB on an iPhone 16 Pro and
-          ended it at 2000 MB; a phone with less memory may need less), 3584 MB elsewhere (under the 4 GiB a
-          WebAssembly module can address: a model's part in memory is capped near 4 GB, so a larger model always
-          reads from storage; WebAssembly Memory64, in Chrome but not yet in Safari, would lift that). Kept in this
-          browser.</span></label>
-        <label class="check">Device
-          <select id="device"><option value="cpu" selected>CPU</option><option value="auto">Auto</option><option value="gpu">GPU (WebGPU, experimental)</option></select>
-          <button id="gpu-info" class="ghost">GPU info</button>
-          <span class="meta" id="device-hint"></span>
-          <span class="meta">CPU: WebAssembly SIMD on this device's cores. GPU: the layers through WebGPU, as
-          many as fit "GPU memory", the rest on the CPU (read from this site's storage when the memory limit
-          asks); a model whose layers or weight types the GPU does not run stays on the CPU, and the load line
-          says why. Auto: the GPU only where it was measured faster than the CPU, and never for a model larger
-          than "Memory for the model" (it would be read from storage, and the GPU's share leaves the CPU fewer
-          weights); on the iPhone 16 Pro the GPU was not faster (Qwen3 0.6B: 16.3 tok/s on the GPU, 25 on the
-          CPU), so Auto picks the CPU for now.</span></label>
-        <label class="check">GPU memory
-          <select id="gmem"><option value="auto" selected>Auto</option><option value="mb">Limit in MB</option></select>
-          <input type="number" id="gmem-mb" value="1024" min="1" step="64" aria-label="Megabytes for the GPU">
-          <span class="meta">What the GPU may hold: its layers' weights and KV cache, its working buffers. Auto:
-          1024 MB on an iPhone or iPad (Llama 3.2 1B, 0.9 GiB on the GPU, is the largest model measured to load
-          there); 3072 MB elsewhere, a guess: WebGPU does not tell a GPU's memory, and 3 GiB fits a 4 GB card
-          (set it in MB for yours).</span></label>
-        <label class="check">GPU memory accounting
-          <select id="gacct"><option value="auto" selected>Auto</option><option value="one">One limit: the GPU's bytes counted in "Memory for the model"</option><option value="apart">Apart: the limit covers WebAssembly memory only</option></select>
-          <span class="meta">One limit adds the GPU's bytes to WebAssembly memory, in case the system counts a tab's
-          GPU buffers with its memory, as iOS may; then a model that needs storage keeps fewer weights on the CPU
-          and runs slower on the GPU than on the CPU alone (Qwen3-4B on an iPhone 16 Pro: 0.9 against 2.3 tok/s).
-          Apart: "Memory for the model" bounds WebAssembly memory only and "GPU memory" the GPU's bytes, as on a
-          desktop, whose graphics memory is not the tab's. Auto: one limit on an iPhone or iPad (until the test in
-          the guide's step 7 shows that iOS does not count GPU buffers), apart elsewhere. The load line says which
-          was used.</span></label>
-        <label class="check">Draft model
-          <select id="draft"><option value="">None</option></select>
-          <span class="meta">A smaller stored model with the same vocabulary (for Qwen3-4B, Qwen3-0.6B; for Llama
-          3.2 3B, Llama 3.2 1B) guesses a few tokens, and the model checks them in one pass: a layer read from
-          storage is read once for every token the pass accepts. It is held whole, out of the same memory
-          limit, so the model keeps less in memory; it turns itself off while it does not make the answers
-          faster. Kept in this browser.</span></label>
-      </div>
-      <p class="meta" id="gpu-line"></p>
-    </details>
-  </section>
-
-  <section>
-    <h2>Stored models</h2>
-    <ul class="list" id="stored"></ul>
-    <p class="meta" id="storage"></p>
-    <div class="row" style="margin-bottom:8px"><button id="wipe" class="ghost" data-act="1">Delete all stored data</button>
-      <span id="wipe-confirm" hidden><span class="meta">Delete every model and file this site stores? This cannot be undone.</span>
-        <button id="wipe-yes">Delete all</button><button id="wipe-no" class="ghost">Cancel</button></span></div>
-    <div class="row"><button id="disktest" class="ghost" data-act="1">Disk speed test</button>
-      <span class="meta" id="disktest-out">Writes 256 MiB here, reads it back, deletes it.</span></div>
-  </section>
-
-  <section>
-    <h2 id="model-name">Chat</h2>
+  <section class="view" id="view-chat" aria-label="Chat">
     <div id="chat"></div>
-    <div class="row" style="margin-top:10px">
-      <textarea id="prompt" placeholder="Write a message" disabled></textarea>
+    <div id="composer">
+      <div id="reopen-bar" hidden><button id="reopen-go" class="reopen" type="button"><svg class="ic"><use href="#i-retry"/></svg><span></span></button><span class="meta" id="reopen-why"></span></div>
+      <div class="box">
+        <textarea id="prompt" rows="2" placeholder="Write a message" data-i18n-ph="chat.ph" disabled></textarea>
+        <div class="tools">
+          <button id="model-chip" class="chip" type="button" title="Pick a model"><svg class="ic"><use href="#i-package"/></svg><span id="model-mark" hidden></span><span id="model-name">No model: pick one</span></button>
+          <button id="info-btn" class="icon" type="button" title="Model info" aria-label="Model info" data-i18n-title="info.btn" aria-haspopup="dialog"><svg class="ic"><use href="#i-info"/></svg></button>
+          <label class="chip" title="Thinking models such as Qwen3 reason before they answer; unchecked, they answer at once"><input type="checkbox" id="think" checked><svg class="ic"><use href="#i-brain"/></svg><span data-i18n="chat.think">Think</span></label>
+          <span class="grow"></span>
+          <button id="reset" class="icon" type="button" title="New chat" disabled><svg class="ic"><use href="#i-plus"/></svg></button>
+          <button id="stop" class="ghost" type="button" disabled><svg class="ic"><use href="#i-stop"/></svg><span data-i18n="chat.stop">Stop</span></button>
+          <button id="ctx-gauge" class="icon" type="button" hidden aria-label="Context used" title="" aria-haspopup="dialog" aria-expanded="false" aria-controls="ctx-pop"><svg viewBox="0 0 20 20" aria-hidden="true"><circle class="track" cx="10" cy="10" r="8"/><circle id="ctx-ring" cx="10" cy="10" r="8" pathLength="100" stroke-dasharray="0 100"/></svg><span id="ctx-pct">0%</span></button>
+          <button id="send" type="button" disabled><span data-i18n="chat.send">Send</span></button>
+          <div id="ctx-pop" role="dialog" aria-labelledby="ctx-pop-h" hidden></div>
+        </div>
+      </div>
+      <div class="meta" id="send-hint">Enter to send, Shift+Enter for a new line</div>
+      <p class="meta" id="stats"></p>
     </div>
-    <div class="row" style="margin-top:8px">
-      <button id="send" disabled>Send</button>
-      <button id="stop" class="ghost" disabled>Stop</button>
-      <button id="reset" class="ghost" disabled>New chat</button>
-      <button id="gpubench" class="ghost" disabled title="Runs the loaded GPU model on a fixed prompt and 32 tokens under several kernel choices">GPU benchmark</button>
-      <button id="gpuprofile" class="ghost" disabled title="Times every kernel of the loaded GPU model's decode steps (timestamp-query where the GPU has it)">Kernel times</button>
-    </div>
-    <p class="meta" id="stats"></p>
-    <div class="row" style="margin-top:8px">
-      <button id="stdtest" class="ghost" data-act="1" disabled title="Ciao, presentati in tre frasi. — thinking off, temperature 0, 64 tokens, a fresh chat">Standard test</button>
-      <span class="meta">A fixed, comparable run on the loaded model, whatever the Settings: the prompt "Ciao,
-      presentati in tre frasi.", thinking off, temperature 0, at most 64 tokens, a fresh chat.</span>
-    </div>
-    <div class="row" id="std-out" hidden style="margin-top:6px">
-      <code id="std-line" style="flex:1 1 100%;white-space:pre-wrap;word-break:break-word;font-size:0.8rem"></code>
-      <button id="std-copy" class="ghost">Copy</button>
-    </div>
-    <details id="std-all" style="margin-top:8px">
-      <summary>Standard test results in this browser (<span id="std-count">0</span>)</summary>
-      <pre id="std-list" style="white-space:pre-wrap;word-break:break-word;font-size:0.8rem"></pre>
-      <div class="row"><button id="std-copy-all" class="ghost">Copy all</button><button id="std-clear" class="ghost">Clear</button></div>
-    </details>
-    <div id="bench" class="meta"></div>
-    <div id="kernels" class="meta"></div>
   </section>
 
-  <section>
-    <h2>Report</h2>
-    <p class="note">Opens GitHub's issue form for this beta with what the page knows filled in: this browser and
-    its GPU adapter, the model and how it loaded, the speeds (the last answer, the Standard test, the GPU
-    benchmark and kernel times if you ran them), the load log and the errors the page saw. Nothing is sent from
-    here: you read it on GitHub, add what you did, and submit it (a GitHub account is needed).</p>
-    <div class="row">
-      <button id="report-go">Report on GitHub</button>
-      <button id="report-copy" class="ghost">Copy report</button>
-      <span class="meta" id="report-out"></span>
-    </div>
-    <details style="margin-top:8px">
-      <summary>What the report contains</summary>
-      <pre id="report-text" style="white-space:pre-wrap;word-break:break-word;font-size:0.8rem"></pre>
-    </details>
-  </section>
-</main>
+  <section class="view" id="view-models" aria-label="Models" hidden><div class="inner">
+    <p class="note" id="beta-note" hidden><strong>Beta.</strong> A first public test of Inga in the browser:
+    pick a model, chat, run the Standard test (Tests and report), then press "Report on GitHub" there (what works
+    and what does not: <a href="https://github.com/matteobaccan/inga/blob/main/docs/wasm-beta.md">the beta's guide</a>).</p>
+    <p class="note">An experiment: Inga compiled to WebAssembly, running on this device's CPU (WebAssembly
+    SIMD; one thread, or every core when the page is cross-origin isolated), or with its layers on the GPU
+    through WebGPU (Settings, Device: experimental). A model larger than the tab's memory runs with part of it
+    read from this site's storage at every token. Nothing is sent anywhere: the model runs in this page. Tested in
+    headless Chromium on Linux and in Safari on an iPhone 16 Pro.</p>
+    <section class="card">
+      <h2 data-i18n="models.catalog">Model catalog</h2>
+      <div class="row">
+        <span class="meta" style="flex-basis:100%">About fifty GGUF models on Hugging Face that Inga runs (Llama, Qwen,
+        Gemma, Phi, Mistral, DeepSeek R1 distills…), each quantization marked by whether it fits this browser.</span>
+        <button id="picker-open"><svg class="ic"><use href="#i-search"/></svg><span data-i18n="models.browse">Browse models</span></button>
+      </div>
+    </section>
+    <section class="card"><details class="fold" id="tests-fold">
+      <summary><h2><span data-i18n="models.tests">Test models</span> <span class="meta" id="tests-count"></span></h2></summary>
+      <p class="note">A fixed list, for runs that compare: downloaded once from Hugging Face into this site's
+      private storage (OPFS); an interrupted download resumes. Where "Get" is blocked (a preview frame), "Save
+      file" saves it and option 2 below loads it: a picked file is stored under its own name, which must be the
+      list's file name for "stored ✓" to show.</p>
+      <ul class="list" id="suggested"></ul>
+    </details></section>
+    <section class="card">
+      <h2 data-i18n="models.load">Load a model</h2>
+      <div class="row" style="margin-bottom:10px">
+        <label for="url" class="meta" style="flex-basis:100%">1. From a link to a GGUF file (it must allow cross-origin downloads, as Hugging Face does)</label>
+        <input type="url" id="url" placeholder="https://huggingface.co/…/resolve/main/model-Q8_0.gguf">
+        <button id="url-go">Download and load</button>
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <label for="file" class="meta" style="flex-basis:100%">2. From a file on this device (on an iPhone or iPad it opens the Files app)</label>
+        <input type="file" id="file" accept=".gguf,application/octet-stream">
+      </div>
+      <div class="row">
+        <span class="meta" style="flex-basis:100%">3. From an <code>inga serve</code> on your network: not available yet. The server
+        does not hand out its model files today; until it does, any web server on your network
+        that sends the GGUF file with CORS headers works through option 1 (over HTTPS, since
+        this page is HTTPS).</span>
+      </div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="models.stored">Stored models</h2>
+      <ul class="list" id="stored"></ul>
+      <p class="meta" id="storage"></p>
+      <div class="row" style="margin-bottom:8px">
+        <button id="wipe-models" class="ghost" data-act="1"><svg class="ic"><use href="#i-trash"/></svg><span data-i18n="models.wipe">Delete model files</span></button>
+        <button id="wipe" class="ghost" data-act="1"><svg class="ic"><use href="#i-trash"/></svg><span data-i18n="models.wipeall">Delete all stored data</span></button></div>
+    </section>
+  </div></section>
+
+  <section class="view" id="view-settings" aria-label="Settings" hidden><div class="inner">
+    <section class="card">
+      <h2 data-i18n="set.gen">Answers</h2>
+      <div class="set"><span data-i18n="set.preset">Preset</span><div>
+        <span class="meta" id="preset-line"></span>
+        <div class="row"><button id="preset-reset" class="ghost" hidden><svg class="ic"><use href="#i-retry"/></svg><span data-i18n="preset.reset">Use the model's settings</span></button></div></div></div>
+      <div class="set"><label for="temp" data-i18n="set.temp">Temperature</label><div><input type="number" id="temp" value="0.7" min="0" max="2" step="0.1">
+        <span class="meta">0 always takes the likeliest token (the same answer every time); higher is more varied.</span></div></div>
+      <div class="set"><label for="topp">Top P</label><div><input type="number" id="topp" value="0.95" min="0" max="1" step="0.05">
+        <span class="meta">Draws among the likeliest tokens whose probabilities add up to this (1: all).</span></div></div>
+      <div class="set"><label for="topk">Top K</label><div><input type="number" id="topk" value="40" min="0" step="1">
+        <span class="meta">Draws among this many likeliest tokens (0: no limit).</span></div></div>
+      <div class="set"><label for="minp">Min P</label><div><input type="number" id="minp" value="0.05" min="0" max="1" step="0.01">
+        <span class="meta">Leaves out tokens less likely than this fraction of the likeliest one.</span></div></div>
+      <div class="set"><label for="rep" data-i18n="set.rep">Repeat penalty</label><div><input type="number" id="rep" value="1" min="0" step="0.05">
+        <span class="meta">Above 1, tokens of the last 64 are less likely again (1: off).</span></div></div>
+      <div class="set"><label for="pres" data-i18n="set.pres">Presence penalty</label><div><input type="number" id="pres" value="0" min="-2" max="2" step="0.1">
+        <span class="meta">Subtracted from every token already in the answer: new topics (0: off).</span></div></div>
+      <div class="set"><label for="freq" data-i18n="set.freq">Frequency penalty</label><div><input type="number" id="freq" value="0" min="-2" max="2" step="0.1">
+        <span class="meta">Subtracted for each time a token appeared: fewer repetitions (0: off).</span></div></div>
+      <div class="set"><label for="seed" data-i18n="set.seed">Seed</label><div><input type="number" id="seed" value="" min="0" step="1" placeholder="random">
+        <span class="meta">Empty: a new random seed for each answer, so asking again can answer differently. A number: the same seed every time (the same question and settings give the same answer). The seed of each answer is shown under it.</span></div></div>
+      <div class="set"><label for="max" data-i18n="set.max">Max tokens</label><div><input type="number" id="max" value="1024" min="1">
+        <span class="meta">The longest answer, reasoning included. 1024 by default; left at it, a model that thinks gets at
+        least 2048 while Think is on (its reasoning alone often takes more than 1024 tokens); a value you set is used as it is.</span></div></div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="set.conv">Conversation</h2>
+      <div class="set"><span data-i18n="set.sys">System prompt</span><div>
+        <label class="row" style="gap:6px"><input type="checkbox" id="sys-on"> <span data-i18n="set.syson">Send a system prompt first</span></label>
+        <textarea id="sys" rows="3" placeholder="You are a helpful assistant. Answer briefly."></textarea>
+        <span class="meta">Given to the model before the conversation, through its chat template.</span></div></div>
+      <div class="set"><label for="past" data-i18n="set.past">Past messages sent</label><div><input type="number" id="past" value="0" min="0" step="1">
+        <span class="meta">How many of the conversation's last messages go with each question (0: all of them, as long as the context holds them).</span></div></div>
+      <div class="set"><label for="sendkey" data-i18n="set.sendkey">Send key</label><div><select id="sendkey"><option value="enter" selected data-i18n="opt.enter">Enter</option><option value="ctrl" data-i18n="opt.ctrl">Ctrl+Enter (⌘+Enter)</option></select></div></div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="set.load">Model loading</h2>
+      <div class="set"><label for="ctx" data-i18n="set.ctx">Context window</label><div><input type="number" id="ctx" value="" min="64" step="64" placeholder="Auto">
+        <span class="meta">Tokens the model keeps (the KV cache): the conversation, the question and the answer must fit.
+        Empty: Auto, the context the model was trained for (its GGUF's context length), lowered only when its KV
+        cache would take more than half of the memory the weights leave (the GPU memory limit on the GPU, else the
+        memory limit, at most WebAssembly's 4 GiB), and never below 2048 unless memory forces it; the field then
+        shows what Auto chose for the model loaded. A number set here wins.</span>
+        <span class="meta reload-note" data-i18n="set.reloadnote">Applies when you leave Settings (the model reloads).</span></div></div>
+      <div class="set"><label for="kv" data-i18n="set.kv">KV cache</label><div>
+        <select id="kv"><option value="auto" selected data-i18n="opt.auto">Auto</option><option value="f16">F16</option><option value="q8_0">Q8_0</option><option value="q4_0">Q4_0</option></select>
+        <span class="meta" id="kv-hint"></span>
+        <span class="meta reload-note" data-i18n="set.reloadnote">Applies when you leave Settings (the model reloads).</span>
+        <span class="meta">How the KV cache stores keys and values: F16 (2 bytes a value), Q8_0 (about half),
+        Q4_0 (about a quarter, less exact). Auto: F16 when the model's whole context fits, else Q8_0, and only then a
+        shorter context. On the GPU the cache is F16 (its layers have no other); the CPU's layers use the type.</span></div></div>
+      <div class="set"><label for="wmem" data-i18n="set.wmem">Memory for the model</label><div>
+        <select id="wmem"><option value="auto" selected data-i18n="opt.auto">Auto</option><option value="all" data-i18n="opt.all">All in memory</option><option value="mb" data-i18n="opt.mb">Limit in MB</option></select>
+        <input type="number" id="wmem-mb" value="1500" min="1" step="64" aria-label="Megabytes for the model">
+        <span class="meta" id="wmem-hint"></span>
+        <span class="meta reload-note" data-i18n="set.reloadnote">Applies when you leave Settings (the model reloads).</span>
+        <span class="meta">Everything the model keeps in memory: its weights, its KV cache for the context, its
+        working buffers. What does not fit is read from this site's storage while it runs (the embeddings a row
+        per token, the output layer and the last layers whole at every token): much slower, but a model larger
+        than the tab's memory runs; one that cannot fit is refused. A longer context leaves less for the
+        weights. Auto: 1600 MB on an iPhone or iPad, under the measured ceiling (Safari kept the tab at 1.75 GiB on an iPhone 16 Pro and
+        ended it at 2000 MB; a phone with less memory may need less), 3584 MB elsewhere (under the 4 GiB a
+        WebAssembly module can address: a model's part in memory is capped near 4 GB, so a larger model always
+        reads from storage; WebAssembly Memory64, in Chrome but not yet in Safari, would lift that). Kept in this
+        browser.</span></div></div>
+      <div class="set"><label for="device" data-i18n="set.device">Device</label><div>
+        <select id="device"><option value="cpu" selected>CPU</option><option value="auto" data-i18n="opt.auto">Auto</option><option value="gpu" data-i18n="opt.gpu">GPU (experimental)</option></select>
+        <button id="gpu-info" class="ghost">GPU info</button>
+        <span class="meta" id="device-hint"></span>
+        <span class="meta reload-note" data-i18n="set.reloadnote">Applies when you leave Settings (the model reloads).</span>
+        <span class="meta" id="gpu-line"></span>
+        <span class="meta">CPU: WebAssembly SIMD on this device's cores. GPU (experimental): the layers through WebGPU, as
+        many as fit "GPU memory", the rest on the CPU (read from this site's storage when the memory limit
+        asks); a model whose layers or weight types the GPU does not run stays on the CPU, and the load line
+        says why. Auto: the GPU only where it was measured faster than the CPU, and never for a model larger
+        than "Memory for the model" (it would be read from storage, and the GPU's share leaves the CPU fewer
+        weights); on the iPhone 16 Pro the GPU was not faster (Qwen3 0.6B: 16.3 tok/s on the GPU, 25 on the
+        CPU), so Auto picks the CPU for now. In a browser without WebGPU (no navigator.gpu), GPU is not available.</span></div></div>
+      <div class="set"><label for="gmem" data-i18n="set.gmem">GPU memory</label><div>
+        <select id="gmem"><option value="auto" selected data-i18n="opt.auto">Auto</option><option value="mb" data-i18n="opt.mb">Limit in MB</option></select>
+        <input type="number" id="gmem-mb" value="1024" min="1" step="64" aria-label="Megabytes for the GPU">
+        <span class="meta" id="gmem-hint"></span>
+        <span class="meta reload-note" data-i18n="set.reloadnote">Applies when you leave Settings (the model reloads).</span>
+        <span class="meta">What the GPU may hold: its layers' weights and KV cache, its working buffers. Auto:
+        1024 MB on an iPhone or iPad (Llama 3.2 1B, 0.9 GiB on the GPU, is the largest model measured to load
+        there). Elsewhere it follows the adapter, since WebGPU does not tell a GPU's memory: an Apple GPU
+        shares the Mac's memory, so 3/4 of what the browser reports (Chrome reports at most 8 GB: 6144 MB,
+        which holds a 7B Q4 model and its KV cache), or the adapter's maxBufferSize when larger; another GPU 4096 MB when its
+        maxBufferSize and the device's memory are large, else 3072 MB, which fits a 4 GB card; 16 GB at most
+        (set it in MB for yours). The line above says what Auto gives here and why. The layers that do not
+        fit run on the CPU, much slower: the load line says how many.</span></div></div>
+      <div class="set"><label for="gacct" data-i18n="set.gacct">GPU memory accounting</label><div>
+        <select id="gacct"><option value="auto" selected data-i18n="opt.auto">Auto</option><option value="one" data-i18n="opt.one">One limit</option><option value="apart" data-i18n="opt.apart">Apart</option></select>
+        <span class="meta reload-note" data-i18n="set.reloadnote">Applies when you leave Settings (the model reloads).</span>
+        <span class="meta">One limit: the GPU's bytes are counted in "Memory for the model" (added to WebAssembly memory), in case the system counts a tab's
+        GPU buffers with its memory, as iOS may; then a model that needs storage keeps fewer weights on the CPU
+        and runs slower on the GPU than on the CPU alone (Qwen3-4B on an iPhone 16 Pro: 0.9 against 2.3 tok/s).
+        Apart: the limit covers WebAssembly memory only; "Memory for the model" bounds WebAssembly memory and "GPU memory" the GPU's bytes, as on a
+        desktop, whose graphics memory is not the tab's. Auto: one limit on an iPhone or iPad (until the test in
+        the guide's step 7 shows that iOS does not count GPU buffers), apart elsewhere. The load line says which
+        was used.</span></div></div>
+      <div class="set"><label for="draft" data-i18n="set.draft">Draft model</label><div>
+        <select id="draft"><option value="" data-i18n="opt.none">None</option></select>
+        <span class="meta reload-note" data-i18n="set.reloadnote">Applies when you leave Settings (the model reloads).</span>
+        <span class="meta">A smaller stored model with the same vocabulary (for Qwen3-4B, Qwen3-0.6B; for Llama
+        3.2 3B, Llama 3.2 1B) guesses a few tokens, and the model checks them in one pass: a layer read from
+        storage is read once for every token the pass accepts. It is held whole, out of the same memory
+        limit, so the model keeps less in memory; it turns itself off while it does not make the answers
+        faster. Kept in this browser.</span></div></div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="set.look">Appearance</h2>
+      <div class="set"><label for="theme" data-i18n="set.theme">Theme</label><div><select id="theme"><option value="auto" selected data-i18n="opt.theme.auto">Auto (this device's)</option><option value="light" data-i18n="opt.light">Light</option><option value="dark" data-i18n="opt.dark">Dark</option></select></div></div>
+      <div class="set"><label for="fontsize" data-i18n="set.font">Font size</label><div><select id="fontsize"><option value="small" data-i18n="opt.small">Small</option><option value="normal" selected data-i18n="opt.normal">Normal</option><option value="large" data-i18n="opt.large">Large</option><option value="xlarge" data-i18n="opt.xlarge">Larger</option></select></div></div>
+      <div class="set"><label for="lang" data-i18n="set.lang">Language</label><div><select id="lang"><option value="en" selected>English</option><option value="it">Italiano</option></select>
+        <span class="meta">The page's buttons, menus and headings; the longer explanations stay in English.</span></div></div>
+      <div class="set"><label for="loglevel" data-i18n="set.log">Load log</label><div><select id="loglevel"><option value="all" selected data-i18n="opt.log.all">Every step</option><option value="summary" data-i18n="opt.log.summary">Start, end, errors</option><option value="off" data-i18n="opt.off">Off</option></select>
+        <span class="meta">What the load log under the status line keeps (the report sends it): every step, or only the start, the end and the errors, or nothing.</span></div></div>
+    </section>
+    <section class="card">
+      <div class="row"><button id="settings-reset" class="ghost"><svg class="ic"><use href="#i-retry"/></svg><span data-i18n="set.reset">Reset all settings</span></button>
+        <span class="meta">Every setting above back to its default; models and conversations stay. Settings are kept in this browser.</span></div>
+    </section>
+  </div></section>
+
+  <section class="view" id="view-diag" aria-label="Tests and report" hidden><div class="inner">
+    <section class="card">
+      <h2 data-i18n="diag.std">Standard test</h2>
+      <div class="row">
+        <button id="stdtest" class="ghost" data-act="1" disabled title="Ciao, presentati in tre frasi. — thinking off, temperature 0, 64 tokens, a fresh chat">Standard test</button>
+        <span class="meta">A fixed, comparable run on the loaded model, whatever the Settings: the prompt "Ciao,
+        presentati in tre frasi.", thinking off, temperature 0, at most 64 tokens, in a new conversation.</span>
+      </div>
+      <div class="row" id="std-out" hidden style="margin-top:6px">
+        <code id="std-line" style="flex:1 1 100%;white-space:pre-wrap;word-break:break-word;font-size:.8rem"></code>
+        <button id="std-copy" class="ghost" data-i18n="md.copy">Copy</button>
+      </div>
+      <details id="std-all" style="margin-top:8px">
+        <summary>Standard test results in this browser (<span id="std-count">0</span>)</summary>
+        <pre id="std-list" class="out"></pre>
+        <div class="row"><button id="std-copy-all" class="ghost">Copy all</button><button id="std-clear" class="ghost">Clear</button></div>
+      </details>
+    </section>
+    <section class="card">
+      <h2 data-i18n="diag.gpu">GPU</h2>
+      <div class="row">
+        <button id="gpubench" class="ghost" disabled title="Runs the loaded GPU model on a fixed prompt and 32 tokens under several kernel choices">GPU benchmark</button>
+        <button id="gpuprofile" class="ghost" disabled title="Times every kernel of the loaded GPU model's decode steps (timestamp-query where the GPU has it)">Kernel times</button>
+        <span class="meta">On a model loaded on the GPU; its prompt is not part of a conversation.</span>
+      </div>
+      <div id="bench" class="meta"></div>
+      <div id="kernels" class="meta"></div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="diag.disk">Storage speed</h2>
+      <div class="row"><button id="disktest" class="ghost" data-act="1">Disk speed test</button>
+        <span class="meta" id="disktest-out">Writes 256 MiB here, reads it back, deletes it.</span></div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="diag.report">Report</h2>
+      <p class="note">Opens GitHub's issue form for this beta with what the page knows filled in: this browser and
+      its GPU adapter, the model and how it loaded, the speeds (the last answer, the Standard test, the GPU
+      benchmark and kernel times if you ran them), the load log and the errors the page saw. Nothing is sent from
+      here: you read it on GitHub, add what you did, and submit it (a GitHub account is needed).</p>
+      <div class="row">
+        <button id="report-go"><svg class="ic"><use href="#i-flag"/></svg>Report on GitHub</button>
+        <button id="report-copy" class="ghost">Copy report</button>
+        <span class="meta" id="report-out"></span>
+      </div>
+      <details style="margin-top:8px">
+        <summary>What the report contains</summary>
+        <pre id="report-text" class="out"></pre>
+      </details>
+    </section>
+  </div></section>
+</div>
+</div>
+<dialog id="ask" aria-labelledby="ask-title" aria-describedby="ask-msg">
+  <h2 id="ask-title"></h2>
+  <p id="ask-msg"></p>
+  <input type="text" id="ask-input" hidden>
+  <div class="ask-buttons"><button id="ask-second" class="ghost" type="button" hidden></button>
+    <span class="grow"></span><button id="ask-cancel" class="ghost" type="button">Cancel</button><button id="ask-ok" type="button">OK</button></div>
+</dialog>
+<dialog id="info" aria-labelledby="info-title">
+  <div class="row" style="justify-content:space-between;flex-wrap:nowrap">
+    <h2 id="info-title" data-i18n="info.title">Model info</h2>
+    <button id="info-close" class="ghost" type="button" data-i18n="info.close">Close</button>
+  </div>
+  <div id="info-body"></div>
+  <div class="ask-buttons"><span class="meta" id="info-out"></span><span class="grow"></span><button id="info-copy" type="button" data-i18n="info.copy">Copy</button></div>
+</dialog>
+<dialog id="about" aria-labelledby="about-title">
+  <div class="row" style="justify-content:space-between;flex-wrap:nowrap">
+    <h2 id="about-title" style="margin:0" data-i18n="about.title">About Inga</h2>
+    <button id="about-close" class="ghost" type="button" data-i18n="about.close">Close</button>
+  </div>
+  <p data-i18n="about.what">Inga is a new local inference engine written in Rust, by Matteo Baccan, to be published soon.</p>
+  <p data-i18n="about.beta">This page is its beta, running entirely in your browser (WebAssembly and WebGPU).</p>
+  <p data-i18n="about.private">Nothing leaves this device except the model's download.</p>
+  <p class="meta"><span data-i18n="about.version">Version</span>: <span id="about-version">dev</span></p>
+  <ul>
+    <li><a href="https://github.com/matteobaccan" target="_blank" rel="noopener" data-i18n="about.profile">Matteo Baccan on GitHub</a></li>
+    <li><a href="https://github.com/matteobaccan/ingatest/issues" target="_blank" rel="noopener" data-i18n="about.issues">The beta's issues</a></li>
+    <li><a href="https://github.com/matteobaccan/inga/blob/main/docs/wasm-beta.md" target="_blank" rel="noopener" data-i18n="about.guide">The beta's guide</a></li>
+  </ul>
+</dialog>
 <dialog id="picker" aria-labelledby="picker-title">
   <div class="top">
     <div class="row" style="justify-content:space-between">
