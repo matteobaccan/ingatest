@@ -1,0 +1,754 @@
+<!DOCTYPE html><html lang="en" dir="ltr" data-theme="dark" data-has-toc data-has-sidebar class="astro-g5ptsecz"><head><meta name="robots" content="noindex, nofollow"><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Run a model inside the browser (experiment) | Inga</title><link rel="canonical" href="https://matteobaccan.github.io/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-inside-the-browser/"/><link rel="sitemap" href="/ingatest/p-20c8253d8a05/sitemap-index.xml"/><link rel="shortcut icon" href="/ingatest/p-20c8253d8a05/brand/favicon.svg" type="image/svg+xml"/><meta name="generator" content="Astro v7.3.8"/><meta name="generator" content="Starlight v0.42.6"/><meta property="og:title" content="Run a model inside the browser (experiment)"/><meta property="og:type" content="article"/><meta property="og:url" content="https://matteobaccan.github.io/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-inside-the-browser/"/><meta property="og:locale" content="en"/><meta property="og:description" content="Supported since: unreleased (an experiment on main, spec 2026-10-09-webgpu-wasm-design.md §8, &quot;As built&quot;)"/><meta property="og:site_name" content="Inga"/><meta name="twitter:card" content="summary_large_image"/><meta name="description" content="Supported since: unreleased (an experiment on main, spec 2026-10-09-webgpu-wasm-design.md §8, &quot;As built&quot;)"/><meta name="theme-color" content="#4f46e5"/><script>
+	window.StarlightThemeProvider = (() => {
+		const storedTheme =
+			typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme');
+		const theme =
+			storedTheme ||
+			(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+		document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+		return {
+			updatePickers(theme = storedTheme || 'auto') {
+				document.querySelectorAll('starlight-theme-select').forEach((picker) => {
+					const select = picker.querySelector('select');
+					if (select) select.value = theme;
+					/** @type {HTMLTemplateElement | null} */
+					const tmpl = document.querySelector(`#theme-icons`);
+					const newIcon = tmpl && tmpl.content.querySelector('.' + theme);
+					if (newIcon) {
+						const oldIcon = picker.querySelector('svg.label-icon');
+						if (oldIcon) {
+							oldIcon.replaceChildren(...newIcon.cloneNode(true).childNodes);
+						}
+					}
+				});
+			},
+		};
+	})();
+</script><template id="theme-icons"><svg aria-hidden="true" class="light astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M5 12a1 1 0 0 0-1-1H3a1 1 0 0 0 0 2h1a1 1 0 0 0 1-1Zm.64 5-.71.71a1 1 0 0 0 0 1.41 1 1 0 0 0 1.41 0l.71-.71A1 1 0 0 0 5.64 17ZM12 5a1 1 0 0 0 1-1V3a1 1 0 0 0-2 0v1a1 1 0 0 0 1 1Zm5.66 2.34a1 1 0 0 0 .7-.29l.71-.71a1 1 0 1 0-1.41-1.41l-.66.71a1 1 0 0 0 0 1.41 1 1 0 0 0 .66.29Zm-12-.29a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.71-.71a1.004 1.004 0 1 0-1.43 1.41l.73.71ZM21 11h-1a1 1 0 0 0 0 2h1a1 1 0 0 0 0-2Zm-2.64 6A1 1 0 0 0 17 18.36l.71.71a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.76-.66ZM12 6.5a5.5 5.5 0 1 0 5.5 5.5A5.51 5.51 0 0 0 12 6.5Zm0 9a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm0 3.5a1 1 0 0 0-1 1v1a1 1 0 0 0 2 0v-1a1 1 0 0 0-1-1Z"/></svg><svg aria-hidden="true" class="dark astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.64 13a1 1 0 0 0-1.05-.14 8.049 8.049 0 0 1-3.37.73 8.15 8.15 0 0 1-8.14-8.1 8.59 8.59 0 0 1 .25-2A1 1 0 0 0 8 2.36a10.14 10.14 0 1 0 14 11.69 1 1 0 0 0-.36-1.05Zm-9.5 6.69A8.14 8.14 0 0 1 7.08 5.22v.27a10.15 10.15 0 0 0 10.14 10.14 9.784 9.784 0 0 0 2.1-.22 8.11 8.11 0 0 1-7.18 4.32v-.04Z"/></svg><svg aria-hidden="true" class="auto astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg></template><link rel="stylesheet" href="/ingatest/p-20c8253d8a05/_astro/print.ehPL0gv-.css" media="print"><link rel="stylesheet" href="/ingatest/p-20c8253d8a05/_astro/common.6begOzOP.css"><script type="module" src="/ingatest/p-20c8253d8a05/_astro/page.Dwipeu-R.js"></script></head><body class="astro-g5ptsecz"><a class="sl-skip-link astro-qb7clj6f" href="#_top">Skip to content</a><div class="page sl-flex astro-yntsjkba"><header class="header astro-yntsjkba"><div class="header astro-by6fddyj"><div class="title-wrapper sl-flex astro-by6fddyj"><a href="/ingatest/p-20c8253d8a05/" class="site-title sl-flex astro-6rvad3va"><img class="astro-6rvad3va" alt="Inga" src="/ingatest/p-20c8253d8a05/_astro/logo-mark.GyN-MezV.svg" width="512" height="512"><span class="astro-6rvad3va" translate="no">Inga</span></a></div><div class="sl-flex print:hidden astro-by6fddyj"><site-search class="astro-by6fddyj astro-b5kgnn7o" data-translations="{&quot;placeholder&quot;:&quot;Search&quot;}"><button data-open-modal disabled aria-label="Search" aria-keyshortcuts="Control+K" class="astro-b5kgnn7o"><svg aria-hidden="true" class="astro-b5kgnn7o astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.71 20.29 18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.39ZM11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg><span class="sl-hidden md:sl-block astro-b5kgnn7o" aria-hidden="true">Search</span><kbd class="sl-hidden md:sl-flex astro-b5kgnn7o" style="display: none;"><kbd class="astro-b5kgnn7o">Ctrl</kbd><kbd class="astro-b5kgnn7o">K</kbd></kbd></button><dialog style="padding:0" aria-label="Search" class="astro-b5kgnn7o"><div class="dialog-frame sl-flex astro-b5kgnn7o"><button data-close-modal class="sl-flex md:sl-hidden astro-b5kgnn7o">Cancel</button><div class="search-container astro-b5kgnn7o"><div id="starlight__search" class="astro-b5kgnn7o"></div></div></div></dialog></site-search><script>
+	(() => {
+		const openBtn = document.querySelector('button[data-open-modal]');
+		const shortcut = openBtn?.querySelector('kbd');
+		if (!openBtn || !(shortcut instanceof HTMLElement)) return;
+		const platformKey = shortcut.querySelector('kbd');
+		if (platformKey && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)) {
+			platformKey.textContent = '⌘';
+			openBtn.setAttribute('aria-keyshortcuts', 'Meta+K');
+		}
+		shortcut.style.display = '';
+	})();
+</script><script type="module" src="/ingatest/p-20c8253d8a05/_astro/Search.astro_astro_type_script_index_0_lang.DLvI_k91.js"></script></div><div class="sl-hidden md:sl-flex print:hidden right-group astro-by6fddyj"><div class="sl-flex social-icons astro-by6fddyj"><a href="https://github.com/matteobaccan/inga" rel="me" class="sl-flex astro-n2mnl6yq"><span class="sr-only astro-n2mnl6yq">GitHub</span><svg aria-hidden="true" class="astro-n2mnl6yq astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-2z5xp7gb"><span class="sr-only astro-2z5xp7gb">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-2z5xp7gb"><option value="dark" class="astro-2z5xp7gb">Dark</option><option value="light" class="astro-2z5xp7gb">Light</option><option value="auto" selected class="astro-2z5xp7gb">Auto</option></select><svg aria-hidden="true" class="icon caret astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script><script type="module">var e=`starlight-theme`,t=e=>e===`auto`||e===`dark`||e===`light`?e:`auto`,n=()=>t(typeof localStorage<`u`&&localStorage.getItem(e));function r(t){typeof localStorage<`u`&&localStorage.setItem(e,t===`light`||t===`dark`?t:``)}var i=()=>matchMedia(`(prefers-color-scheme: light)`).matches?`light`:`dark`;function a(e){StarlightThemeProvider.updatePickers(e),document.documentElement.dataset.theme=e===`auto`?i():e,r(e)}matchMedia(`(prefers-color-scheme: light)`).addEventListener(`change`,()=>{n()===`auto`&&a(`auto`)});var o=class extends HTMLElement{constructor(){super(),a(n()),this.querySelector(`select`)?.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&a(t(e.currentTarget.value))})}};customElements.define(`starlight-theme-select`,o);</script><script type="module">var e=class extends HTMLElement{constructor(){super();let e=this.querySelector(`select`);e&&(e.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&(window.location.pathname=e.currentTarget.value)}),window.addEventListener(`pageshow`,t=>{if(!t.persisted)return;let n=e.querySelector(`option[selected]`)?.index;n!==e.selectedIndex&&(e.selectedIndex=n??0)}))}};customElements.define(`starlight-lang-select`,e);</script></div></div></header><nav class="sidebar print:hidden astro-yntsjkba" aria-label="Main"><button popovertarget="starlight__sidebar" class="sl-menu-button sl-flex md:sl-hidden print:hidden astro-r2osgdlg"><svg aria-hidden="true" class="open-menu astro-r2osgdlg astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M3 8h18a1 1 0 1 0 0-2H3a1 1 0 0 0 0 2Zm18 8H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Zm0-5H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Z"/></svg><svg aria-hidden="true" class="close-menu astro-r2osgdlg astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="m13.41 12 6.3-6.29a1.004 1.004 0 1 0-1.42-1.42L12 10.59l-6.29-6.3a1.004 1.004 0 0 0-1.42 1.42l6.3 6.29-6.3 6.29a1 1 0 0 0 0 1.42.998.998 0 0 0 1.42 0l6.29-6.3 6.29 6.3a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.42L13.41 12Z"/></svg><span class="sr-only astro-r2osgdlg">Menu</span></button><script type="module">var e=class extends HTMLElement{constructor(){super();let e=matchMedia(`(min-width: 50em)`),t=()=>{this.popover=e.matches?null:`auto`};t(),e.addEventListener(`change`,()=>t()),this.addEventListener(`toggle`,({newState:e})=>this.trapFocus(e===`open`))}trapFocus(e){document.querySelectorAll(`.main-frame, .sl-skip-link`).forEach(t=>{t.toggleAttribute(`inert`,e)})}};customElements.define(`sl-sidebar-pane`,e);</script><sl-sidebar-pane popover id="starlight__sidebar" class="sidebar-pane astro-yntsjkba"><div class="sidebar-content sl-flex astro-yntsjkba"><sl-sidebar-state-persist data-hash="1m6sog7" class="astro-ipdry5cl"><script aria-hidden="true">
+		(() => {
+			try {
+				if (!matchMedia('(min-width: 50em)').matches) return;
+				/** @type {HTMLElement | null} */
+				const target = document.querySelector('sl-sidebar-state-persist');
+				const state = JSON.parse(sessionStorage.getItem('sl-sidebar-state') || '0');
+				if (!target || !state || target.dataset.hash !== state.hash) return;
+				window._starlightScrollRestore = state.scroll;
+				customElements.define(
+					'sl-sidebar-restore',
+					class SidebarRestore extends HTMLElement {
+						connectedCallback() {
+							try {
+								const idx = parseInt(this.dataset.index || '');
+								const details = this.closest('details');
+								if (details && typeof state.open[idx] === 'boolean') details.open = state.open[idx];
+							} catch {}
+						}
+					}
+				);
+			} catch {}
+		})();
+	</script><ul class="top-level astro-rmhv4bp6"><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Get started</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="0"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Documentation overview</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/get-started/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Quick start</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/wasm-beta/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Inga in the browser (beta)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/faq/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">FAQ</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/testers/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Testers</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/mac-testers/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mac testers</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Use cases</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="1"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Overview</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/apply-lora-adapters/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Apply LoRA adapters</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/ask-about-audio/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Ask about a sound recording</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/brand-the-web-ui/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Put your company&#39;s brand on the web UI</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-about-an-image/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Chat about an image</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-in-the-browser/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Chat in the browser and manage models from the web UI</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-with-a-local-gguf-model/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Chat with a model in the terminal</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-with-documents/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Chat with documents: PDF, Word, Markdown and text files</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/compare-models-on-your-questions/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Find which model answers your questions best</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/diffusion-language-models/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Chat with a diffusion language model</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/edit-images/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Edit a picture: image to image and inpainting</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/embeddings-reranking-and-classification/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Embeddings, reranking and classification for RAG</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/find-models-and-check-support/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Find models and check that Inga runs them</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/find-objects-in-a-picture/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Find objects in a picture</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/fine-tune-a-model/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Fine-tune a small model on your data</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/generate-images/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Generate images from text</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/generate-videos/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Generate video clips from text</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/get-structured-output/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Get answers as JSON or in a grammar</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/host-experts-on-other-machines/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Host MoE experts on other machines</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-a-laptop-cool-and-quiet/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Keep a laptop cool and quiet while a model runs</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-long-conversations/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Long conversations: compaction, context shift, rotating cache, saved chats</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/make-decisions/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Ask a model for decisions: typed answers with probabilities</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/measure-model-quality/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Measure a model&#39;s quality: perplexity and KL divergence</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/measure-speed/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Measure the speed of a model on your machine</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/merge-models/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Merge fine-tunes of one model, or make them a mixture of experts</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/monitor-a-server/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Monitor a server: health, metrics, traces</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/optimize-a-model/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Let Inga propose a smaller variant of a model, and pick which one runs</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/quantize-a-model/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Quantize a model into a GGUF file</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/read-pages-and-work-on-files/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Let a model read web pages and work on a folder&#39;s files</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/remember-across-chats/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Let the models remember across chats</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/replace-ollama-or-lm-studio/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Use Inga as an Ollama or LM Studio replacement</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-dense-model-larger-than-ram/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a dense model larger than your RAM</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-mixture-of-experts-model/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a mixture-of-experts model, even one larger than your RAM</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-from-hugging-face/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a model straight from Hugging Face</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-inside-the-browser/" aria-current="page" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a model inside the browser (experiment)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-on-a-mesh/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a model on a mesh of PCs</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-safetensors-model/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a Hugging Face model in its original format</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-inga-as-a-service/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run Inga as a service that starts at boot</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-inga-in-docker/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run Inga in Docker or Podman</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-on-an-nvidia-gpu/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a model on a GPU: NVIDIA, AMD, Intel or Apple</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-openclaw-on-inga/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run the OpenClaw agent on Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/schedule-prompts/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run prompts at set times</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-many-users-and-models/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Serve many users and models</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-openai-and-anthropic-apis/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Serve a model to OpenAI and Anthropic clients</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/share-the-memory-with-agents/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Share the memory with Claude Code, Codex and other agents</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/speed-up-with-speculative-decoding/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Faster answers with speculative decoding</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/split-a-model-across-machines/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Split a model across machines</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/steer-a-model-with-control-vectors/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Steer a model with control vectors</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/talk-to-a-model-by-voice/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Speak text aloud and talk to a model by voice</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/transcribe-audio/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Transcribe speech to text</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-external-models/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Use external models through Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-mcp-tools/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Give local models the tools of MCP servers</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-skills/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Give local models skills</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-thinking-models/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Use thinking models</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-with-coding-agents/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Use Inga with coding agents and editors</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/watermark-text/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Watermark generated text</span></a></li><li class="astro-rmhv4bp6"><details class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Coding tools</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="2"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Overview</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/aider/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Aider on Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/claude-code/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Claude Code on Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/codex/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Codex on Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/opencode/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">OpenCode on Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/pi/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">pi on Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/qwen-code/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Qwen Code on Inga</span></a></li></ul></details></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Reference</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="3"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/cli/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Command line (CLI)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/config/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Configuration (inga.toml)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/api/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">HTTP APIs</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/api-node-presets/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">API node presets</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/branding/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Your own brand</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Models</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="4"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/supported-models/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Supported models</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Performance</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="5"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/performance/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Measured speed</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/experiments/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Experiments</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Comparison</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="6"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/what-inga-replaces/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">What Inga replaces</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/comparison/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Engines, apps and gateways</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Development</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="7"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/development/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Test and build switches</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/releasing/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Releasing</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/gpu-runner/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">GPU runner</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/claude-actions/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Claude in GitHub Actions</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/maintainer-checklist/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Maintainer checklist</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/website/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The website</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Design notes</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="8"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Overview</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-07-prototype-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Inga — First prototype design</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-cpu-performance-plan/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">CPU performance: closing the gaps with llama.cpp</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-cuda-backend-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">CUDA backend — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-cuda-graphs-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">CUDA graphs — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-eagle3-mtp-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">EAGLE-3 draft heads and MTP heads — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-inga-mesh-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Inga mesh — a network of PCs that runs models together</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-inga-router-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Inga router: one endpoint for every PC&#39;s models</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-kv-offload-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">KV cache offloaded from VRAM to RAM and disk — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-metal-backend-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Metal backend (Apple Silicon GPU) — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-mobile-builds-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Android and iOS builds — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-multi-gpu-layer-split-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Multi-GPU on one machine (layer split) — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-multi-gpu-tensor-parallel-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Tensor and expert parallelism across GPUs of one machine — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-neon-part2-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">ARM64 prefill and decode, part 2 (NEON, i8mm) — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-npu-backends-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">NPU backends (Qualcomm Hexagon / QNN, Intel NPU) — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-numa-placement-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">NUMA-aware weight placement — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-rdma-transport-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">RDMA transport for tensor parallelism across machines — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-rocm-hip-backend-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">ROCm / HIP backend — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-schedules-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Scheduled tasks: prompts that run at set times</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-skills-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Skills: ready-made instructions for local models</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-video-generation-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Video generation (Wan 2.x, LTX-Video, HunyuanVideo) — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-vulkan-backend-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Vulkan backend — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-webgpu-wasm-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">WebGPU / WebAssembly build — design and work plan</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-10-api-nodes-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">API nodes: remote and frontier models in the mesh, with routing and fallback</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-10-decisions-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Decisions: typed answers read from the logits, Jev-compatible</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-10-embedding-api-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Inga as a library: a Rust crate, a C ABI, bindings, other apps&#39; engine</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-10-expert-strategies-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Experts larger than the RAM: precision by use, quantized once</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-10-gpu-hybrid-layers-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Hybrid models on the GPU: every layer kind, as much VRAM as there is</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-10-local-data-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">What Inga keeps on disk: seen, listed, deleted</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-10-memory-and-documents-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Persistent memory and chat with documents</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-10-model-network-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A network of models: measured, routed, combined</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-10-model-variants-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Model variants: Inga proposes an optimization, the user decides</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-11-chat-commands-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Commands of the terminal chat (inga run)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-11-connect-run-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">inga connect --run: start a coding tool already connected</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-11-error-reports-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Error reports</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-11-mcp-host-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">MCP host: tools from MCP servers for local models</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-11-mlx-format-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Apple MLX models: their quantized weights converted at load</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-11-users-policies-white-label-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Users, policies and white-label: Inga for a company</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-api-key-budgets-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Named API keys, part 2: costs and budgets per key</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-autotuning-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Autotuning per machine</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-control-vectors-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Control vectors (activation steering)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-cpu-thread-defaults-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Default CPU threads: prompt and generation apart</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-deepseek4-vision-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">DeepSeek V4&#39;s vision variant</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-disaggregated-prefill-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Disaggregated prefill / decode</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-doc-table-width-check-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A check for documentation tables too wide to read</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-fit-before-download-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Fit before the download</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-fit-measured-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Where each model goes and how fast, estimated and then measured</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-gpu-mesh-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">GPUs in the mesh, and the master Inga suggests</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-gpu-prefill-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Prompt processing on the GPU</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-interactive-pull-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Choosing and downloading models from the terminal</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-load-messages-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Messages while a model loads</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-locate-anything-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Finding objects: LocateAnything-3B</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-lora-finetune-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">LoRA fine-tuning on the CPU, and Recover-LoRA</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-max-gpu-load-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A load limit: --max-gpu-load</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-always-ready-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mesh, satellites always ready: service, wake-on-LAN, preload</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-bench-and-learning-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mesh, measured: inga bench --mesh and a plan that learns</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-connection-errors-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Fewer ways to get a mesh connection wrong</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-delegate-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mesh, delegate mode: whole models on whole nodes</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-election-convergence-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mesh election after the master leaves</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-fast-transfers-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mesh, faster transfers of the model&#39;s parts</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-in-the-context-window-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The mesh in the chat&#39;s context window</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-map-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The Mesh page&#39;s map: nodes that can be moved, with their system and devices</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-pipeline-fill-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mesh, a full pipeline: several requests and prompt chunks in flight</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-satellite-errors-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Satellite errors: fixed, checked early, said clearly</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-security-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mesh security: a mesh key, authenticated and encrypted nodes</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-speculative-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mesh, speculative decoding: several tokens per round trip</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mesh-versions-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mesh, nodes of different versions</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-mlx-native-kernels-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">MLX models, part 2: their affine weights read as stored</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-moe-prefill-by-expert-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">MoE prefill by expert</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-moe-prerouter-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A trained prerouter for streamed experts</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-parakeet-streaming-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Speech to text, Parakeet part 2: streamed transcription</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-persistent-prefix-cache-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Prompt and prefix caches kept across restarts — design</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-prefill-measures-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Measuring prompt speed at depth, and A/B runs</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-qwen-image-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Image generation, part 3: Qwen-Image</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-satellite-layer-cache-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A satellite&#39;s cache: its layers in files of their own</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-scheduler-interleave-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Long prompts interleaved with decode, and memory-heavy jobs queued</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-serve-early-and-load-progress-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The server up at once, and the load seen while it happens</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-speculative-default-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Speculative decoding on by default, and the models&#39; MTP blocks</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-svg-icons-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Inga&#39;s icons, redrawn</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-system-monitor-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The web UI&#39;s system monitor</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-theme-backdrops-check-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A check for the themes&#39; moving backgrounds</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-12-voice-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Speech output and hands-free voice chat</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-cohere-transcribe-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Speech to text, part 3: Cohere Transcribe</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-context-compaction-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Context compaction</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-developer-server-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The Developer group: the API server page and its request log</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-eagle3-heads-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">EAGLE-3 draft heads</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-fetch-and-workspace-tools-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A web fetch tool and workspace file tools</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-gpu-runtime-memory-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">GPU memory at run time</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-image-editing-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Image editing: image to image and inpainting</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-kv-q4-hadamard-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A 4-bit KV cache with a Hadamard rotation</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-memory-service-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The memory as a service for other agents</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-merge-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">inga merge: fine-tunes of one base merged, and mixtures built from them</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-mesh-robust-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mesh tests without timing assumptions, and satellites that join late</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-model-list-icons-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Icons on the model lists&#39; buttons, and deletes in red</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-model-pickers-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Choosing the embedding model and the voice models</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-models-page-ux-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The Models page after the maintainer&#39;s test of 0.26.5</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-reasoning-budget-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Reasoning budget and early end</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-response-cache-and-admission-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A response cache, and admission control for the server</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-search-fallback-api-docs-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Search services in fallback order, and the API tab as a docs viewer</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-skills-store-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The skills&#39; store: catalogs searched from the Skills page</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-tester-small-fixes-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The left bar&#39;s labels, one settings menu, and the fit&#39;s speed and headers</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-web-search-blocked-gemma4-calls-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Web search when DuckDuckGo blocks, and Gemma 4&#39;s tool calls</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-webui-math-queue-ask-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The chat while it answers: formulas and diagrams, a queue, and the model&#39;s questions</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-webui-schedule-builder-empty-chat-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The schedule builder, and the Chat page with no model</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-webui-server-down-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The web UI when its server stops</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-13-webui-ten-languages-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The web UI in ten languages</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-amx-prefill-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Prompt processing with AMX tiles on Xeon</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-answer-previews-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Previews of what a model writes</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-api-node-key-pools-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">API nodes: key pools for failover</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-audio-formats-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">More audio formats without ffmpeg: Ogg, M4A / AAC, WebM, Opus</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-banned-strings-adaptive-p-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Banned strings and the Adaptive-P sampler</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-beam-search-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Beam search for language models</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-canary-multitalker-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Speech to text, part 4: Canary (translation), Sortformer and the multitalker Parakeet</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-cascade-kv-transfer-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Cross-model KV cache transfer in a cascade (research)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-chat-projects-notes-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Chat projects, and notes inside them</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-code-sandbox-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A code execution sandbox: runcode on WebAssembly</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-command-palette-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The web UI&#39;s command palette and keyboard shortcuts</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-config-file-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">One configuration file: inga.toml</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-controlnet-and-recipes-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Image generation: ControlNet, and recipes instead of node workflows</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-cuda-hip-heads-512-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">CUDA and HIP attention for heads of 512 values (Gemma 4)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-cuda-older-ptx-isa-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">CUDA on older NVIDIA drivers: PTX at an older ISA</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-deep-research-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Deep research: a plan, many sources, a cited report</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-desktop-app-clients-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Desktop apps as clients: inga connect for Claude Desktop, ChatGPT, Codex, Junie, Cline</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-document-layout-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Document layout with docling&#39;s models: reading order, tables, figures</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-embeddings-part2-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Embeddings, part 2: dimensions, EmbeddingGemma, images</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-event-webhooks-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Event webhooks: the server tells Slack, Discord, ntfy or any URL</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-first-run-setup-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">First-run setup</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-gpu-bench-comparison-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Bench comparison in CI: the base against the pull request on the GPU runner</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-gpu-lora-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">LoRA fine-tuning on the GPU (QLoRA): larger models, faster</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-gpu-prefix-cache-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The prefix cache for the layers on the GPU</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-gpu-resident-sampling-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">GPU-resident sampling, the rest: the P1000&#39;s measure, Vulkan, the next step ahead</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-high-throughput-serving-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Many users at once: batched decode on the GPU, paged KV, batched prompts</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-hybrid-prompts-on-gpu-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Hybrid models on the GPU, the rest: chunked prompts, LFM2, layers in one call</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-igpu-shared-pool-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Integrated GPUs sized by their shared pool</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-image-generation-part3-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Image generation, part 3: after Qwen-Image</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-image-live-previews-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Live previews of image generation, and VAE tiling</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-image-loras-upscaling-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Image LoRAs and upscaling</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-inga-agent-skill-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">An Agent Skill for Inga itself, and llms.txt</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-ldap-login-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">LDAP login: Active Directory on premises</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-llama-rpc-interop-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">llama.cpp RPC interop</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-local-guardrails-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Guardrails by a local model</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-logs-page-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A Logs page: the server&#39;s own log in the web UI, with request ids</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-mcp-elicitation-roots-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">MCP host, part 3: elicitation, roots, and servers written for Node.js</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-mcp-gateway-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Inga as an MCP server and gateway</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-mesh-internet-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Inga mesh, part 2: over the internet</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-metal-mlx-speed-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Metal at MLX&#39;s speed</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-model-settings-files-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Shareable model settings: a file, a link, an import</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-moonshine-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Speech to text, part 4: Moonshine</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-music-generation-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Music and audio generation: ACE-Step 1.5, then MiniMax Music 3</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-object-detection-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Object detection with dedicated models: RT-DETR, D-FINE, YOLO</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-ocr-scanned-pages-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Scanned pages read by a vision model (OCR)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-ollama-registry-pull-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Pulling from Ollama&#39;s library</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-omni-speech-output-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Speech output of omni models: the talkers of Qwen2.5-Omni and Qwen3-Omni</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-os-keyring-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Secrets in the OS keyring, and owner-only files on Windows</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-plugins-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Plugins: WebAssembly components that extend Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-prompt-library-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A prompt library with variables</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-realtime-api-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The OpenAI Realtime API</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-sampler-policy-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A sampler-override policy</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-skills-from-chat-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Skills written from a chat: &quot;Save as a skill&quot;</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-source-separation-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Audio source separation</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-speculation-metrics-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Speculation metrics per request</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-story-mode-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Story mode in the web UI (what KoboldCpp&#39;s UI is used for)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-sub-agents-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Sub-agents: a model hands a task to another model, or to itself</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-tool-selection-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Tools chosen by the reranker, the rest behind searchtools</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-tts-voices-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Speech output, part 2: Higgs Audio v3 first, then Kokoro and Chatterbox</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-update-check-and-signed-releases-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">A manual update check, signed releases and an SBOM</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-video-input-mp4-webm-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Video input, part 2: MP4 and WebM</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-vram-eviction-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Eviction under VRAM pressure</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-vulkan-barriers-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Vulkan barriers only where reads and writes meet</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-vulkan-memory-blocks-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">GPU memory blocks, part 2</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-web-search-consent-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Web search consent: DuckDuckGo only once the user accepts its terms</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-14-windows-arm64-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Windows on ARM64: a release asset for Snapdragon X laptops</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-15-a1111-api-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The AUTOMATIC1111 / Forge API on Inga&#39;s image generation</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-15-api-families-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">API families switched on and off, and Inga on other servers&#39; ports</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-15-azure-openai-api-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The Azure OpenAI API: deployments mapped onto Inga&#39;s models</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-15-cohere-api-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The Cohere API: chat, embed, rerank, tokenize</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-15-gemini-api-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The Google Gemini API (generateContent) on Inga&#39;s models</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-15-llama-server-api-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">llama-server&#39;s native API: /completion, /props, /slots, /apply-template, /embedding</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-15-mistral-fim-api-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mistral&#39;s API: /v1/fim/completions on the infill path</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-15-ollama-api-rest-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Ollama&#39;s API, the rest: create, copy, delete, push, blobs</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-15-openai-batch-files-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">OpenAI&#39;s Batch and Files APIs, run at low priority</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-15-openai-moderations-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">OpenAI&#39;s Moderations API on a local guard model</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-15-tgi-tei-api-design/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Hugging Face TGI and TEI: /generate, /info, /embed, /rerank, /predict, /tokenize</span></a></li></ul></details></li></ul><script aria-hidden="true">
+		(() => {
+			const scroller = document.getElementById('starlight__sidebar');
+			if (!window._starlightScrollRestore || !scroller) return;
+			scroller.scrollTop = window._starlightScrollRestore;
+			delete window._starlightScrollRestore;
+		})();
+	</script></sl-sidebar-state-persist><div class="md:sl-hidden"><div class="mobile-preferences sl-flex astro-p4azlveh"><div class="social-icons astro-p4azlveh"><a href="https://github.com/matteobaccan/inga" rel="me" class="sl-flex astro-n2mnl6yq"><span class="sr-only astro-n2mnl6yq">GitHub</span><svg aria-hidden="true" class="astro-n2mnl6yq astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-2z5xp7gb"><span class="sr-only astro-2z5xp7gb">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-2z5xp7gb"><option value="dark" class="astro-2z5xp7gb">Dark</option><option value="light" class="astro-2z5xp7gb">Light</option><option value="auto" selected class="astro-2z5xp7gb">Auto</option></select><svg aria-hidden="true" class="icon caret astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script></div></div></div></sl-sidebar-pane></nav><div class="main-frame astro-yntsjkba"><script type="module">var e=document.getElementById(`starlight__sidebar`),t=e?.querySelector(`sl-sidebar-state-persist`),n=`sl-sidebar-state`,r=()=>{let r=[],i=t?.dataset.hash||``;try{let e=sessionStorage.getItem(n),t=JSON.parse(e||`{}`);Array.isArray(t.open)&&t.hash===i&&(r=t.open)}catch{}return{hash:i,open:r,scroll:e?.scrollTop||0}},i=e=>{try{sessionStorage.setItem(n,JSON.stringify(e))}catch{}},a=()=>i(r()),o=(e,t)=>{let n=r();n.open[t]=e,i(n)};t?.addEventListener(`click`,e=>{if(!(e.target instanceof Element))return;let t=e.target.closest(`summary`)?.closest(`details`);if(!t)return;let n=t.querySelector(`sl-sidebar-restore`),r=parseInt(n?.dataset.index||``);isNaN(r)||o(!t.open,r)}),addEventListener(`visibilitychange`,()=>{document.visibilityState===`hidden`&&a()});</script><div class="lg:sl-flex astro-lrzkfocr"><aside class="right-sidebar-container print:hidden astro-lrzkfocr"><div class="right-sidebar astro-lrzkfocr"><div class="lg:sl-hidden astro-qok35upx"><mobile-starlight-toc data-min-h="2" data-max-h="3" class="astro-66cqc7ze"><nav aria-labelledby="starlight__on-this-page--mobile" class="astro-66cqc7ze"><details id="starlight__mobile-toc" class="astro-66cqc7ze"><summary id="starlight__on-this-page--mobile" class="sl-flex astro-66cqc7ze"><span class="toggle sl-flex astro-66cqc7ze">On this page<svg aria-hidden="true" class="caret astro-66cqc7ze astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></span><span class="display-current astro-66cqc7ze"></span></summary><div class="dropdown astro-66cqc7ze"><ul class="isMobile astro-jugkfwgx" style="--depth: 0;"><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#_top" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Overview</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#what-you-get" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">What you get</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#requirements" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Requirements</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#1-build-the-page" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">1. Build the page</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#2-serve-the-folder" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">2. Serve the folder</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#3-load-a-model" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">3. Load a model</span></a><ul class="isMobile astro-jugkfwgx" style="--depth: 1;"><li style="--depth: 1;" class="astro-jugkfwgx"><a href="#the-standard-test" style="--depth: 1;" class="astro-jugkfwgx"><span style="--depth: 1;" class="astro-jugkfwgx">The standard test</span></a></li></ul></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#4-chat" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">4. Chat</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#5-every-core-serve-the-page-cross-origin-isolated" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">5. Every core: serve the page cross-origin isolated</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#6-a-model-larger-than-the-memory-layers-read-from-storage" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">6. A model larger than the memory: layers read from storage</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#7-on-the-gpu-webgpu-experimental" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">7. On the GPU (WebGPU, experimental)</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#8-a-draft-model-several-tokens-for-one-read-of-the-layers" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">8. A draft model: several tokens for one read of the layers</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#troubleshooting" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Troubleshooting</span></a></li></ul></div></details></nav></mobile-starlight-toc><script type="module" src="/ingatest/p-20c8253d8a05/_astro/MobileTableOfContents.astro_astro_type_script_index_0_lang.C3fM4Kra.js"></script></div><div class="right-sidebar-panel sl-hidden lg:sl-block astro-qok35upx"><div class="sl-container astro-qok35upx"><starlight-toc data-min-h="2" data-max-h="3"><nav aria-labelledby="starlight__on-this-page"><h2 id="starlight__on-this-page">On this page</h2><ul class="astro-jugkfwgx" style="--depth: 0;"><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#_top" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Overview</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#what-you-get" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">What you get</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#requirements" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Requirements</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#1-build-the-page" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">1. Build the page</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#2-serve-the-folder" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">2. Serve the folder</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#3-load-a-model" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">3. Load a model</span></a><ul class="astro-jugkfwgx" style="--depth: 1;"><li style="--depth: 1;" class="astro-jugkfwgx"><a href="#the-standard-test" style="--depth: 1;" class="astro-jugkfwgx"><span style="--depth: 1;" class="astro-jugkfwgx">The standard test</span></a></li></ul></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#4-chat" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">4. Chat</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#5-every-core-serve-the-page-cross-origin-isolated" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">5. Every core: serve the page cross-origin isolated</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#6-a-model-larger-than-the-memory-layers-read-from-storage" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">6. A model larger than the memory: layers read from storage</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#7-on-the-gpu-webgpu-experimental" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">7. On the GPU (WebGPU, experimental)</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#8-a-draft-model-several-tokens-for-one-read-of-the-layers" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">8. A draft model: several tokens for one read of the layers</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#troubleshooting" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Troubleshooting</span></a></li></ul></nav></starlight-toc><script type="module" src="/ingatest/p-20c8253d8a05/_astro/TableOfContents.astro_astro_type_script_index_0_lang.BpJaGz7G.js"></script></div></div></div></aside><div class="main-pane astro-lrzkfocr"><main data-pagefind-body class="astro-g5ptsecz" lang="en" dir="ltr"><div class="content-panel astro-a7po4psb"><div class="sl-container astro-a7po4psb"><h1 id="_top" class="astro-bebwqqxs">Run a model inside the browser (experiment)</h1></div></div><div class="content-panel astro-a7po4psb"><div class="sl-container astro-a7po4psb"><div class="sl-markdown-content"><p>Supported since: unreleased (an experiment on <code dir="auto">main</code>, spec
+<a href="/ingatest/p-20c8253d8a05/docs/design-notes/2026-10-09-webgpu-wasm-design/"><code dir="auto">2026-10-09-webgpu-wasm-design.md</code></a>
+§8, “As built”)</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="what-you-get">What you get</h2><a class="sl-anchor-link" href="#what-you-get"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “What you get”</span></a></div>
+<p>Inga compiled to WebAssembly, running a GGUF model in a web page on the device’s CPU:
+no server, nothing sent anywhere. The demo page in <code dir="auto">web/</code> picks a model (one of four
+small suggested models, a link, or a file of the device), keeps downloads in the
+browser’s private storage, and streams the answers with their speed. The same tokenizer,
+chat templates, model code and samplers as the <code dir="auto">inga</code> executable: in headless Chromium
+the page’s greedy answer is the native engine’s on its scalar kernels, token for token
+(the SIMD128 kernels
+give the scalar kernels’ bits, and Inga computes <code dir="auto">exp</code>, <code dir="auto">powf</code> and <code dir="auto">sin_cos</code> with its
+own functions, the same bits in the browser and natively; checked on synthetic models
+of two and four layers).</p>
+<p>It is an experiment, one page for everything: small models (135M to 1B parameters) run
+best; a larger one runs slowly by reading the layers that do not fit from the browser’s
+storage at every token (<a href="#6-a-model-larger-than-the-memory-layers-read-from-storage">step 6</a>);
+the CPU is the default device, and the GPU through WebGPU, alone or with the CPU taking
+the layers it cannot hold, is a setting (<a href="#7-on-the-gpu-webgpu-experimental">step 7</a>);
+a smaller model can draft for a larger one (<a href="#8-a-draft-model-several-tokens-for-one-read-of-the-layers">step 8</a>).
+The module uses WebAssembly SIMD (SIMD128, which every browser below has) for its
+quantized dot products, on one thread; on a page that is cross-origin isolated
+(<a href="#5-every-core-serve-the-page-cross-origin-isolated">step 5</a>) a second module runs
+them on every core (up to 8). It has been tested in headless Chromium on Linux and on an
+iPhone 16 Pro in Safari (SmolLM2-135M-Instruct Q8_0 picked from the Files app, one
+thread: prompt 12.7 tok/s and answer 9.5 tok/s with the scalar kernels, 66.5 and 53.1
+with SIMD128, 195 MiB of memory either way); not in Firefox yet.</p>
+<p>On the same iPhone, one thread with SIMD128, two larger models:</p>
+<table>
+<thead>
+<tr>
+<th>Model (iPhone 16 Pro, Safari, SIMD128, 1 thread)</th>
+<th>Prompt</th>
+<th>Answer</th>
+<th>Memory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SmolLM2-135M-Instruct Q8_0</td>
+<td>32 tokens, 66.5 tok/s</td>
+<td>32 tokens, 53.1 tok/s</td>
+<td>195 MiB</td>
+</tr>
+<tr>
+<td>Qwen3-0.6B Q4_K_M</td>
+<td>10 tokens, 41.7 tok/s (37.9 in a second, cool run)</td>
+<td>68 tokens, 25.0 tok/s (24.8; 59 of them thinking)</td>
+<td>643.8 MiB</td>
+</tr>
+<tr>
+<td>Llama-3.2-1B-Instruct Q4_K_M</td>
+<td>37 tokens, 24.3 tok/s</td>
+<td>7 tokens, 13.5 tok/s (a short answer: a rough figure)</td>
+<td>878.9 MiB</td>
+</tr>
+</tbody>
+</table>
+<p>Speeds on the phone vary between runs: a Qwen3-0.6B run right after several others (and
+after Llama, before the page started a fresh worker for each model) read 15.9 / 10.6
+tok/s, while a later run on a fresh page gave 37.9 / 24.8 again; take single runs as
+indications.</p>
+<p>Measured in headless Chromium on a Linux container with 4 vCPUs (synthetic weights of
+the models’ shapes; the spec’s §8.7 has the details):</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Before (scalar, 1 thread)</th>
+<th>SIMD128, 1 thread</th>
+<th>SIMD128, 4 threads (isolated)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SmolLM2-135M Q8_0, prompt / answer tok/s</td>
+<td>5.6–6.7 / 4.2–5.2</td>
+<td>25.1–30.0 / 10.6–13.9</td>
+<td>73.8–95.8 / 34.1–42.0</td>
+</tr>
+<tr>
+<td>Llama-3.2-1B Q4_K_M, prompt / answer tok/s</td>
+<td>1.0–1.1 / 0.7–0.9</td>
+<td>6.0–6.4 / 3.2–4.1</td>
+<td>20.7–26.0 / 11.7–13.1</td>
+</tr>
+</tbody>
+</table>
+<p>The SIMD128 kernels cover every weight type of the usual downloads. The i-quants
+(IQ1_S to IQ4_XS, which IQ2_M, IQ3_M and Unsloth’s “UD” files use) have them, and so do
+Q2_K, Q3_K, Q5_K, Q4_1, Q5_0 and Q5_1, besides Q8_0, Q4_0, Q4_K and Q6_K. Before
+2026-10-15 the i-quants and the other K-quants ran on the scalar kernels. Measured in the
+same container with 1B-shaped synthetic models on one thread, before → after:</p>
+<table>
+<thead>
+<tr>
+<th>Model (Llama-3.2-1B shape)</th>
+<th>Prompt tok/s</th>
+<th>Answer tok/s</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IQ2_M (487 MiB)</td>
+<td>0.65–0.67 → 4.96–5.06</td>
+<td>0.61–0.68 → 2.17–2.69</td>
+</tr>
+<tr>
+<td>Q3_K_M (654 MiB)</td>
+<td>1.08–1.21 → 5.91–6.21</td>
+<td>1.21–1.25 → 3.30–4.08</td>
+</tr>
+</tbody>
+</table>
+<p>An IQ2_M file is smaller than a Q4_K_M one but not faster: its kernel does more work per
+weight. These are not phone figures. A <code dir="auto">gemma-4-E4B-it-UD-IQ2_M.gguf</code> that answered at
+0.4 tok/s on an iPhone 16 Pro before this change has not been measured since. The spec’s
+§8.7, “SIMD128 for the other weight types”, has each type’s kernel speed.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="requirements">Requirements</h2><a class="sl-anchor-link" href="#requirements"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Requirements”</span></a></div>
+<ul>
+<li>To build it: Rust with the <code dir="auto">wasm32-unknown-unknown</code> target and the <code dir="auto">wasm-bindgen</code>
+command of the version <code dir="auto">crates/inga-wasm/Cargo.toml</code> names.</li>
+<li>To serve it: any static web server; over HTTPS, except on <code dir="auto">localhost</code> (browsers keep
+the private storage and module workers for secure pages).</li>
+<li>A recent browser with module workers, the Origin Private File System and WebAssembly
+SIMD (Chrome or Edge 102+, Firefox 114+, Safari 16.4+); standard SIMD128 only, not
+relaxed SIMD, which Safari lacks.</li>
+<li>For the threaded module only: the nightly toolchain <code dir="auto">tools/build-wasm.sh</code> names
+(WebAssembly threads need a standard library built with atomics, <code dir="auto">-Z build-std</code>), and
+a page served cross-origin isolated (step 5).</li>
+</ul>
+<div class="sl-heading-wrapper level-h2"><h2 id="1-build-the-page">1. Build the page</h2><a class="sl-anchor-link" href="#1-build-the-page"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “1. Build the page”</span></a></div>
+<div class="expressive-code"><link rel="stylesheet" href="/ingatest/p-20c8253d8a05/_astro/ec.w36nc.css"><script type="module" src="/ingatest/p-20c8253d8a05/_astro/ec.0vx5m.js"></script><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">rustup target add wasm32-unknown-unknown</span></div></div><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">cargo install wasm-bindgen-cli --version 0.2.129</span></div></div><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">rustup toolchain install nightly-2026-10-01 --profile minimal --component rust-src --target wasm32-unknown-unknown</span></div></div><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">sh tools/build-wasm.sh</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="rustup target add wasm32-unknown-unknowncargo install wasm-bindgen-cli --version 0.2.129rustup toolchain install nightly-2026-10-01 --profile minimal --component rust-src --target wasm32-unknown-unknownsh tools/build-wasm.sh"><div></div></button></div></figure></div>
+<p><code dir="auto">web/pkg/</code> now holds the module (about 5.5 MB, 1.6 MB gzipped, with its WebGPU path)
+and its JavaScript, built with SIMD128 on stable Rust; <code dir="auto">web/pkg-threads/</code> the threaded module (about the
+same size), built on the pinned nightly. Without that nightly the script skips
+<code dir="auto">web/pkg-threads/</code> with a message (<code dir="auto">THREADS=0</code> skips it on purpose, <code dir="auto">THREADS=1</code> makes
+it an error); the page then runs on one thread everywhere. <code dir="auto">SIMD128=0</code> builds a
+<code dir="auto">web/pkg/</code> without SIMD (the scalar kernels), for comparisons.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="2-serve-the-folder">2. Serve the folder</h2><a class="sl-anchor-link" href="#2-serve-the-folder"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “2. Serve the folder”</span></a></div>
+<p>Any static server works; every path in the page is relative. On this machine:</p>
+<div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">python3 -m http.server -d web 8000</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="python3 -m http.server -d web 8000"><div></div></button></div></figure></div>
+<p>Then open <code dir="auto">http://localhost:8000/</code>. To publish it, copy <code dir="auto">web/</code> (with <code dir="auto">pkg/</code>) to any
+HTTPS host; no file is larger than 5 MB.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="3-load-a-model">3. Load a model</h2><a class="sl-anchor-link" href="#3-load-a-model"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “3. Load a model”</span></a></div>
+<p>The page offers three ways, all on its first screen, and a catalog:</p>
+<ol start="0">
+<li>
+<p><strong>Browse models</strong>: a dialog of about fifty models on Hugging Face that Inga runs, with
+a search box, family chips and each quantization marked ✅ fits, ⚠️ tight or ❌ too big
+for this browser; <strong>Download and load</strong> on a card, <strong>Delete</strong> on a stored one
+(<a href="/ingatest/p-20c8253d8a05/docs/wasm-beta/#the-model-catalog">the WASM beta’s guide</a> says how it judges and how
+the catalog is checked).</p>
+</li>
+<li>
+<p><strong>A test model</strong>: a fixed list, so that runs on different devices compare
+(SmolLM2-135M-Instruct Q8_0, Qwen3-0.6B Q4_K_M, the draft model for Qwen3-4B,
+Llama-3.2-1B-Instruct Q4_K_M, Qwen3-4B Q4_K_M, Gemma 4 E4B IQ2_M), each with its file
+name, approximate size and licence, and “stored ✓” once this browser holds it. <strong>Get</strong>
+downloads it from Hugging Face into the browser’s private storage (OPFS), then loads
+it; a failed download names its HTTP error (a 404 says to check the link).
+SmolLM2-135M-Instruct (about 0.15 GB) is the quickest.</p>
+</li>
+<li>
+<p><strong>A link</strong> to a GGUF file: Hugging Face’s <code dir="auto">resolve/main</code> links work (they allow
+cross-origin downloads and ranges); an interrupted download resumes where it stopped.</p>
+</li>
+<li>
+<p><strong>A file of this device</strong>: the file picker (on an iPhone or iPad it opens the Files
+app). The file is read in pieces and not stored, unless it is larger than <strong>Memory
+for weights</strong> (<a href="#6-a-model-larger-than-the-memory-layers-read-from-storage">step 6</a>):
+it is then copied into the browser’s private storage first. Where the page cannot download
+from Hugging Face (a page hosted in a sandbox that blocks other sites: Safari then
+says “Load failed”), <strong>Save file</strong> beside a test model lets the browser save it
+(on an iPhone, in Files → Downloads); pick it here. A picked file is stored under its
+own name: keep the list’s file name for “stored ✓” to show.</p>
+</li>
+</ol>
+<p>A fourth way, a model handed out by an <code dir="auto">inga serve</code> on your network, is not there yet:
+the server does not expose its model files today (see the spec’s next steps).</p>
+<p>The page asks the browser to keep its storage (<code dir="auto">navigator.storage.persist()</code>) and shows
+how much it uses of the quota. <strong>Stored models</strong> lists every file the site keeps in
+OPFS: the downloads, with <strong>Load</strong>, <strong>Resume</strong> for an incomplete one, and <strong>Delete</strong>; a
+model without its download record (“complete or not: unknown”, <strong>Load</strong> still offered);
+and anything else the page finds, such as a Disk speed test interrupted or files left
+by an older version of the page (“not a model of this page”), each with <strong>Delete</strong>. An
+entry that cannot be read shows its error instead of hiding the list. <strong>Delete all
+stored data</strong> asks for confirmation inside the page, then closes the model it reads and
+removes everything the site stores.</p>
+<p><strong>When the quota is nearly full</strong> (the storage line says, for example, “14.25 GiB of
+14.28 GiB available”), delete the models you do not use, or <strong>Delete all stored data</strong>:
+a download or a copy into storage needs room for the whole file, and a site at its
+quota may also be cleared by the browser.</p>
+<div class="sl-heading-wrapper level-h3"><h3 id="the-standard-test">The standard test</h3><a class="sl-anchor-link" href="#the-standard-test"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “The standard test”</span></a></div>
+<p><strong>Standard test</strong> (below the chat, once a model is loaded) runs a fixed, comparable test
+whatever the Settings: a fresh chat, the prompt “Ciao, presentati in tre frasi.”,
+thinking off, temperature 0 (greedy), at most 64 tokens. It prints one line to copy
+(<strong>Copy</strong>; where the clipboard is refused, the line is selected): the date, the device
+(CPU, or GPU and its adapter), the model file, the memory limit and GPU memory, the
+layers on the GPU and those read from storage, prompt and answer tok/s, WebAssembly
+memory and the GPU’s bytes, the bytes read per token, the GPU memory accounting, the
+tokens drawn on the GPU and a draft model’s figures. Every line is kept in this browser
+(<strong>Standard test results</strong>, with <strong>Copy all</strong> and <strong>Clear</strong>), so a matrix of runs (each
+test model on the CPU and on the GPU) can be pasted at once.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="4-chat">4. Chat</h2><a class="sl-anchor-link" href="#4-chat"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “4. Chat”</span></a></div>
+<p>Write a message and press <strong>Send</strong>: the answer streams in; below it, the prompt’s and
+the answer’s tokens per second and the module’s memory. <strong>New chat</strong> forgets the
+conversation. <strong>Settings</strong> has the context size, the most tokens of an answer, the
+temperature and <strong>Think before answering</strong>.</p>
+<p><strong>Thinking models</strong> (Qwen3, DeepSeek-R1 distills, Qwen3.5, gpt-oss, …) reason before
+they answer. The page shows the reasoning as it streams in a <strong>Thinking</strong> box above the
+answer, open while the model reasons and folded away when the answer starts (tap it to
+read it again); the statistics say how many of the answer’s tokens were thinking. Only
+the answer goes back to the model with the next message, as in <code dir="auto">inga serve</code>’s web UI.
+The reasoning is told apart by the same code as <code dir="auto">inga serve</code>’s <code dir="auto">reasoning_content</code>, so
+a model whose chat template opens <code dir="auto">&lt;think&gt;</code> itself (Qwen3.5) is split too.</p>
+<p><strong>Think before answering</strong> (checked by default) is the chat template’s
+<code dir="auto">enable_thinking</code>, as <code dir="auto">--chat-template-kwargs '{"enable_thinking": false}'</code> natively:
+unchecked, Qwen3 answers at once without reasoning, which on a phone is much quicker.
+Models whose template has no such switch ignore it.</p>
+<p>Loading a model after another starts a new worker first: WebAssembly memory never
+shrinks, so the second model would otherwise keep the first one’s peak (on the iPhone,
+878.9 MiB after Llama 3.2 1B against 643.8 MiB for Qwen3 0.6B alone). The chat is
+cleared, as for any new model.</p>
+<p><strong>Stop</strong> stops the answer at once when the page is cross-origin isolated (served with
+<code dir="auto">Cross-Origin-Opener-Policy: same-origin</code> and <code dir="auto">Cross-Origin-Embedder-Policy: require-corp</code>); otherwise it ends the worker and loads the model again from storage
+(a few seconds for a small model), keeping the chat.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="5-every-core-serve-the-page-cross-origin-isolated">5. Every core: serve the page cross-origin isolated</h2><a class="sl-anchor-link" href="#5-every-core-serve-the-page-cross-origin-isolated"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “5. Every core: serve the page cross-origin isolated”</span></a></div>
+<p>WebAssembly threads share the module’s memory between Web Workers
+(<code dir="auto">SharedArrayBuffer</code>), which browsers allow only on a page that is cross-origin
+isolated. When the page is (<code dir="auto">self.crossOriginIsolated</code> is true) and <code dir="auto">web/pkg-threads/</code>
+exists, its worker loads that module, starts one thread per core
+(<code dir="auto">navigator.hardwareConcurrency</code>, at most 8; <code dir="auto">web/thread.js</code>) and runs the matrix
+products and the attention on all of them; the line under the model then says
+<code dir="auto">SIMD128 kernels on N threads</code>. Otherwise it loads <code dir="auto">web/pkg/</code> on one thread, as on a
+plain static host or a page embedded elsewhere; the answer is the same either way.</p>
+<p>A page is isolated when it is served with these two headers:</p>
+<div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">Cross-Origin-Opener-Policy: same-origin</span></div></div><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">Cross-Origin-Embedder-Policy: require-corp</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="Cross-Origin-Opener-Policy: same-originCross-Origin-Embedder-Policy: require-corp"><div></div></button></div></figure></div>
+<ul>
+<li><strong>nginx</strong>: <code dir="auto">add_header Cross-Origin-Opener-Policy same-origin always;</code> and
+<code dir="auto">add_header Cross-Origin-Embedder-Policy require-corp always;</code> in the <code dir="auto">location</code>.</li>
+<li><strong>Caddy</strong>: <code dir="auto">header { Cross-Origin-Opener-Policy same-origin Cross-Origin-Embedder-Policy require-corp }</code> in the site block.</li>
+<li><strong>Netlify, Cloudflare Pages</strong>: a <code dir="auto">_headers</code> file in <code dir="auto">web/</code> with <code dir="auto">/*</code> and the two
+lines above, indented.</li>
+<li><strong>Locally</strong>, <code dir="auto">python3 -m http.server</code> cannot add headers; <code dir="auto">npx serve web</code> with a
+<code dir="auto">web/serve.json</code> of <code dir="auto">{"headers": [{"source": "**", "headers": [{"key": "Cross-Origin-Opener-Policy", "value": "same-origin"}, {"key": "Cross-Origin-Embedder-Policy", "value": "require-corp"}]}]}</code> can.</li>
+<li><strong>GitHub Pages</strong> (and other hosts that send no custom headers):
+<a href="https://github.com/gzuidhof/coi-serviceworker">coi-serviceworker</a> (MIT) adds them
+from a service worker. Copy its <code dir="auto">coi-serviceworker.js</code> into <code dir="auto">web/</code> and load it first
+in <code dir="auto">index.html</code>’s <code dir="auto">&lt;head&gt;</code>: <code dir="auto">&lt;script src="https://github.com/matteobaccan/inga/blob/main/docs/use-cases/coi-serviceworker.js"&gt;&lt;/script&gt;</code>. On the
+first visit it registers itself and reloads the page once, isolated. The page must
+be on HTTPS (or <code dir="auto">localhost</code>).</li>
+</ul>
+<p>Under <code dir="auto">require-corp</code> every resource the page loads must be same-origin or allow it:
+the downloads from Hugging Face are CORS requests, which it allows. A page shown in
+someone else’s frame (a preview, a sandbox) is usually not isolated, and runs on one
+thread.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="6-a-model-larger-than-the-memory-layers-read-from-storage">6. A model larger than the memory: layers read from storage</h2><a class="sl-anchor-link" href="#6-a-model-larger-than-the-memory-layers-read-from-storage"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “6. A model larger than the memory: layers read from storage”</span></a></div>
+<p>All of a model’s weights normally live in the page’s WebAssembly memory, and a phone
+ends a tab that takes too much (on an iPhone 16 Pro, Safari closed the tab with a
+2.5 GB model). <strong>Settings → Memory for the model</strong> sets how much memory the model may
+use: its weights, its KV cache for the context and its working buffers, all counted.
+What does not fit is read from the browser’s private storage (OPFS) while the model
+runs, the way <code dir="auto">inga run</code> streams a model larger than the RAM from the disk (“SSD (read
+while running)”). It is much slower, but the model runs; a model that cannot fit even
+so is refused, with what it needs, before it is loaded.</p>
+<ul>
+<li><strong>Auto</strong> (the default): 1600 MB on an iPhone or iPad, recognised from the browser’s
+user agent (a heuristic: an iPad that says it is a Mac is told apart by its touch
+screen); 3584 MB elsewhere (close to the 4 GiB ceiling below). The iPhone’s figure comes from an iPhone 16 Pro (8 GB):
+Safari kept the tab at 1.75 GiB of WebAssembly memory and ended it at about 2.2 GiB;
+Auto stays at 1600 MB, under that ceiling with a margin, because the plan is an
+estimate and the browser’s own allocations (the worker, the page) count against the
+same tab. <strong>A phone with less memory may need less</strong>: use Limit in MB.</li>
+<li><strong>All in memory</strong>: everything in WebAssembly memory, as before.</li>
+<li><strong>Limit in MB</strong>: a size of your choosing.</li>
+</ul>
+<p>A longer <strong>Context</strong> needs a larger KV cache, which comes out of the same limit: the
+page then keeps fewer weights in memory. The Settings are kept in this browser, and the
+line under the model says the limit its load used (“limit 1500 MB (Limit in MB)”,
+“limit 1600 MB (Auto on iOS)”); a change while a model is loaded applies at the next
+Load.</p>
+<p>A stored model is planned against the limit when it loads: one that fits stays whole
+in memory. A file picked from the device and larger than the limit is first copied
+into OPFS (the page checks that the site’s storage has room, then shows the copy’s
+progress) and stays in <strong>Stored models</strong>. What the plan reads from storage, in order,
+until the rest fits:</p>
+<ol>
+<li>the tables a token reads one row of, a row per token (a few KB): the token
+embeddings and, in Gemma 4’s E models, the per-layer embeddings, a table larger
+than the rest of the model;</li>
+<li>the output layer, read whole at every token in parts the size of a layer (on a
+model whose output layer is its token embeddings, as Gemma, Llama 3.2 and Qwen3,
+it is held with them until then);</li>
+<li>the last layers, whole at every token, into two buffers the size of a layer, one
+read while the other runs.</li>
+</ol>
+<p>The norms and small tensors, the read buffers, the KV cache and the working buffers
+always stay; if they alone exceed the limit the load stops with “the model needs … at
+least … Try a smaller context or a larger memory limit”. The line under the model
+says what is read at every token and how many bytes that is, the embeddings read by
+row, the weights in memory and the total planned; the line under each answer how much
+was read and at what speed.</p>
+<p>How fast depends on how fast the browser reads its storage, which <strong>Disk speed test</strong>
+(under Stored models) measures: it writes 256 MiB, reads it back in 8 MiB pieces through
+the same synchronous access handle, reports MB/s and deletes the file. Read right after
+writing, the data may come from the system’s cache, so take the figure as a best case.</p>
+<p>Measured on an iPhone 16 Pro in Safari (one thread, SIMD128), Qwen3-4B Q4_K_M
+(unsloth, about 2.5 GB), “Ciao” (10 tokens), 126 tokens answered (114 of them thinking),
+the first three rows before the limit covered the KV cache (it was for weights only
+then), the last with today’s Auto (117 tokens, 104 thinking; most reads came from iOS’s
+cache that time):</p>
+<table>
+<thead>
+<tr>
+<th>Memory for weights (then)</th>
+<th style="text-align: right">Answer tok/s</th>
+<th style="text-align: right">WebAssembly memory</th>
+<th>Read from storage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 GB (Auto then)</td>
+<td style="text-align: right">0.8</td>
+<td style="text-align: right">1.31 GiB</td>
+<td>184.72 GiB in 119.2 s (1,664 MB/s), about 1.36 GiB a token</td>
+</tr>
+<tr>
+<td>1500 MB</td>
+<td style="text-align: right">1.5</td>
+<td style="text-align: right">1.75 GiB</td>
+<td>129.30 GiB in 45.2 s (3,073 MB/s), about 0.95 GiB a token</td>
+</tr>
+<tr>
+<td>2000 MB</td>
+<td style="text-align: right">the tab was ended</td>
+<td style="text-align: right"></td>
+<td></td>
+</tr>
+<tr>
+<td>1600 MB total (Auto today; 1.18 GiB of weights held)</td>
+<td style="text-align: right">2.3</td>
+<td style="text-align: right">1.51 GiB</td>
+<td>148.18 GiB in 21.2 s (7,501 MB/s), about 1.26 GiB a token</td>
+</tr>
+</tbody>
+</table>
+<p>The prompt ran at 4.2-4.4 tok/s. The reads were about three quarters of the time at
+1 GB; at 1500 MB fewer bytes a token and a faster read rate (more of the file stayed
+in iOS’s cache, probably) doubled the speed. The Disk speed test on that phone read
+10.7 GB/s and wrote 1.24 GB/s, read right after writing: the system’s cache, not the
+flash the model is read from. That 1500 MB run’s total at a context of 2048 was about
+1792 MB; Auto is now 1600 MB, with a margin under it. Gemma 4 E4B (unsloth’s
+<code dir="auto">gemma-4-E4B-it-UD-IQ2_M.gguf</code>, 3.30 GiB) ended the tab at 1.80 GiB of its load with the
+old 1 GB: its embeddings were held in memory whatever the limit. They are now read by
+row, and on the same iPhone with Auto at 1600 MB it loads in 1.1 s (WebAssembly memory
+1.59 GiB; 7 of 42 layers and the output layer in 6 parts read at every token, 524.9 MiB
+a token; 1.75 GiB of embeddings read a row per token; 1.39 GiB of weights in memory,
+1.55 GiB planned) and answers, thinking off, “Ciao”’s 10 tokens at 0.4 tok/s and 10
+tokens at 0.4 tok/s, correctly in Italian. It read 5.64 GiB from storage in 1.0 s of
+the about 50 s: the run is bound by compute, most likely the IQ2 types, which have no
+SIMD128 kernels and run on the scalar ones, and the 262,144-token output layer at every
+token.</p>
+<p>Measured in headless Chromium on a Linux server (4 vCPUs shared with other jobs, load
+average 2-4; synthetic weights of the models’ shapes, <code dir="auto">tools/bench_model.py</code>; one
+thread, SIMD128). The first five rows are from before the limit counted the KV cache.</p>
+<table>
+<thead>
+<tr>
+<th>Model (synthetic), headless Chromium</th>
+<th>Memory limit</th>
+<th>Read per token</th>
+<th style="text-align: right">Answer tok/s</th>
+<th style="text-align: right">WebAssembly memory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Llama-3.2-1B shape, Q4_K_M (798 MiB of weights)</td>
+<td>All in memory</td>
+<td>0 of 16</td>
+<td style="text-align: right">3.70-3.89</td>
+<td style="text-align: right">888.9 MiB</td>
+</tr>
+<tr>
+<td></td>
+<td>600 MB</td>
+<td>8 of 16 (296 MiB)</td>
+<td style="text-align: right">3.18-3.23</td>
+<td style="text-align: right">665.9 MiB</td>
+</tr>
+<tr>
+<td></td>
+<td>300 MB</td>
+<td>16 of 16 (592 MiB)</td>
+<td style="text-align: right">2.59-2.81</td>
+<td style="text-align: right">369.9 MiB</td>
+</tr>
+<tr>
+<td>Qwen3-4B shape, Q4_K_M (2,498 MiB of weights)</td>
+<td>All in memory</td>
+<td>0 of 36</td>
+<td style="text-align: right">1.25-1.28</td>
+<td style="text-align: right">2,821 MiB</td>
+</tr>
+<tr>
+<td></td>
+<td>1024 MB</td>
+<td>27 of 36 (1,645 MiB)</td>
+<td style="text-align: right">0.95-0.96</td>
+<td style="text-align: right">1,299 MiB</td>
+</tr>
+<tr>
+<td>Gemma 4 E4B shape (assumed sizes), Q2_K / Q4_K tables (3.05 GiB)</td>
+<td>1792 MB</td>
+<td>the per-layer embeddings by row (6 KB)</td>
+<td style="text-align: right">0.40</td>
+<td style="text-align: right">1,768 MiB</td>
+</tr>
+<tr>
+<td></td>
+<td>1024 MB</td>
+<td>16 of 42 layers and the output layer (823 MiB), both tables by row</td>
+<td style="text-align: right">0.35</td>
+<td style="text-align: right">1,012 MiB</td>
+</tr>
+</tbody>
+</table>
+<p>Two runs each (three for the 1B at 300 MB), 16 answer tokens (8 for the 4B) after a 46-token prompt, the prompt’s
+speed unchanged by streaming (6.2-6.7 tok/s for the 1B, about 1.75 for the 4B: a
+prompt reads each streamed layer once for all its tokens). The storage there is
+fast and the files had just been written, so the reads came from the server’s memory:
+the Disk speed test read 2,853-4,743 MB/s (and wrote 138-414) on a persistent profile,
+and the streamed layers came in at about 5 GB/s. In a fresh context (Playwright’s default,
+like a private window) the test read 1,056-1,157 MB/s, and the 1B with 300 MB answered
+at 1.44-1.57 tok/s, reading at 1.4-1.6 GB/s. On a phone the speed is the storage’s:
+the 1B with 300 MB reads 592 MiB per token and the 4B with 1 GB 1,645 MiB, so at an
+OPFS read of 1 GB/s the reads alone cap them at about 1.6 and 0.6 tokens per second.
+Run the Disk speed test on the phone to know its figure.</p>
+<p><strong>The 4 GiB ceiling.</strong> A WebAssembly module addresses 4 GiB at most (wasm32), so what a
+model keeps in memory is capped near 4 GB whatever the limit: a model above that always
+reads part of itself from storage. Auto off iOS is 3584 MB, close to that ceiling with
+room for the browser’s own needs. WebAssembly Memory64 would lift the cap; Chrome has it,
+Safari not yet, and Inga’s module is 32-bit. On a desktop with an NVIDIA Pascal card in
+Chromium, Ornith 1.5 9B Q4_K_M (about 5.5 GB) at the earlier Auto of 2048 MB answered
+“Ciao” with 12 prompt tokens at 0.6 tok/s and 47 tokens at 0.4 tok/s (36 of them
+thinking), 1.98 GiB of WebAssembly memory, 158.02 GiB read from storage in 56.3 s
+(3015 MB/s), 3.30 GiB per token after the first: reads were about 40 % of the time,
+the rest computing on one thread. And Gemma 4 E4B IQ2_M on an iPhone 16 Pro, with the
+SIMD128 i-quant kernels, answered at 1.3 tok/s (0.4 before; prompt 2.3 against 0.4),
+1.59 GiB, reading 583.3 MiB per token after the first.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="7-on-the-gpu-webgpu-experimental">7. On the GPU (WebGPU, experimental)</h2><a class="sl-anchor-link" href="#7-on-the-gpu-webgpu-experimental"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “7. On the GPU (WebGPU, experimental)”</span></a></div>
+<p><strong>Settings → Device</strong> has three choices:</p>
+<ul>
+<li><strong>CPU</strong> (the default): WebAssembly SIMD on the device’s cores, as in the steps above.</li>
+<li><strong>GPU (WebGPU, experimental)</strong>: the model’s first layers run on the GPU, in WGSL
+generated from the Vulkan backend’s shaders (<code dir="auto">crates/inga-webgpu</code>, spec §8.8), as
+many as fit <strong>GPU memory</strong>; the rest run on the CPU, read from this site’s storage
+when the memory limit asks, as in step 6. Their weights go from the stored file
+straight into GPU buffers, a few MB at a time, never through WebAssembly memory. A
+picked file is copied into the site’s storage first. The option is greyed out, with
+the reason, where the browser has no WebGPU (<code dir="auto">navigator.gpu</code>): Chrome and Edge 113+,
+Safari 26, Firefox 141+ on Windows have it.</li>
+<li><strong>Auto</strong>: the GPU where it was measured faster than the CPU, else the CPU; and the CPU
+for a model that needs storage under one limit (below), whatever the adapter. Nothing
+has been measured faster yet (on an iPhone 16 Pro the GPU was slower, see below), so
+Auto picks the CPU and the load line says so.</li>
+</ul>
+<p><strong>GPU memory</strong> (Auto, or Limit in MB) is what the GPU may hold: its layers’ weights,
+their KV cache and its working buffers. Auto is 1024 MB on an iPhone or iPad (Llama 3.2
+1B, about 0.9 GiB on the GPU, is the largest model measured to load there; a larger one
+made iOS reload the page) and 3072 MB elsewhere: a guess, as WebGPU does not tell a GPU’s
+memory, which a 4 GB card holds (set yours in MB). A Qwen3-4B Q4_K_M model (about
+2.5 GB) then runs whole on the GPU: its plan takes 2887 MiB there, 364 MiB of
+WebAssembly memory (measured on the Qwen3-4B shape of <code dir="auto">tools/bench_model.py</code>).</p>
+<p><strong>GPU memory accounting</strong> says how the two limits meet:</p>
+<ul>
+<li><strong>One limit</strong>: the GPU’s bytes count against <strong>Memory for the model</strong> (step 6) with
+WebAssembly memory, in case the system counts a tab’s GPU buffers with its memory, as
+iOS seems to: the page plans both within one limit and refuses a model that cannot
+fit before reading it. A model that needs storage then runs slower on the GPU than on
+the CPU alone, since the GPU’s share leaves the CPU fewer weights while the reads per
+token stay: on an iPhone 16 Pro, Qwen3-4B Q4_K_M ran at 0.9 tok/s with 14 of 36 layers
+on the GPU (564.8 MiB of WebAssembly memory, 805.3 MiB of weights + 194.2 MiB on the
+GPU, 18 layers and the output layer in 5 parts read at every token, 1.32 GiB a token,
+345.9 MiB of weights in memory) against 2.3 tok/s on the CPU alone at the same limit
+(1.18 GiB of weights in memory, 17 layers read). So Device Auto keeps such a model on
+the CPU, and with Device GPU the load line warns.</li>
+<li><strong>Apart</strong>: <strong>Memory for the model</strong> bounds WebAssembly memory only and <strong>GPU memory</strong>
+the GPU’s bytes, as on a desktop, whose graphics memory is not the tab’s.</li>
+<li><strong>Auto</strong> (the default): one limit on an iPhone or iPad, apart elsewhere.</li>
+</ul>
+<p>The load line names the accounting it used (“GPU memory accounting: one limit, Auto on
+iOS (…)” or “apart, Auto off iOS (…)”).</p>
+<p><strong>Does iOS count GPU buffers in the tab’s limit?</strong> A test for the iPhone, which decides
+whether iOS can use “Apart” too:</p>
+<ol>
+<li>Settings: Device <strong>GPU</strong>; GPU memory <strong>Limit in MB</strong> 1024; Memory for the model
+<strong>Limit in MB</strong> 2600; GPU memory accounting <strong>One limit</strong>.</li>
+<li>Load Qwen3-4B Q4_K_M: about 1 GiB goes to the GPU and about 1.4 GiB stays in
+WebAssembly memory (the load line gives both), 2.4 GiB in all, above the 1.75 GiB at
+which Safari ended a tab on the CPU path but with WebAssembly memory under it.</li>
+<li>Run the Standard test.</li>
+</ol>
+<p>If the tab survives, iOS does not count the GPU’s buffers with the tab’s memory: the
+page should then use “Apart” on iOS too (the limit for WebAssembly memory at 1600 MB, a
+GPU budget beside it). If the page reloads, keep one limit.</p>
+<p>The load line says where everything runs and why, for example:</p>
+<div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="text"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">Loaded in 3.1 s: qwen3, 36 layers, 2.44 GiB of weights, context 2048, 13 of 36 layers</span></div></div><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">on the GPU (apple), the others on the CPU (SIMD128 kernels on 1 thread); ...; limit</span></div></div><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">1600 MB (Auto on iOS), GPU memory 1024 MB (Auto on iOS); device GPU (Device setting,</span></div></div><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">adapter apple). the GPU runs 13 of 36 layers: 14 would take 1065 MiB with their KV cache</span></div></div><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">and activations, above its budget of 1024 MiB. 20 of 36 layers read from this site's</span></div></div><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">storage at every token, ...</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="Loaded in 3.1 s: qwen3, 36 layers, 2.44 GiB of weights, context 2048, 13 of 36 layerson the GPU (apple), the others on the CPU (SIMD128 kernels on 1 thread); ...; limit1600 MB (Auto on iOS), GPU memory 1024 MB (Auto on iOS); device GPU (Device setting,adapter apple). the GPU runs 13 of 36 layers: 14 would take 1065 MiB with their KV cacheand activations, above its budget of 1024 MiB. 20 of 36 layers read from this site&#x27;sstorage at every token, ..."><div></div></button></div></figure></div>
+<p>A model whose layers the GPU does not run here (mixtures of experts, DeltaNet or Mamba-2
+layers, Gemma 4’s per-layer embeddings, weight types without a WebGPU kernel) loads on
+the CPU instead, and the line says why (for Gemma 4 E4B: “the GPU does not run this
+model: Gemma 4’s per-layer embeddings and widths (gemma4) do not run on the GPU in the
+browser yet”). A draft model (step 8) drafts on the CPU only: with Device GPU the model
+answers without it.</p>
+<ul>
+<li><strong>GPU info</strong> (next to the setting) shows the browser’s adapter and the limits that
+matter: <code dir="auto">maxBufferSize</code> and <code dir="auto">maxStorageBufferBindingSize</code> (a weight larger than one
+binding is split into several buffers), <code dir="auto">maxComputeWorkgroupStorageSize</code>,
+<code dir="auto">shader-f16</code> and <code dir="auto">subgroups</code>.</li>
+<li>After a load and after each answer the page shows the WebAssembly memory and the
+GPU’s bytes (weights, and the other buffers: KV cache, activations).</li>
+<li><strong>Stop</strong> stops at the next token (the worker waits for the GPU between tokens).</li>
+</ul>
+<p>Measured on an iPhone 16 Pro in Safari (iOS 26), with the first WebGPU build, before the
+optimizations below: Qwen3-0.6B answered at 16.3 tok/s on the GPU against about 25 on
+the CPU, and Llama 3.2 1B Q4_K_M’s prompt ran at 8.8 tok/s against 24.3 (answer 12.1
+against about 13.5). The page now reads back one result per step (the logits, after the
+layers, the final norm and the output layer in one pass; before, the hidden state of
+every prompt chunk and then the logits), quantizes each norm’s output once for the
+products that read it, reuses its bind groups from token to token, and draws each token
+on the GPU when every layer and the output layer are there, reading back only its id
+(the answer’s line says “N drawn on the GPU”; a setting the GPU’s sampler does not
+have, such as a logit bias, is drawn by the CPU from the logits, the same tokens). Where
+the adapter has <code dir="auto">shader-f16</code> it reads the KV cache and F16 weights as f16 values, and on
+an Apple GPU the prompts run on tiles of 32 tokens (Inga’s Metal kernels’ size). These
+have to be measured on the phone again: on software renderers (the only GPUs here) they
+say little.</p>
+<p><strong>GPU benchmark</strong> (next to New chat, with a model loaded on the GPU) measures them in one
+tap: the loaded model runs the same prompt (about 80 tokens) and 32 tokens under eight
+kernel choices (the kernels before these changes, f16, Apple’s tiles, both, four rows per
+workgroup, all three, subgroups, subgroups with f16), each after a short warm-up run that
+compiles its kernels, and prints a table of prompt and answer tok/s and whether each
+gave the first row’s text. Rows that need <code dir="auto">shader-f16</code>, or subgroups 32 wide, say so
+where the adapter lacks them. The chat starts again afterwards (the benchmark’s prompt is not part
+of it). The same switches are <code dir="auto">Gpu.tune("f16=off,rows=4,tiles=32,slab=128,sg=on")</code> in
+JavaScript and <code dir="auto">off=...</code> in the native example (spec §8.9, “The page’s draws on the
+GPU”).</p>
+<p>Measured on a desktop with an NVIDIA Pascal card (P1000 class) in Chromium, with the
+page before these changes: Llama-3.2-1B-Instruct Q4_K_M, prompt 37 tokens at 17.6 tok/s,
+answer 7 tokens at 15.8 tok/s (260.9 MiB of WebAssembly memory, 762.6 MiB of weights +
+126.3 MiB on the GPU); SmolLM2-135M-Instruct Q8_0, prompt 32 tokens at 70.5 tok/s,
+answer 32 tokens at 58.2 tok/s (43.1 MiB; 136.3 MiB + 59.5 MiB on the GPU). The card’s
+memory (about 80 GB/s) would allow far more on 0.76 GiB of weights per token: about
+17 ms a token goes elsewhere (submissions, waiting for the read, the step’s second
+run), which the token drawn on the GPU (4 bytes read back instead of the logits) is to
+cut. Its adapter: maxBufferSize and maxStorageBufferBindingSize 2 GiB,
+maxComputeWorkgroupStorageSize 32 KiB, maxStorageBuffersPerShaderStage 16, subgroups,
+no shader-f16. Every kernel binds 6 storage buffers at most, under the 8 WebGPU
+guarantees; a device that binds fewer than a kernel needs gets no layer, and the load
+line names the kernel.</p>
+<p>Under the hood the engine waits for the GPU between tokens rather than inside one: a
+token’s step runs again once the GPU’s result is there, the work already on the GPU
+skipped (spec §8.8). With the threaded module (a cross-origin isolated page), the GPU
+path still loads <code dir="auto">web/pkg</code>’s module, which has it.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="8-a-draft-model-several-tokens-for-one-read-of-the-layers">8. A draft model: several tokens for one read of the layers</h2><a class="sl-anchor-link" href="#8-a-draft-model-several-tokens-for-one-read-of-the-layers"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “8. A draft model: several tokens for one read of the layers”</span></a></div>
+<p>With layers read from storage, every token costs a read of those layers. A <strong>draft
+model</strong>, a smaller model of the same vocabulary held whole in memory, guesses the next
+few tokens, and the model checks them all in one pass: each layer read from storage is
+read once for every token the pass accepts. It is Inga’s speculative decoding, the same
+as <code dir="auto">inga run --draft</code> (the text is the one the model writes alone).</p>
+<ol>
+<li>Store both models (Get, a link, or a file of this device).</li>
+<li><strong>Settings → Draft model</strong>: choose the smaller one (None by default). The choice is
+kept in this browser.</li>
+<li>Load the model. The page loads both; the line under the model names the draft and
+its memory (“Draft model Qwen3-0.6B-Q4_K_M.gguf: 28 layers, 639 MiB in memory
+(weights, KV cache, activations), 4 tokens guessed before each check”).</li>
+</ol>
+<p>Pairs that share a vocabulary: <strong>Qwen3-4B with Qwen3-0.6B</strong>, Qwen3-1.7B with Qwen3-0.6B,
+<strong>Llama 3.2 3B with Llama 3.2 1B</strong>, Gemma models of the same generation. The page
+checks that the two tokenizers have the same tokens, each with the same text, and
+refuses another pair before reading any weight (“… cannot draft for …: they must share
+a vocabulary”).</p>
+<p><strong>Memory.</strong> The draft is held whole, and its weights, KV cache for the context and
+working buffers come out of the same <strong>Memory for the model</strong>: the model gets what is
+left, so it reads more of its layers from storage at every pass. A draft that does not
+fit the limit alone is refused with its parts and sizes. A smaller context shrinks both
+KV caches.</p>
+<p><strong>When it pays.</strong> The page keeps the draft only while it makes the answer faster: after
+a few plain tokens it measures, by the clock, the tokens per second of the checks
+(reads, compute and the draft’s own guesses together) against those of plain tokens,
+and pauses the draft for a while when the checks are slower; a check that accepts
+nothing ends the measure at once. With layers read from storage a pass is dear, so a
+draft pays at a lower share of right guesses than natively; the page therefore has no
+minimum share (the gate of <code dir="auto">inga run</code>’s default drafts pauses below 10 %), only the clock.</p>
+<p>The line under each answer adds the guesses: proposed, accepted, accepted per check,
+the checks and the model’s passes, whether the draft was paused; and the bytes read per
+token after the first.</p>
+<p><strong>Measured</strong> only on synthetic files here (headless Chromium on a Linux server, one
+thread, SIMD128; <code dir="auto">tools/bench_model.py --shape qwen3-4b</code> and <code dir="auto">--shape qwen3-0.6b</code>,
+random weights; a 46-token prompt, 24 tokens, the second of two runs, both alike):</p>
+<table>
+<thead>
+<tr>
+<th>Synthetic Qwen3-4B shape at 1600 MB, headless Chromium</th>
+<th>Layers read per pass</th>
+<th style="text-align: right">Read per pass</th>
+<th style="text-align: right">Answer tok/s</th>
+<th style="text-align: right">WebAssembly memory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No draft</td>
+<td>18 of 36 and the output layer (5 parts)</td>
+<td style="text-align: right">1.37 GiB</td>
+<td style="text-align: right">0.84-0.86</td>
+<td style="text-align: right">1,539 MiB</td>
+</tr>
+<tr>
+<td>Draft: the synthetic Qwen3-0.6B shape (639 MiB planned held whole)</td>
+<td>28 of 36 and the output layer</td>
+<td style="text-align: right">1.96 GiB</td>
+<td style="text-align: right">0.58-0.59</td>
+<td style="text-align: right">1,569 MiB</td>
+</tr>
+</tbody>
+</table>
+<p>Random weights make the two models disagree: here the draft’s 4 guesses were all wrong,
+the gate paused it after its first check, and the answer was slower because the model
+had 639 MiB less for its layers (28 layers read per pass instead of 18) and the draft
+read the prompt once. <strong>The share of guesses a real pair accepts decides whether a draft
+pays, and it has not been measured</strong>: try it on the phone with the real files (Qwen3-4B
+with Qwen3-0.6B), compare the answer’s tok/s with and without the draft, and look at
+“accepted per check”. As a rule of thumb, a check of 4 guesses that accepts 2 gives 3
+tokens for one pass of the model plus 4 short passes of the draft.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="troubleshooting">Troubleshooting</h2><a class="sl-anchor-link" href="#troubleshooting"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Troubleshooting”</span></a></div>
+<ul>
+<li><strong>“This browser has no Origin Private File System”</strong>: the page is not served over
+HTTPS (or <code dir="auto">localhost</code>), or the browser is too old; a file of the device still loads.</li>
+<li><strong>The tab is closed or reloaded while loading a large model</strong>: the browser ran out of
+memory for the tab. The model needs its size plus its context in memory (a 1B Q4_K_M
+model: about 1 GB); use a smaller model or a smaller context, or a smaller <strong>Memory
+for the model</strong> (step 6), which reads the rest from storage while it runs. Check the
+limit the load line names: the Settings are kept in the browser, but a page from
+before they were did not keep them.</li>
+<li><strong>“The model needs … at least …”</strong>: even with everything that can be read from
+storage read from it, the rest does not fit the limit: a smaller <strong>Context</strong> (its KV
+cache is part of it) or a larger limit.</li>
+<li><strong>“This site’s storage has … free”</strong> when picking a large file: the model must be
+copied into the site’s storage to be read from there; delete a stored model, or
+choose <strong>All in memory</strong>.</li>
+<li><strong>The storage line says the site uses almost all its quota, but Stored models shows
+little</strong>: every file the site keeps is listed (step 3), what the page did not write
+too; delete what you do not need, or <strong>Delete all stored data</strong>. If a file cannot be
+deleted, close the page’s other tabs (a tab reading a model keeps its file open) and
+try again.</li>
+<li><strong>“Inga stopped: panicked at …”</strong> or <strong>“Inga stopped: out of memory …”</strong>: the
+engine stopped in the middle of a call; the message says where and why (before, the
+browser only said “Unreachable code should not be executed”). The model is unloaded:
+load it again. Out of memory: a lower <strong>Memory for the model</strong> or a smaller context.
+Otherwise please report the message.</li>
+<li><strong>A download fails with a CORS error</strong>: the server of the link does not allow
+cross-origin downloads; download the file and pick it from the device instead.</li>
+<li><strong>“on 1 thread” on a page you serve with the headers</strong>: check
+<code dir="auto">self.crossOriginIsolated</code> in the browser console (both headers must be on the page
+itself), that <code dir="auto">web/pkg-threads/</code> was built (the build prints it), and the console:
+the worker says why the threaded module did not start before it falls back to one
+thread. The threaded module reserves up to 4 GiB of address space for its shared
+memory; a browser that refuses it (possibly on phones) falls back the same way.</li>
+<li><strong>“On the CPU: the GPU did not take this model (…)”</strong> on the load line: an
+architecture or a weight type the WebGPU kernels lack; the page loaded the model again
+on the CPU by itself. <strong>“the GPU runs N of M layers: …”</strong>: the rest runs on the
+CPU; raise <strong>GPU memory</strong> (or Memory for the model) to put more on the GPU.</li>
+<li><strong>The page reloads while a model loads on the GPU</strong> (iOS ends the tab): lower <strong>GPU
+memory</strong> and <strong>Memory for the model</strong>; both count against what iOS lets a tab use.</li>
+<li><strong>A WebGPU error naming a buffer size or a limit</strong>: the adapter’s limits (GPU info)
+are lower than a weight’s rows or the KV cache; a smaller context helps the cache.</li>
+</ul>
+</div><footer class="sl-flex astro-ddtxxk7k"><div class="meta sl-flex astro-ddtxxk7k"><a href="https://github.com/matteobaccan/inga/edit/main/docs/use-cases/run-a-model-inside-the-browser.md" class="sl-flex print:hidden astro-qlekgd3o"><svg aria-hidden="true" class="astro-qlekgd3o astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.2em;"><path d="M22 7.24a1 1 0 0 0-.29-.71l-4.24-4.24a1 1 0 0 0-1.1-.22 1 1 0 0 0-.32.22l-2.83 2.83L2.29 16.05a1 1 0 0 0-.29.71V21a1 1 0 0 0 1 1h4.24a1 1 0 0 0 .76-.29l10.87-10.93L21.71 8c.1-.1.17-.2.22-.33a1 1 0 0 0 0-.24v-.14l.07-.05ZM6.83 20H4v-2.83l9.93-9.93 2.83 2.83L6.83 20ZM18.17 8.66l-2.83-2.83 1.42-1.41 2.82 2.82-1.41 1.42Z"/></svg>Edit page</a></div><div class="pagination-links print:hidden astro-b5raizh3" dir="ltr"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-from-hugging-face/" rel="prev" class="astro-b5raizh3"><svg aria-hidden="true" class="astro-b5raizh3 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17 11H9.41l3.3-3.29a1.004 1.004 0 1 0-1.42-1.42l-5 5a1 1 0 0 0-.21.33 1 1 0 0 0 0 .76 1 1 0 0 0 .21.33l5 5a1.002 1.002 0 0 0 1.639-.325 1 1 0 0 0-.219-1.095L9.41 13H17a1 1 0 0 0 0-2Z"/></svg><span class="astro-b5raizh3">Previous<br class="astro-b5raizh3"><span class="link-title astro-b5raizh3">Run a model straight from Hugging Face</span></span></a><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-on-a-mesh/" rel="next" class="astro-b5raizh3"><svg aria-hidden="true" class="astro-b5raizh3 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17.92 11.62a1.001 1.001 0 0 0-.21-.33l-5-5a1.003 1.003 0 1 0-1.42 1.42l3.3 3.29H7a1 1 0 0 0 0 2h7.59l-3.3 3.29a1.002 1.002 0 0 0 .325 1.639 1 1 0 0 0 1.095-.219l5-5a1 1 0 0 0 .21-.33 1 1 0 0 0 0-.76Z"/></svg><span class="astro-b5raizh3">Next<br class="astro-b5raizh3"><span class="link-title astro-b5raizh3">Run a model on a mesh of PCs</span></span></a></div></footer></div></div></main></div></div></div></div></body></html>
