@@ -1,7 +1,7 @@
 {
- "_comment": "Inga -- Local LLM inference engine in Rust. Copyright (c) Matteo Baccan -- https://github.com/matteobaccan/inga. SPDX-License-Identifier: MIT. The browser page's model catalog (docs/wasm-beta.md): GGUF files on Hugging Face whose architecture Inga runs. A variant with \"approx\": true has a size estimated from the parameters and the quantization, its path not yet checked against Hugging Face: python3 tools/wasm-catalog.py --write checks every file and writes the exact sizes. A model with \"starter\": true is one the page offers to try first, when no model is loaded (the smallest variant that fits of the smallest such model).",
+ "_comment": "Inga -- Local LLM inference engine in Rust. Copyright (c) Matteo Baccan -- https://github.com/matteobaccan/inga. SPDX-License-Identifier: MIT. The browser page's model catalog (docs/wasm-beta.md): GGUF files on Hugging Face whose architecture Inga runs. A variant with \"approx\": true has a size estimated from the parameters and the quantization, its path not yet checked against Hugging Face: python3 tools/wasm-catalog.py --write checks every file and writes the exact sizes.",
  "version": 1,
- "checked": null,
+ "checked": "2026-10-16",
  "families": [
   {
    "id": "llama",
@@ -68,19 +68,11 @@
    "label": "LFM",
    "icon": "💧",
    "about": "Liquid AI's LFM2"
-  },
-  {
-   "id": "emma",
-   "label": "Emma",
-   "icon": "👧",
-   "logo": "icons/emma.svg",
-   "about": "Emma, the Italian model by Egomnia (emma.egomnia.com); GGUF by PaoloneSborracchione"
   }
  ],
  "models": [
   {
    "id": "llama-3.2-1b-instruct",
-   "starter": true,
    "name": "Llama 3.2 1B Instruct",
    "family": "llama",
    "arch": "llama",
@@ -94,20 +86,17 @@
     {
      "quant": "Q4_K_M",
      "file": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
-     "size": 752000000,
-     "approx": true
+     "size": 807694464
     },
     {
      "quant": "Q6_K",
      "file": "Llama-3.2-1B-Instruct-Q6_K.gguf",
-     "size": 1023000000,
-     "approx": true
+     "size": 1021800576
     },
     {
      "quant": "Q8_0",
      "file": "Llama-3.2-1B-Instruct-Q8_0.gguf",
-     "size": 1318000000,
-     "approx": true
+     "size": 1321083008
     }
    ]
   },
@@ -126,26 +115,22 @@
     {
      "quant": "Q4_K_M",
      "file": "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
-     "size": 1946000000,
-     "approx": true
+     "size": 2019377696
     },
     {
      "quant": "Q5_K_M",
      "file": "Llama-3.2-3B-Instruct-Q5_K_M.gguf",
-     "size": 2287000000,
-     "approx": true
+     "size": 2322154016
     },
     {
      "quant": "Q6_K",
      "file": "Llama-3.2-3B-Instruct-Q6_K.gguf",
-     "size": 2648000000,
-     "approx": true
+     "size": 2643853856
     },
     {
      "quant": "Q8_0",
      "file": "Llama-3.2-3B-Instruct-Q8_0.gguf",
-     "size": 3411000000,
-     "approx": true
+     "size": 3421899296
     }
    ]
   },
@@ -164,26 +149,22 @@
     {
      "quant": "Q3_K_M",
      "file": "Meta-Llama-3.1-8B-Instruct-Q3_K_M.gguf",
-     "size": 3915000000,
-     "approx": true
+     "size": 4018922912
     },
     {
      "quant": "Q4_K_M",
      "file": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
-     "size": 4868000000,
-     "approx": true
+     "size": 4920739232
     },
     {
      "quant": "Q5_K_M",
      "file": "Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf",
-     "size": 5721000000,
-     "approx": true
+     "size": 5732992416
     },
     {
      "quant": "Q8_0",
      "file": "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf",
-     "size": 8532000000,
-     "approx": true
+     "size": 8540775840
     }
    ]
   },
@@ -202,14 +183,12 @@
     {
      "quant": "Q2_K",
      "file": "Meta-Llama-3.1-70B-Instruct-Q2_K.gguf",
-     "size": 26475000000,
-     "approx": true
+     "size": 26375113280
     },
     {
      "quant": "Q4_K_M",
      "file": "Meta-Llama-3.1-70B-Instruct-Q4_K_M.gguf",
-     "size": 42801000000,
-     "approx": true
+     "size": 42520398400
     }
    ]
   },
@@ -228,26 +207,22 @@
     {
      "quant": "Q3_K_M",
      "file": "Meta-Llama-3-8B-Instruct-Q3_K_M.gguf",
-     "size": 3915000000,
-     "approx": true
+     "size": 4018917952
     },
     {
      "quant": "Q4_K_M",
      "file": "Meta-Llama-3-8B-Instruct-Q4_K_M.gguf",
-     "size": 4868000000,
-     "approx": true
+     "size": 4920734272
     },
     {
      "quant": "Q5_K_M",
      "file": "Meta-Llama-3-8B-Instruct-Q5_K_M.gguf",
-     "size": 5721000000,
-     "approx": true
+     "size": 5732987456
     },
     {
      "quant": "Q8_0",
      "file": "Meta-Llama-3-8B-Instruct-Q8_0.gguf",
-     "size": 8532000000,
-     "approx": true
+     "size": 8540770880
     }
    ]
   },
@@ -266,14 +241,12 @@
     {
      "quant": "Q2_K",
      "file": "Meta-Llama-3-70B-Instruct-Q2_K.gguf",
-     "size": 26475000000,
-     "approx": true
+     "size": 26375108384
     },
     {
      "quant": "Q4_K_M",
      "file": "Meta-Llama-3-70B-Instruct-Q4_K_M.gguf",
-     "size": 42801000000,
-     "approx": true
+     "size": 42520393504
     }
    ]
   },
@@ -292,26 +265,22 @@
     {
      "quant": "Q3_K_M",
      "file": "llama-2-7b-chat.Q3_K_M.gguf",
-     "size": 3286000000,
-     "approx": true
+     "size": 3298004672
     },
     {
      "quant": "Q4_K_M",
      "file": "llama-2-7b-chat.Q4_K_M.gguf",
-     "size": 4086000000,
-     "approx": true
+     "size": 4081004224
     },
     {
      "quant": "Q5_K_M",
      "file": "llama-2-7b-chat.Q5_K_M.gguf",
-     "size": 4802000000,
-     "approx": true
+     "size": 4783156928
     },
     {
      "quant": "Q8_0",
      "file": "llama-2-7b-chat.Q8_0.gguf",
-     "size": 7161000000,
-     "approx": true
+     "size": 7161089728
     }
    ]
   },
@@ -330,14 +299,12 @@
     {
      "quant": "Q3_K_M",
      "file": "llama-2-13b-chat.Q3_K_M.gguf",
-     "size": 6338000000,
-     "approx": true
+     "size": 6337769344
     },
     {
      "quant": "Q4_K_M",
      "file": "llama-2-13b-chat.Q4_K_M.gguf",
-     "size": 7881000000,
-     "approx": true
+     "size": 7865956224
     }
    ]
   },
@@ -356,20 +323,17 @@
     {
      "quant": "Q4_K_M",
      "file": "DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf",
-     "size": 1079000000,
-     "approx": true
+     "size": 1117320800
     },
     {
      "quant": "Q6_K",
      "file": "DeepSeek-R1-Distill-Qwen-1.5B-Q6_K.gguf",
-     "size": 1469000000,
-     "approx": true
+     "size": 1464178784
     },
     {
      "quant": "Q8_0",
      "file": "DeepSeek-R1-Distill-Qwen-1.5B-Q8_0.gguf",
-     "size": 1891000000,
-     "approx": true
+     "size": 1894532192
     }
    ]
   },
@@ -388,26 +352,22 @@
     {
      "quant": "Q3_K_M",
      "file": "DeepSeek-R1-Distill-Qwen-7B-Q3_K_M.gguf",
-     "size": 3715000000,
-     "approx": true
+     "size": 3808391136
     },
     {
      "quant": "Q4_K_M",
      "file": "DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf",
-     "size": 4620000000,
-     "approx": true
+     "size": 4683073504
     },
     {
      "quant": "Q5_K_M",
      "file": "DeepSeek-R1-Distill-Qwen-7B-Q5_K_M.gguf",
-     "size": 5429000000,
-     "approx": true
+     "size": 5444831200
     },
     {
      "quant": "Q8_0",
      "file": "DeepSeek-R1-Distill-Qwen-7B-Q8_0.gguf",
-     "size": 8096000000,
-     "approx": true
+     "size": 8098525152
     }
    ]
   },
@@ -426,32 +386,27 @@
     {
      "quant": "Q3_K_M",
      "file": "DeepSeek-R1-Distill-Llama-8B-Q3_K_M.gguf",
-     "size": 3915000000,
-     "approx": true
+     "size": 4018920288
     },
     {
      "quant": "Q4_K_M",
      "file": "DeepSeek-R1-Distill-Llama-8B-Q4_K_M.gguf",
-     "size": 4868000000,
-     "approx": true
+     "size": 4920736608
     },
     {
      "quant": "Q5_K_M",
      "file": "DeepSeek-R1-Distill-Llama-8B-Q5_K_M.gguf",
-     "size": 5721000000,
-     "approx": true
+     "size": 5732989792
     },
     {
      "quant": "Q8_0",
      "file": "DeepSeek-R1-Distill-Llama-8B-Q8_0.gguf",
-     "size": 8532000000,
-     "approx": true
+     "size": 8540773216
     }
    ]
   },
   {
    "id": "qwen3-0.6b",
-   "starter": true,
    "name": "Qwen3 0.6B",
    "family": "qwen",
    "arch": "qwen3",
@@ -466,14 +421,12 @@
     {
      "quant": "Q4_K_M",
      "file": "Qwen3-0.6B-Q4_K_M.gguf",
-     "size": 364000000,
-     "approx": true
+     "size": 396705472
     },
     {
      "quant": "Q8_0",
      "file": "Qwen3-0.6B-Q8_0.gguf",
-     "size": 638000000,
-     "approx": true
+     "size": 639447744
     }
    ]
   },
@@ -493,26 +446,22 @@
     {
      "quant": "Q4_K_M",
      "file": "Qwen3-1.7B-Q4_K_M.gguf",
-     "size": 1231000000,
-     "approx": true
+     "size": 1107409472
     },
     {
      "quant": "Q5_K_M",
      "file": "Qwen3-1.7B-Q5_K_M.gguf",
-     "size": 1446000000,
-     "approx": true
+     "size": 1257880128
     },
     {
      "quant": "Q6_K",
      "file": "Qwen3-1.7B-Q6_K.gguf",
-     "size": 1675000000,
-     "approx": true
+     "size": 1417755200
     },
     {
      "quant": "Q8_0",
      "file": "Qwen3-1.7B-Q8_0.gguf",
-     "size": 2157000000,
-     "approx": true
+     "size": 1834426944
     }
    ]
   },
@@ -532,26 +481,22 @@
     {
      "quant": "Q4_K_M",
      "file": "Qwen3-4B-Q4_K_M.gguf",
-     "size": 2437000000,
-     "approx": true
+     "size": 2497281312
     },
     {
      "quant": "Q5_K_M",
      "file": "Qwen3-4B-Q5_K_M.gguf",
-     "size": 2864000000,
-     "approx": true
+     "size": 2889514272
     },
     {
      "quant": "Q6_K",
      "file": "Qwen3-4B-Q6_K.gguf",
-     "size": 3316000000,
-     "approx": true
+     "size": 3306261792
     },
     {
      "quant": "Q8_0",
      "file": "Qwen3-4B-Q8_0.gguf",
-     "size": 4271000000,
-     "approx": true
+     "size": 4280405792
     }
    ]
   },
@@ -571,26 +516,22 @@
     {
      "quant": "Q3_K_M",
      "file": "Qwen3-8B-Q3_K_M.gguf",
-     "size": 3993000000,
-     "approx": true
+     "size": 4124161856
     },
     {
      "quant": "Q4_K_M",
      "file": "Qwen3-8B-Q4_K_M.gguf",
-     "size": 4965000000,
-     "approx": true
+     "size": 5027784512
     },
     {
      "quant": "Q5_K_M",
      "file": "Qwen3-8B-Q5_K_M.gguf",
-     "size": 5835000000,
-     "approx": true
+     "size": 5851113280
     },
     {
      "quant": "Q8_0",
      "file": "Qwen3-8B-Q8_0.gguf",
-     "size": 8702000000,
-     "approx": true
+     "size": 8709519168
     }
    ]
   },
@@ -609,14 +550,12 @@
     {
      "quant": "Q4_K_M",
      "file": "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf",
-     "size": 297000000,
-     "approx": true
+     "size": 397808192
     },
     {
      "quant": "Q8_0",
      "file": "Qwen2.5-0.5B-Instruct-Q8_0.gguf",
-     "size": 521000000,
-     "approx": true
+     "size": 531068480
     }
    ]
   },
@@ -635,20 +574,17 @@
     {
      "quant": "Q4_K_M",
      "file": "Qwen2.5-1.5B-Instruct-Q4_K_M.gguf",
-     "size": 934000000,
-     "approx": true
+     "size": 986048768
     },
     {
      "quant": "Q6_K",
      "file": "Qwen2.5-1.5B-Instruct-Q6_K.gguf",
-     "size": 1271000000,
-     "approx": true
+     "size": 1272740096
     },
     {
      "quant": "Q8_0",
      "file": "Qwen2.5-1.5B-Instruct-Q8_0.gguf",
-     "size": 1636000000,
-     "approx": true
+     "size": 1646573312
     }
    ]
   },
@@ -667,26 +603,22 @@
     {
      "quant": "Q4_K_M",
      "file": "Qwen2.5-3B-Instruct-Q4_K_M.gguf",
-     "size": 1873000000,
-     "approx": true
+     "size": 1929903264
     },
     {
      "quant": "Q5_K_M",
      "file": "Qwen2.5-3B-Instruct-Q5_K_M.gguf",
-     "size": 2202000000,
-     "approx": true
+     "size": 2224815264
     },
     {
      "quant": "Q6_K",
      "file": "Qwen2.5-3B-Instruct-Q6_K.gguf",
-     "size": 2549000000,
-     "approx": true
+     "size": 2538159264
     },
     {
      "quant": "Q8_0",
      "file": "Qwen2.5-3B-Instruct-Q8_0.gguf",
-     "size": 3283000000,
-     "approx": true
+     "size": 3285476512
     }
    ]
   },
@@ -705,26 +637,22 @@
     {
      "quant": "Q3_K_M",
      "file": "Qwen2.5-7B-Instruct-Q3_K_M.gguf",
-     "size": 3715000000,
-     "approx": true
+     "size": 3808391872
     },
     {
      "quant": "Q4_K_M",
      "file": "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
-     "size": 4620000000,
-     "approx": true
+     "size": 4683074240
     },
     {
      "quant": "Q5_K_M",
      "file": "Qwen2.5-7B-Instruct-Q5_K_M.gguf",
-     "size": 5429000000,
-     "approx": true
+     "size": 5444831936
     },
     {
      "quant": "Q8_0",
      "file": "Qwen2.5-7B-Instruct-Q8_0.gguf",
-     "size": 8096000000,
-     "approx": true
+     "size": 8098525888
     }
    ]
   },
@@ -743,14 +671,12 @@
     {
      "quant": "Q4_K_M",
      "file": "Qwen2.5-Coder-0.5B-Instruct-Q4_K_M.gguf",
-     "size": 297000000,
-     "approx": true
+     "size": 397808288
     },
     {
      "quant": "Q8_0",
      "file": "Qwen2.5-Coder-0.5B-Instruct-Q8_0.gguf",
-     "size": 521000000,
-     "approx": true
+     "size": 531068576
     }
    ]
   },
@@ -769,20 +695,17 @@
     {
      "quant": "Q4_K_M",
      "file": "Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf",
-     "size": 934000000,
-     "approx": true
+     "size": 986048800
     },
     {
      "quant": "Q6_K",
      "file": "Qwen2.5-Coder-1.5B-Instruct-Q6_K.gguf",
-     "size": 1271000000,
-     "approx": true
+     "size": 1272740128
     },
     {
      "quant": "Q8_0",
      "file": "Qwen2.5-Coder-1.5B-Instruct-Q8_0.gguf",
-     "size": 1636000000,
-     "approx": true
+     "size": 1646573344
     }
    ]
   },
@@ -801,26 +724,22 @@
     {
      "quant": "Q4_K_M",
      "file": "Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf",
-     "size": 1873000000,
-     "approx": true
+     "size": 1929903360
     },
     {
      "quant": "Q5_K_M",
      "file": "Qwen2.5-Coder-3B-Instruct-Q5_K_M.gguf",
-     "size": 2202000000,
-     "approx": true
+     "size": 2224815360
     },
     {
      "quant": "Q6_K",
      "file": "Qwen2.5-Coder-3B-Instruct-Q6_K.gguf",
-     "size": 2549000000,
-     "approx": true
+     "size": 2538159360
     },
     {
      "quant": "Q8_0",
      "file": "Qwen2.5-Coder-3B-Instruct-Q8_0.gguf",
-     "size": 3283000000,
-     "approx": true
+     "size": 3285476608
     }
    ]
   },
@@ -839,26 +758,22 @@
     {
      "quant": "Q3_K_M",
      "file": "Qwen2.5-Coder-7B-Instruct-Q3_K_M.gguf",
-     "size": 3715000000,
-     "approx": true
+     "size": 3808391968
     },
     {
      "quant": "Q4_K_M",
      "file": "Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf",
-     "size": 4620000000,
-     "approx": true
+     "size": 4683074336
     },
     {
      "quant": "Q5_K_M",
      "file": "Qwen2.5-Coder-7B-Instruct-Q5_K_M.gguf",
-     "size": 5429000000,
-     "approx": true
+     "size": 5444832032
     },
     {
      "quant": "Q8_0",
      "file": "Qwen2.5-Coder-7B-Instruct-Q8_0.gguf",
-     "size": 8096000000,
-     "approx": true
+     "size": 8098525984
     }
    ]
   },
@@ -877,20 +792,17 @@
     {
      "quant": "Q4_K_M",
      "file": "Qwen2-Math-1.5B-Instruct-Q4_K_M.gguf",
-     "size": 934000000,
-     "approx": true
+     "size": 986046176
     },
     {
      "quant": "Q6_K",
      "file": "Qwen2-Math-1.5B-Instruct-Q6_K.gguf",
-     "size": 1271000000,
-     "approx": true
+     "size": 1272737504
     },
     {
      "quant": "Q8_0",
      "file": "Qwen2-Math-1.5B-Instruct-Q8_0.gguf",
-     "size": 1636000000,
-     "approx": true
+     "size": 1646570720
     }
    ]
   },
@@ -909,26 +821,22 @@
     {
      "quant": "Q3_K_M",
      "file": "Qwen2-Math-7B-Instruct-Q3_K_M.gguf",
-     "size": 3715000000,
-     "approx": true
+     "size": 3808389248
     },
     {
      "quant": "Q4_K_M",
      "file": "Qwen2-Math-7B-Instruct-Q4_K_M.gguf",
-     "size": 4620000000,
-     "approx": true
+     "size": 4683071616
     },
     {
      "quant": "Q5_K_M",
      "file": "Qwen2-Math-7B-Instruct-Q5_K_M.gguf",
-     "size": 5429000000,
-     "approx": true
+     "size": 5444829312
     },
     {
      "quant": "Q8_0",
      "file": "Qwen2-Math-7B-Instruct-Q8_0.gguf",
-     "size": 8096000000,
-     "approx": true
+     "size": 8098523264
     }
    ]
   },
@@ -947,14 +855,12 @@
     {
      "quant": "Q4_K_M",
      "file": "qwen2-0_5b-instruct-q4_k_m.gguf",
-     "size": 297000000,
-     "approx": true
+     "size": 397805248
     },
     {
      "quant": "Q8_0",
      "file": "qwen2-0_5b-instruct-q8_0.gguf",
-     "size": 521000000,
-     "approx": true
+     "size": 531065536
     }
    ]
   },
@@ -973,20 +879,17 @@
     {
      "quant": "Q4_K_M",
      "file": "qwen2-1_5b-instruct-q4_k_m.gguf",
-     "size": 934000000,
-     "approx": true
+     "size": 986045824
     },
     {
      "quant": "Q6_K",
      "file": "qwen2-1_5b-instruct-q6_k.gguf",
-     "size": 1271000000,
-     "approx": true
+     "size": 1272737152
     },
     {
      "quant": "Q8_0",
      "file": "qwen2-1_5b-instruct-q8_0.gguf",
-     "size": 1636000000,
-     "approx": true
+     "size": 1646570368
     }
    ]
   },
@@ -1005,26 +908,22 @@
     {
      "quant": "Q3_K_M",
      "file": "qwen2-7b-instruct-q3_k_m.gguf",
-     "size": 3715000000,
-     "approx": true
+     "size": 3808388896
     },
     {
      "quant": "Q4_K_M",
      "file": "qwen2-7b-instruct-q4_k_m.gguf",
-     "size": 4620000000,
-     "approx": true
+     "size": 4683071264
     },
     {
      "quant": "Q5_K_M",
      "file": "qwen2-7b-instruct-q5_k_m.gguf",
-     "size": 5429000000,
-     "approx": true
+     "size": 5444828960
     },
     {
      "quant": "Q8_0",
      "file": "qwen2-7b-instruct-q8_0.gguf",
-     "size": 8096000000,
-     "approx": true
+     "size": 8098522912
     }
    ]
   },
@@ -1043,26 +942,22 @@
     {
      "quant": "Q4_K_M",
      "file": "gemma-2-2b-it-Q4_K_M.gguf",
-     "size": 1582000000,
-     "approx": true
+     "size": 1708582752
     },
     {
      "quant": "Q5_K_M",
      "file": "gemma-2-2b-it-Q5_K_M.gguf",
-     "size": 1860000000,
-     "approx": true
+     "size": 1923278688
     },
     {
      "quant": "Q6_K",
      "file": "gemma-2-2b-it-Q6_K.gguf",
-     "size": 2153000000,
-     "approx": true
+     "size": 2151393120
     },
     {
      "quant": "Q8_0",
      "file": "gemma-2-2b-it-Q8_0.gguf",
-     "size": 2773000000,
-     "approx": true
+     "size": 2784495456
     }
    ]
   },
@@ -1082,14 +977,12 @@
     {
      "quant": "Q4_K_M",
      "file": "gemma-2-2b-jpn-it-Q4_K_M.gguf",
-     "size": 1582000000,
-     "approx": true
+     "size": 1708583072
     },
     {
      "quant": "Q8_0",
      "file": "gemma-2-2b-jpn-it-Q8_0.gguf",
-     "size": 2773000000,
-     "approx": true
+     "size": 2784495776
     }
    ]
   },
@@ -1108,26 +1001,22 @@
     {
      "quant": "Q3_K_M",
      "file": "gemma-2-9b-it-Q3_K_M.gguf",
-     "size": 4505000000,
-     "approx": true
+     "size": 4761781184
     },
     {
      "quant": "Q4_K_M",
      "file": "gemma-2-9b-it-Q4_K_M.gguf",
-     "size": 5602000000,
-     "approx": true
+     "size": 5761057728
     },
     {
      "quant": "Q5_K_M",
      "file": "gemma-2-9b-it-Q5_K_M.gguf",
-     "size": 6584000000,
-     "approx": true
+     "size": 6647366592
     },
     {
      "quant": "Q8_0",
      "file": "gemma-2-9b-it-Q8_0.gguf",
-     "size": 9818000000,
-     "approx": true
+     "size": 9827148736
     }
    ]
   },
@@ -1146,8 +1035,7 @@
     {
      "quant": "Q8_0",
      "file": "gemma-3-270m-it-Q8_0.gguf",
-     "size": 285000000,
-     "approx": true
+     "size": 291545600
     }
    ]
   },
@@ -1166,14 +1054,12 @@
     {
      "quant": "Q4_K_M",
      "file": "gemma-3-1b-it-Q4_K_M.gguf",
-     "size": 606000000,
-     "approx": true
+     "size": 806058240
     },
     {
      "quant": "Q8_0",
      "file": "gemma-3-1b-it-Q8_0.gguf",
-     "size": 1063000000,
-     "approx": true
+     "size": 1069306368
     }
    ]
   },
@@ -1193,14 +1079,12 @@
     {
      "quant": "Q4_K_M",
      "file": "gemma-3-4b-it-Q4_K_M.gguf",
-     "size": 2352000000,
-     "approx": true
+     "size": 2489757856
     },
     {
      "quant": "Q8_0",
      "file": "gemma-3-4b-it-Q8_0.gguf",
-     "size": 4123000000,
-     "approx": true
+     "size": 4130226336
     }
    ]
   },
@@ -1220,8 +1104,7 @@
     {
      "quant": "IQ2_M",
      "file": "gemma-4-E4B-it-UD-IQ2_M.gguf",
-     "size": 2900000000,
-     "approx": true
+     "size": 3545083008
     }
    ]
   },
@@ -1240,26 +1123,22 @@
     {
      "quant": "Q4_K_M",
      "file": "Phi-3-mini-4k-instruct-Q4_K_M.gguf",
-     "size": 2316000000,
-     "approx": true
+     "size": 2393231360
     },
     {
      "quant": "Q5_K_M",
      "file": "Phi-3-mini-4k-instruct-Q5_K_M.gguf",
-     "size": 2722000000,
-     "approx": true
+     "size": 2815275008
     },
     {
      "quant": "Q6_K",
      "file": "Phi-3-mini-4k-instruct-Q6_K.gguf",
-     "size": 3152000000,
-     "approx": true
+     "size": 3135852032
     },
     {
      "quant": "Q8_0",
      "file": "Phi-3-mini-4k-instruct-Q8_0.gguf",
-     "size": 4059000000,
-     "approx": true
+     "size": 4061221376
     }
    ]
   },
@@ -1278,26 +1157,22 @@
     {
      "quant": "Q4_K_M",
      "file": "Phi-3.5-mini-instruct-Q4_K_M.gguf",
-     "size": 2316000000,
-     "approx": true
+     "size": 2393232672
     },
     {
      "quant": "Q5_K_M",
      "file": "Phi-3.5-mini-instruct-Q5_K_M.gguf",
-     "size": 2722000000,
-     "approx": true
+     "size": 2815276320
     },
     {
      "quant": "Q6_K",
      "file": "Phi-3.5-mini-instruct-Q6_K.gguf",
-     "size": 3152000000,
-     "approx": true
+     "size": 3135853344
     },
     {
      "quant": "Q8_0",
      "file": "Phi-3.5-mini-instruct-Q8_0.gguf",
-     "size": 4059000000,
-     "approx": true
+     "size": 4061222688
     }
    ]
   },
@@ -1316,26 +1191,22 @@
     {
      "quant": "Q4_K_M",
      "file": "microsoft_Phi-4-mini-instruct-Q4_K_M.gguf",
-     "size": 2328000000,
-     "approx": true
+     "size": 2491874688
     },
     {
      "quant": "Q5_K_M",
      "file": "microsoft_Phi-4-mini-instruct-Q5_K_M.gguf",
-     "size": 2736000000,
-     "approx": true
+     "size": 2848128384
     },
     {
      "quant": "Q6_K",
      "file": "microsoft_Phi-4-mini-instruct-Q6_K.gguf",
-     "size": 3168000000,
-     "approx": true
+     "size": 3155623296
     },
     {
      "quant": "Q8_0",
      "file": "microsoft_Phi-4-mini-instruct-Q8_0.gguf",
-     "size": 4080000000,
-     "approx": true
+     "size": 4084611456
     }
    ]
   },
@@ -1354,26 +1225,22 @@
     {
      "quant": "Q3_K_M",
      "file": "Mistral-7B-Instruct-v0.3-Q3_K_M.gguf",
-     "size": 3534000000,
-     "approx": true
+     "size": 3522941152
     },
     {
      "quant": "Q4_K_M",
      "file": "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf",
-     "size": 4395000000,
-     "approx": true
+     "size": 4372812000
     },
     {
      "quant": "Q5_K_M",
      "file": "Mistral-7B-Instruct-v0.3-Q5_K_M.gguf",
-     "size": 5166000000,
-     "approx": true
+     "size": 5136175328
     },
     {
      "quant": "Q8_0",
      "file": "Mistral-7B-Instruct-v0.3-Q8_0.gguf",
-     "size": 7703000000,
-     "approx": true
+     "size": 7702565088
     }
    ]
   },
@@ -1392,26 +1259,22 @@
     {
      "quant": "Q3_K_M",
      "file": "mistral-7b-instruct-v0.2.Q3_K_M.gguf",
-     "size": 3530000000,
-     "approx": true
+     "size": 3518986528
     },
     {
      "quant": "Q4_K_M",
      "file": "mistral-7b-instruct-v0.2.Q4_K_M.gguf",
-     "size": 4389000000,
-     "approx": true
+     "size": 4368439584
     },
     {
      "quant": "Q5_K_M",
      "file": "mistral-7b-instruct-v0.2.Q5_K_M.gguf",
-     "size": 5159000000,
-     "approx": true
+     "size": 5131409696
     },
     {
      "quant": "Q8_0",
      "file": "mistral-7b-instruct-v0.2.Q8_0.gguf",
-     "size": 7693000000,
-     "approx": true
+     "size": 7695857952
     }
    ]
   },
@@ -1431,26 +1294,22 @@
     {
      "quant": "Q4_K_M",
      "file": "Hermes-3-Llama-3.2-3B.Q4_K_M.gguf",
-     "size": 1946000000,
-     "approx": true
+     "size": 2019373888
     },
     {
      "quant": "Q5_K_M",
      "file": "Hermes-3-Llama-3.2-3B.Q5_K_M.gguf",
-     "size": 2287000000,
-     "approx": true
+     "size": 2322150208
     },
     {
      "quant": "Q6_K",
      "file": "Hermes-3-Llama-3.2-3B.Q6_K.gguf",
-     "size": 2648000000,
-     "approx": true
+     "size": 2643850048
     },
     {
      "quant": "Q8_0",
      "file": "Hermes-3-Llama-3.2-3B.Q8_0.gguf",
-     "size": 3411000000,
-     "approx": true
+     "size": 3421895488
     }
    ]
   },
@@ -1468,28 +1327,19 @@
    ],
    "variants": [
     {
-     "quant": "Q3_K_M",
-     "file": "Hermes-3-Llama-3.1-8B.Q3_K_M.gguf",
-     "size": 3915000000,
-     "approx": true
-    },
-    {
      "quant": "Q4_K_M",
      "file": "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf",
-     "size": 4868000000,
-     "approx": true
+     "size": 4920733824
     },
     {
      "quant": "Q5_K_M",
      "file": "Hermes-3-Llama-3.1-8B.Q5_K_M.gguf",
-     "size": 5721000000,
-     "approx": true
+     "size": 5732987008
     },
     {
      "quant": "Q8_0",
      "file": "Hermes-3-Llama-3.1-8B.Q8_0.gguf",
-     "size": 8532000000,
-     "approx": true
+     "size": 8540770432
     }
    ]
   },
@@ -1507,28 +1357,19 @@
    ],
    "variants": [
     {
-     "quant": "Q3_K_M",
-     "file": "Hermes-2-Pro-Llama-3-8B-Q3_K_M.gguf",
-     "size": 3915000000,
-     "approx": true
-    },
-    {
      "quant": "Q4_K_M",
      "file": "Hermes-2-Pro-Llama-3-8B-Q4_K_M.gguf",
-     "size": 4868000000,
-     "approx": true
+     "size": 4920916288
     },
     {
      "quant": "Q5_K_M",
      "file": "Hermes-2-Pro-Llama-3-8B-Q5_K_M.gguf",
-     "size": 5721000000,
-     "approx": true
+     "size": 5733185856
     },
     {
      "quant": "Q8_0",
      "file": "Hermes-2-Pro-Llama-3-8B-Q8_0.gguf",
-     "size": 8532000000,
-     "approx": true
+     "size": 8541050176
     }
    ]
   },
@@ -1548,26 +1389,22 @@
     {
      "quant": "Q3_K_M",
      "file": "Hermes-2-Pro-Mistral-7B.Q3_K_M.gguf",
-     "size": 3530000000,
-     "approx": true
+     "size": 3519150848
     },
     {
      "quant": "Q4_K_M",
      "file": "Hermes-2-Pro-Mistral-7B.Q4_K_M.gguf",
-     "size": 4389000000,
-     "approx": true
+     "size": 4368621312
     },
     {
      "quant": "Q5_K_M",
      "file": "Hermes-2-Pro-Mistral-7B.Q5_K_M.gguf",
-     "size": 5159000000,
-     "approx": true
+     "size": 5131607808
     },
     {
      "quant": "Q8_0",
      "file": "Hermes-2-Pro-Mistral-7B.Q8_0.gguf",
-     "size": 7693000000,
-     "approx": true
+     "size": 7696136960
     }
    ]
   },
@@ -1586,26 +1423,22 @@
     {
      "quant": "Q3_K_M",
      "file": "openhermes-2.5-mistral-7b.Q3_K_M.gguf",
-     "size": 3530000000,
-     "approx": true
+     "size": 3518996160
     },
     {
      "quant": "Q4_K_M",
      "file": "openhermes-2.5-mistral-7b.Q4_K_M.gguf",
-     "size": 4389000000,
-     "approx": true
+     "size": 4368450304
     },
     {
      "quant": "Q5_K_M",
      "file": "openhermes-2.5-mistral-7b.Q5_K_M.gguf",
-     "size": 5159000000,
-     "approx": true
+     "size": 5131421440
     },
     {
      "quant": "Q8_0",
      "file": "openhermes-2.5-mistral-7b.Q8_0.gguf",
-     "size": 7693000000,
-     "approx": true
+     "size": 7695874752
     }
    ]
   },
@@ -1624,26 +1457,22 @@
     {
      "quant": "Q3_K_M",
      "file": "neuralhermes-2.5-mistral-7b.Q3_K_M.gguf",
-     "size": 3530000000,
-     "approx": true
+     "size": 3518996544
     },
     {
      "quant": "Q4_K_M",
      "file": "neuralhermes-2.5-mistral-7b.Q4_K_M.gguf",
-     "size": 4389000000,
-     "approx": true
+     "size": 4368450688
     },
     {
      "quant": "Q5_K_M",
      "file": "neuralhermes-2.5-mistral-7b.Q5_K_M.gguf",
-     "size": 5159000000,
-     "approx": true
+     "size": 5131421824
     },
     {
      "quant": "Q8_0",
      "file": "neuralhermes-2.5-mistral-7b.Q8_0.gguf",
-     "size": 7693000000,
-     "approx": true
+     "size": 7695875136
     }
    ]
   },
@@ -1662,14 +1491,7 @@
     {
      "quant": "Q8_0",
      "file": "SmolLM2-135M-Instruct-Q8_0.gguf",
-     "size": 143000000,
-     "approx": true
-    },
-    {
-     "quant": "F16",
-     "file": "SmolLM2-135M-Instruct-F16.gguf",
-     "size": 270000000,
-     "approx": true
+     "size": 144811360
     }
    ]
   },
@@ -1688,20 +1510,12 @@
     {
      "quant": "Q4_K_M",
      "file": "SmolLM2-360M-Instruct-Q4_K_M.gguf",
-     "size": 219000000,
-     "approx": true
+     "size": 270590880
     },
     {
      "quant": "Q8_0",
      "file": "SmolLM2-360M-Instruct-Q8_0.gguf",
-     "size": 385000000,
-     "approx": true
-    },
-    {
-     "quant": "F16",
-     "file": "SmolLM2-360M-Instruct-F16.gguf",
-     "size": 724000000,
-     "approx": true
+     "size": 386405280
     }
    ]
   },
@@ -1720,20 +1534,17 @@
     {
      "quant": "Q4_K_M",
      "file": "SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
-     "size": 1037000000,
-     "approx": true
+     "size": 1055609824
     },
     {
      "quant": "Q6_K",
      "file": "SmolLM2-1.7B-Instruct-Q6_K.gguf",
-     "size": 1411000000,
-     "approx": true
+     "size": 1405965280
     },
     {
      "quant": "Q8_0",
      "file": "SmolLM2-1.7B-Instruct-Q8_0.gguf",
-     "size": 1817000000,
-     "approx": true
+     "size": 1820414944
     }
    ]
   },
@@ -1753,14 +1564,12 @@
     {
      "quant": "Q4_K_M",
      "file": "SmolLM3-Q4_K_M.gguf",
-     "size": 1867000000,
-     "approx": true
+     "size": 1915305312
     },
     {
      "quant": "Q8_0",
      "file": "SmolLM3-Q8_0.gguf",
-     "size": 3273000000,
-     "approx": true
+     "size": 3275574624
     }
    ]
   },
@@ -1779,20 +1588,17 @@
     {
      "quant": "Q4_K_M",
      "file": "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
-     "size": 667000000,
-     "approx": true
+     "size": 668788096
     },
     {
      "quant": "Q5_K_M",
      "file": "tinyllama-1.1b-chat-v1.0.Q5_K_M.gguf",
-     "size": 784000000,
-     "approx": true
+     "size": 783017344
     },
     {
      "quant": "Q8_0",
      "file": "tinyllama-1.1b-chat-v1.0.Q8_0.gguf",
-     "size": 1169000000,
-     "approx": true
+     "size": 1170781568
     }
    ]
   },
@@ -1811,26 +1617,22 @@
     {
      "quant": "Q3_K_M",
      "file": "wizardmath-7b-v1.1.Q3_K_M.gguf",
-     "size": 3530000000,
-     "approx": true
+     "size": 3519922240
     },
     {
      "quant": "Q4_K_M",
      "file": "wizardmath-7b-v1.1.Q4_K_M.gguf",
-     "size": 4389000000,
-     "approx": true
+     "size": 4369375296
     },
     {
      "quant": "Q5_K_M",
      "file": "wizardmath-7b-v1.1.Q5_K_M.gguf",
-     "size": 5159000000,
-     "approx": true
+     "size": 5132345408
     },
     {
      "quant": "Q8_0",
      "file": "wizardmath-7b-v1.1.Q8_0.gguf",
-     "size": 7693000000,
-     "approx": true
+     "size": 7696793664
     }
    ]
   },
@@ -1849,14 +1651,12 @@
     {
      "quant": "Q4_K_M",
      "file": "LFM2-1.2B-Q4_K_M.gguf",
-     "size": 709000000,
-     "approx": true
+     "size": 730893248
     },
     {
      "quant": "Q8_0",
      "file": "LFM2-1.2B-Q8_0.gguf",
-     "size": 1243000000,
-     "approx": true
+     "size": 1246251968
     }
    ]
   },
@@ -1875,43 +1675,12 @@
     {
      "quant": "Q4_K_M",
      "file": "LFM2-350M-Q4_K_M.gguf",
-     "size": 215000000,
-     "approx": true
+     "size": 229309376
     },
     {
      "quant": "Q8_0",
      "file": "LFM2-350M-Q8_0.gguf",
-     "size": 376000000,
-     "approx": true
-    }
-   ]
-  },
-  {
-   "id": "emma-6",
-   "name": "Emma-6",
-   "family": "emma",
-   "arch": "llama",
-   "params": 1.55,
-   "licence": "see the model card",
-   "repo": "PaoloneSborracchione/emma-6-GGUF",
-   "tags": [
-    "chat",
-    "italian"
-   ],
-   "ctx": 4096,
-   "sampling": {
-    "temperature": 0.7,
-    "top_p": 0.9,
-    "top_k": 40,
-    "repeat_penalty": 1.1,
-    "source": "Egomnia's Emma chat (emma.egomnia.com, Preferences, style Bilanciata, its default); the model card gives a context of 4096 tokens"
-   },
-   "variants": [
-    {
-     "quant": "Q8_0",
-     "file": "emma-6-Q8_0.gguf",
-     "size": 1642824253,
-     "approx": true
+     "size": 379214784
     }
    ]
   }

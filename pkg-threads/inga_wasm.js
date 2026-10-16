@@ -15,19 +15,15 @@ export class Loader {
     }
     /**
      * The model, once every chunk has been pushed: `name` is its file name, `ctx` the
-     * context size of its conversation (0: 2048), `kv` how its KV cache stores keys
-     * and values on the CPU (`f16`, `q8_0`, `q4_0`; none: f16; the GPU's in f16).
+     * context size of its conversation (0: 2048).
      * @param {string} name
      * @param {number} ctx
-     * @param {string | null} [kv]
      * @returns {Model}
      */
-    finish(name, ctx, kv) {
+    finish(name, ctx) {
         const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        var ptr1 = isLikeNone(kv) ? 0 : passStringToWasm0(kv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        var len1 = WASM_VECTOR_LEN;
-        const ret = wasm.loader_finish(this.__wbg_ptr, ptr0, len0, ctx, ptr1, len1);
+        const ret = wasm.loader_finish(this.__wbg_ptr, ptr0, len0, ctx);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -99,8 +95,7 @@ export class Model {
     /**
      * Answers a chat: `messages` is a JSON list of `{role, content}`, rendered by the
      * model's chat template; `opts` a JSON object (`max_tokens`, `temperature`,
-     * `top_k`, `top_p`, `min_p`, `repeat_penalty`, `presence_penalty`,
-     * `frequency_penalty`, `seed`, and `thinking`, a boolean
+     * `top_k`, `top_p`, `min_p`, `repeat_penalty`, `seed`, and `thinking`, a boolean
      * the template receives as `enable_thinking`). `on_piece(text, reasoning)` receives
      * the answer as it is decoded, `reasoning` true for a thinking model's reasoning
      * (told apart as `inga serve` does), and stops it by returning `true`. Returns the
@@ -176,24 +171,6 @@ export class Model {
         } finally {
             wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
         }
-    }
-    /**
-     * How many tokens the chat `messages` (as [`Model::chat`]) takes in the context,
-     * rendered by the chat template with `opts`' `thinking`: the page's context gauge.
-     * @param {string} messages
-     * @param {string} opts
-     * @returns {number}
-     */
-    countChat(messages, opts) {
-        const ptr0 = passStringToWasm0(messages, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(opts, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.model_countChat(this.__wbg_ptr, ptr0, len0, ptr1, len1);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        return ret[0] >>> 0;
     }
     /**
      * What the model is, as JSON (name, architecture, layers, vocabulary, bytes,
@@ -331,8 +308,7 @@ export function memoryBytes() {
  * smaller model of the same vocabulary drafts for it, `draftTokens` tokens before each
  * check (0 or none: 4): held whole in memory, its weights, KV cache and activations
  * out of `budget` (`Runner::from_sources`). A draft of another vocabulary, or one that
- * does not fit `budget` alone, is refused before any weight is read. `kv`: how the
- * KV cache stores keys and values (`f16`, `q8_0`, `q4_0`; none: f16).
+ * does not fit `budget` alone, is refused before any weight is read.
  * @param {string} name
  * @param {number} size
  * @param {Function} read
@@ -343,17 +319,14 @@ export function memoryBytes() {
  * @param {number | null} [draft_size]
  * @param {Function | null} [draft_read]
  * @param {number | null} [draft_tokens]
- * @param {string | null} [kv]
  * @returns {Model}
  */
-export function openModel(name, size, read, budget, ctx, progress, draft_name, draft_size, draft_read, draft_tokens, kv) {
+export function openModel(name, size, read, budget, ctx, progress, draft_name, draft_size, draft_read, draft_tokens) {
     const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     var ptr1 = isLikeNone(draft_name) ? 0 : passStringToWasm0(draft_name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     var len1 = WASM_VECTOR_LEN;
-    var ptr2 = isLikeNone(kv) ? 0 : passStringToWasm0(kv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    var len2 = WASM_VECTOR_LEN;
-    const ret = wasm.openModel(ptr0, len0, size, read, budget, ctx, isLikeNone(progress) ? 0 : addToExternrefTable0(progress), ptr1, len1, !isLikeNone(draft_size), isLikeNone(draft_size) ? 0 : draft_size, isLikeNone(draft_read) ? 0 : addToExternrefTable0(draft_read), isLikeNone(draft_tokens) ? Number.MAX_SAFE_INTEGER : (draft_tokens) >>> 0, ptr2, len2);
+    const ret = wasm.openModel(ptr0, len0, size, read, budget, ctx, isLikeNone(progress) ? 0 : addToExternrefTable0(progress), ptr1, len1, !isLikeNone(draft_size), isLikeNone(draft_size) ? 0 : draft_size, isLikeNone(draft_read) ? 0 : addToExternrefTable0(draft_read), isLikeNone(draft_tokens) ? Number.MAX_SAFE_INTEGER : (draft_tokens) >>> 0);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -367,7 +340,7 @@ export function openModel(name, size, read, budget, ctx, progress, draft_name, d
  * `output_parts`, `read_by_row` (what it would read from storage while it runs: a model
  * needs storage when any is not 0), `total` and `fits`. The worker asks it before a load
  * on the GPU: a model that needs storage runs slower with the GPU's bytes in the same
- * limit (Device Auto keeps it on the CPU). `kv`: the KV cache's type, as `openModel`.
+ * limit (Device Auto keeps it on the CPU).
  *
  * # Errors
  * A header that cannot be read; a model that cannot fit (the reason).
@@ -376,29 +349,26 @@ export function openModel(name, size, read, budget, ctx, progress, draft_name, d
  * @param {Function} read
  * @param {number} budget
  * @param {number} ctx
- * @param {string | null} [kv]
  * @returns {string}
  */
-export function planModel(name, size, read, budget, ctx, kv) {
-    let deferred4_0;
-    let deferred4_1;
+export function planModel(name, size, read, budget, ctx) {
+    let deferred3_0;
+    let deferred3_1;
     try {
         const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        var ptr1 = isLikeNone(kv) ? 0 : passStringToWasm0(kv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        var len1 = WASM_VECTOR_LEN;
-        const ret = wasm.planModel(ptr0, len0, size, read, budget, ctx, ptr1, len1);
-        var ptr3 = ret[0];
-        var len3 = ret[1];
+        const ret = wasm.planModel(ptr0, len0, size, read, budget, ctx);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
         if (ret[3]) {
-            ptr3 = 0; len3 = 0;
+            ptr2 = 0; len2 = 0;
             throw takeFromExternrefTable0(ret[2]);
         }
-        deferred4_0 = ptr3;
-        deferred4_1 = len3;
-        return getStringFromWasm0(ptr3, len3);
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
     } finally {
-        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
 }
 
@@ -510,7 +480,7 @@ function __wbg_get_imports(memory) {
             const ret = arg0.call(arg1, arg2, arg3);
             return ret;
         }, arguments); },
-        __wbg_error_97a1d5879dbff0c7: function(arg0, arg1) {
+        __wbg_error_0e18633cdab95e54: function(arg0, arg1) {
             console.error(getStringFromWasm0(arg0, arg1));
         },
         __wbg_get_31af05bd4842a84f: function() { return handleError(function (arg0, arg1) {

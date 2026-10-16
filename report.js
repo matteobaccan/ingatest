@@ -14,8 +14,6 @@
 // (matteobaccan/ingatest, whose issues anyone can open). An empty template opens a
 // plain issue with the report as its text, for a repository without the form.
 
-import { infoSections, infoText } from "./info.js";
-
 const meta = (name) => document.querySelector(`meta[name="${name}"]`)?.content?.trim() ?? "";
 const REPO = `https://github.com/${meta("inga-report-repo") || "matteobaccan/inga"}`;
 const TEMPLATE = meta("inga-report-template");
@@ -42,8 +40,7 @@ new MutationObserver(() => {
 
 const BETA = location.hostname.endsWith(".github.io") || new URLSearchParams(location.search).has("beta");
 if (BETA) $("beta-note").hidden = false;
-// The guide's link, where the page has one (the redesigned page's beta note has none).
-if (meta("inga-guide") && $("beta-guide")) $("beta-guide").href = meta("inga-guide");
+if (meta("inga-guide")) $("beta-guide").href = meta("inga-guide");
 
 function build() {
   return document.querySelector('meta[name="inga-build"]')?.content || "dev";
@@ -68,7 +65,7 @@ async function browserText() {
     const e = await n.storage?.estimate?.();
     if (e) lines.push(`Storage: ${mib(e.usage)} used of ${mib(e.quota)}`);
   } catch {}
-  lines.push(`Page: ${location.origin}${location.pathname}, version ${document.querySelector('meta[name="inga-version"]')?.content || "dev"}, build ${build()}${st.version ? ` (${st.version})` : ""}`);
+  lines.push(`Page: ${location.origin}${location.pathname}, build ${build()}`);
   return lines.join("\n");
 }
 
@@ -146,7 +143,7 @@ function issueUrl(f) {
   let log = f.log;
   for (;;) {
     const q = TEMPLATE
-      ? new URLSearchParams({ template: TEMPLATE, title, browser: f.browser, gpu: f.gpu, model: `${f.info}\n\n${f.model}`, speeds: f.speeds, log })
+      ? new URLSearchParams({ template: TEMPLATE, title, browser: f.browser, gpu: f.gpu, model: f.model, speeds: f.speeds, log })
       : new URLSearchParams({ title, body: "### What you did, what went well, what went wrong\n\n\n\n" + asText({ ...f, log }) });
     const url = `${REPO}/issues/new?${q}`;
     if (url.length <= MAX_URL || log.length < 200) return { url, cut: log !== f.log };
@@ -167,13 +164,11 @@ async function gather() {
     model: modelText(),
     speeds: speedsText(),
     log: logText(),
-    // The Info panel's block (info.js), the same text as its Copy.
-    info: infoText(await infoSections(st)),
   };
 }
 
 function asText(f) {
-  return [["Model info", f.info], ["Browser", f.browser], ["GPU", f.gpu], ["Model", f.model], ["Speeds", f.speeds], ["Log", f.log]]
+  return [["Browser", f.browser], ["GPU", f.gpu], ["Model", f.model], ["Speeds", f.speeds], ["Log", f.log]]
     .map(([h, t]) => `### ${h}\n\n\`\`\`\n${t}\n\`\`\``).join("\n\n");
 }
 
