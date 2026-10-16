@@ -70,10 +70,10 @@
    "about": "Liquid AI's LFM2"
   },
   {
-   "id": "try",
-   "label": "To try",
-   "icon": "🧪",
-   "about": "Community models to try (Emma-6, an Italian Llama fine-tune)"
+   "id": "emma",
+   "label": "Emma",
+   "icon": "🇮🇹",
+   "about": "Emma, an Italian Llama fine-tune by PaoloneSborracchione"
   }
  ],
  "models": [
@@ -1886,7 +1886,7 @@
   {
    "id": "emma-6",
    "name": "Emma-6",
-   "family": "try",
+   "family": "emma",
    "arch": "llama",
    "params": 1.55,
    "licence": "see the model card",
