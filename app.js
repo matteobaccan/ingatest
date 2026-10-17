@@ -433,6 +433,18 @@ function handleMessage(m) {
       showStored(m.models);
       showStorage();
       break;
+    case "gpuprobe":
+      // The GPU memory the worker measured (gpuprobe.js), kept for this adapter.
+      if (m.result?.usable && gpuMeasured.key) {
+        gpuMeasured.bytes = m.result.usable;
+        try {
+          localStorage.setItem("inga.gpumem." + gpuMeasured.key, JSON.stringify({ bytes: m.result.usable, measured: m.result.measured, why: m.result.why, at: Date.now() }));
+        } catch {}
+        showGpuMeasured();
+      }
+      if (lastLoad) Object.assign(lastLoad, { gpuProbe: false, gpuMeasured: gpuMeasured.bytes });
+      loadLog(`GPU memory probe: ${Math.round(m.result.usable / MB)} MB usable (${m.result.why}; ${Math.round(m.result.ms)} ms)`);
+      break;
     case "retry":
       // The GPU refused the model while loading it: a fresh worker (an empty memory)
       // loads it on the CPU, the reason kept for the load line.
@@ -1013,15 +1025,19 @@ async function loadStored(name) {
   const { budget, label } = memoryLimit();
   limitUsed = label;
   deviceUsed = await chooseDevice();
+  if (deviceUsed.device === "gpu") await gpuMemoryMeasured();
   const gpuBudget = gpuLimit(budget);
   const separate = gpuSeparate();
   gpuUsed = `${Math.round(gpuBudget.bytes / MB)} MB`;
   gpuLabel = deviceUsed.device === "cpu" ? "" : gpuBudget.label;
+  // Not measured yet: the worker measures it before the weights go up, and the load
+  // uses it (Auto only; a value in MB wins).
+  const gpuProbe = deviceUsed.device === "gpu" && gpuMeasured.probe;
   if (deviceUsed.device === "gpu") limitUsed += `, GPU memory ${gpuBudget.label}`;
   // A draft model drafts on the CPU only: on the GPU the model answers without it.
   const draft = deviceUsed.device === "gpu" ? null : draftFor(name);
   if (deviceUsed.device === "gpu" && draftFor(name)) deviceUsed.label += "; no draft model on the GPU yet (Draft model ignored)";
-  lastLoad = { type: "load", name, ctx: ctx(), kv: $("kv").value, budget, draft, device: deviceUsed.device, gpuBudget: gpuBudget.bytes, gpuSeparate: separate, auto: !!deviceUsed.auto };
+  lastLoad = { type: "load", name, ctx: ctx(), kv: $("kv").value, budget, draft, device: deviceUsed.device, gpuBudget: gpuBudget.bytes, gpuSeparate: separate, auto: !!deviceUsed.auto, gpuProbe, gpuMeasured: gpuMeasured.bytes };
   startLoading();
   worker.postMessage(lastLoad);
 }
@@ -1392,6 +1408,39 @@ async function gmemHint() {
   if (!el) return;
   if (navigator.gpu) await probeAdapter();
   el.textContent = $("gmem").value === "auto" && navigator.gpu ? t("gmem.auto", gpuLimit(memoryLimit().budget).label) : "";
+}
+
+// The GPU memory measured on this browser's adapter (web/gpuprobe.js: buffers added until
+// reading them all slows to a third, as a card that pages to system memory does), kept
+// per adapter: `bytes` (null: not measured yet), `key`, and whether the next GPU load
+// should measure it (`probe`: GPU memory Auto, a desktop GPU not measured yet). It is
+// shown, and the load line says how much of a model's GPU buffers lie past it; it does
+// not move layers to the CPU: with the GPU, the CPU's share runs on one thread, slower
+// than the card reading the rest over PCIe (a Quadro P1000 in Chrome, Llama 3.2 3B Q8_0:
+// 5.1 tok/s with every layer on the card, 3.5 GB of 1.4 GB measured; 1.0 tok/s with 11
+// of its 28 layers there and the rest on the CPU).
+const gpuMeasured = { bytes: null, key: null, probe: false };
+async function gpuMemoryMeasured() {
+  gpuMeasured.probe = false;
+  if (!navigator.gpu || isIOS() || $("gmem").value !== "auto") return;
+  try {
+    const a = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+    const i = a?.info ?? {};
+    // Not on a software adapter, nor on Apple's (unified memory: the system's).
+    if (!a || a.isFallbackAdapter || i.isFallbackAdapter || /apple|swiftshader|llvmpipe|lavapipe|basic render/i.test([i.vendor, i.architecture, i.description].join(" "))) return;
+    gpuMeasured.key = [i.vendor, i.architecture, i.device, i.description, a.limits.maxBufferSize].map((x) => x ?? "").join("|");
+    let kept = null;
+    try {
+      kept = JSON.parse(localStorage.getItem("inga.gpumem." + gpuMeasured.key) || "null");
+    } catch {}
+    gpuMeasured.bytes = kept?.bytes ?? null;
+    gpuMeasured.probe = !kept;
+    showGpuMeasured();
+  } catch {}
+}
+function showGpuMeasured() {
+  const o = $("gmem").querySelector('option[value="auto"]');
+  if (o) o.textContent = gpuMeasured.bytes ? `Auto (measured: ${Math.round(gpuMeasured.bytes / MB)} MB)` : "Auto";
 }
 
 // Whether the GPU's bytes are planned apart from "Memory for the model" (which then

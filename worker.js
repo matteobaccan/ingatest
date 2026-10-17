@@ -33,7 +33,8 @@
 // {type: "gpubench", tokens} (the GPU benchmark: the loaded GPU model under each of
 // BENCH's kernel choices) | {type: "gpuprofile", tokens, mode} (the kernel times of
 // `tokens` decode steps, Gpu.profileStart's mode) | {type: "gpucheck", storageBuffers} (every kernel compiled on
-// the GPU, `storageBuffers` lowering maxStorageBuffersPerShaderStage).
+// the GPU, `storageBuffers` lowering maxStorageBuffersPerShaderStage) | {type: "tune", spec} (Gpu.tune's
+// switches on the loaded GPU model, "reset" for the adapter's own; answered by {type: "tuned", tuning}).
 // Messages out: {type: "ready"} | {type: "progress", what, done, total, start} (start: a
 // download's bytes already there when this session began) |
 // {type: "loaded", info, secs, memory, gpu, note, ctx_asked, ctx_cut, ctx_auto} (ctx_auto:
@@ -52,7 +53,8 @@
 // configuration as it ends) |
 // {type: "gpuprofile", mode, overhead_ms, tokens, wall_ms, rows, tuning, subgroups, timestamp_query} |
 // {type: "gpucheck", checked, total, failed, shader_f16, storage, storage_buffers,
-// most_storage_buffers}.
+// most_storage_buffers} | {type: "gpuprobe", result} (the GPU memory measured,
+// gpuprobe.js; asked by `gpuProbe` in a load, whose `gpuMeasured` gives a kept one).
 
 import { fitMessages, breakdown, autoContext, kvShape } from "./ctx.js";
 
@@ -65,6 +67,7 @@ let inga = null; // the module's exports
 let mod = null; // the module of the model loaded (./pkg's for the GPU)
 let gpu = null; // the WebGPU device, made at the first GPU load
 let gpuInga = null; // ./pkg's module, which has WebGPU (the threaded one does not)
+let gpuTuning = ""; // the kernels the device chose for this adapter (Gpu.tuning)
 let stopAsked = false;
 const post = (m) => self.postMessage(m);
 
@@ -395,6 +398,35 @@ function watchLost(device) {
   });
 }
 
+// The GPU memory this adapter holds at full speed, measured before the model's device
+// opens (gpuprobe.js), told to the page ({type: "gpuprobe"}, kept per adapter there);
+// returns it in bytes (null when the probe failed). The load's budget stays as asked
+// (see app.js, gpuMeasured): the load line says what lies past it.
+let gpuMeasuredBytes = null;
+async function gpuMemory() {
+  if (gpu) return null; // the probe needs the card free of the model's buffers
+  step("GPU: measuring its memory (once per adapter)");
+  try {
+    const { probeGpuMemory } = await import("./gpuprobe.js");
+    const r = await probeGpuMemory();
+    step(`GPU memory: ${Math.round(r.usable / 1048576)} MiB usable (${r.why}), ${Math.round(r.ms)} ms`);
+    post({ type: "gpuprobe", result: r });
+    return r.usable;
+  } catch (e) {
+    step(`GPU memory probe failed: ${e?.message ?? e}`);
+    return null;
+  }
+}
+
+// What the load line adds when the model's GPU buffers pass the measured memory.
+function gpuMeasuredNote(info) {
+  const used = (info?.weight_bytes ?? 0) + (info?.other_bytes ?? 0);
+  if (!gpuMeasuredBytes || !info || used <= gpuMeasuredBytes) return null;
+  return `GPU memory measured at ${Math.round(gpuMeasuredBytes / 1048576)} MiB: about ${Math.round((used - gpuMeasuredBytes) / 1048576)} MiB ` +
+    `of this model's ${Math.round(used / 1048576)} MiB on the GPU are kept in system memory by the driver and read over PCIe ` +
+    "(slower; a smaller model or quantization runs faster)";
+}
+
 // ./pkg's module and the WebGPU device, made once.
 async function webgpu() {
   await gpuModule();
@@ -407,6 +439,9 @@ async function webgpu() {
       const a = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
       if (/apple/i.test(a?.info?.vendor ?? "")) gpu.tune("preset=apple");
     } catch {}
+    // The dot4 builds need WGSL's dot4I8Packed (Chrome 123 on).
+    if (!navigator.gpu?.wgslLanguageFeatures?.has?.("packed_4x8_integer_dot_product")) gpu.tune("dot4=off");
+    gpuTuning = gpu.tuning();
   }
   return gpuInga;
 }
@@ -423,6 +458,9 @@ const BENCH = [
   { label: "4 rows + Apple tiles + f16", spec: "preset=apple,f16=on,rows=4", f16: true },
   { label: "subgroups, f32", spec: "preset=default,f16=off,sg=on", sg: true },
   { label: "subgroups + f16", spec: "preset=default,f16=on,sg=on", sg: true, f16: true },
+  { label: "wide loads (Q8_0, Q4_K), f32", spec: "preset=default,f16=off,wide=on" },
+  { label: "wide loads + dot4I8Packed, f32", spec: "preset=default,f16=off,wide=on,dot4=on" },
+  { label: "wide loads, unrolled (spirv-opt -O), f32", spec: "preset=default,f16=off,wide=on,opt=on" },
 ];
 // The benchmark's prompt: browser.cjs bench's text, repeated (about 80 tokens).
 const BENCH_TEXT = "The quick brown fox jumps over the lazy dog. ".repeat(8);
@@ -664,6 +702,8 @@ async function handle(m) {
       closeStream();
       kvAsked = m.kv || "auto";
       if ((m.budget != null || m.draft || m.device === "gpu") && !m.file) {
+        gpuMeasuredBytes = m.gpuMeasured ?? null;
+        if (m.gpuProbe && m.device === "gpu") gpuMeasuredBytes = (await gpuMemory()) ?? gpuMeasuredBytes;
         await loadStreamed(m.name, m.budget, m.ctx, m.draft, m.device, m.gpuBudget, m.gpuOff, m.gpuSeparate, m.auto, m.note ?? null);
         break;
       }
@@ -759,6 +799,13 @@ async function handle(m) {
       break;
     case "gpucheck":
       await gpuCheck(m.storageBuffers);
+      break;
+    case "tune":
+      // Gpu.tune's switches on the loaded GPU model (the WebGPU measurement, browser.cjs perf).
+      if (!gpu) throw new Error("no GPU device: load a model with Device GPU first");
+      // "reset": the kernels the device chose for this adapter, every switch on.
+      gpu.tune(m.spec === "reset" ? gpuTuning + ",head=on,qonce=on,reuse=on,sampling=on" : m.spec);
+      post({ type: "tuned", tuning: gpu.tuning() });
       break;
   }
 }
@@ -976,7 +1023,9 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
   step("weights loaded: reading the model's description");
   const info = JSON.parse(model.info());
   step(`model ready (${Math.round(mod.memoryBytes() / 1048576)} MiB of WebAssembly memory): telling the page`);
-  post({ type: "loaded", info, secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: gpuInfo(), note, ctx_asked: asked, ctx_cut: ctxCut, ctx_auto: sized });
+  const g = gpuInfo();
+  const past = gpuMeasuredNote(g);
+  post({ type: "loaded", info, secs: (performance.now() - t0) / 1000, memory: mod.memoryBytes(), gpu: g, note: [note, past].filter(Boolean).join("; ") || null, ctx_asked: asked, ctx_cut: ctxCut, ctx_auto: sized });
 }
 
 // Free bytes in this site's storage, or null when the browser does not say.
