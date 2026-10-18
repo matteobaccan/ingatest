@@ -122,7 +122,7 @@ function speedsText() {
   const s = st.stats;
   const lines = [];
   if (s) {
-    lines.push(`Last answer: prompt ${s.prompt_tokens - s.cached_tokens} tokens at ${s.prompt_tps.toFixed(2)} tok/s, ` +
+    lines.push(`Last answer: ${s.ttft_ms != null ? `first token ${Math.round(s.ttft_ms)} ms, ` : ""}prompt ${s.prompt_tokens - s.cached_tokens} tokens at ${s.prompt_tps.toFixed(2)} tok/s, ` +
       `answer ${s.gen_tokens} tokens at ${s.gen_tps.toFixed(2)} tok/s (${s.stop})`);
   }
   const std = $("std-line")?.textContent;
@@ -131,6 +131,8 @@ function speedsText() {
   if (bench) lines.push("", "GPU benchmark:", bench);
   const k = tableText($("kernels"));
   if (k) lines.push("", "Kernel times:", k);
+  // The Compare view's table, when "Attach to the report" was pressed.
+  if (st.compare) lines.push("", "Compared with other browser engines:", st.compare);
   return lines.join("\n") || "No answer yet (the Standard test gives a comparable line).";
 }
 

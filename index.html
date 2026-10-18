@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 <!-- The commit and UTC date of a published build ("abc1234 2026-10-16") and Inga's version
 (Cargo.toml), which the Pages workflow writes: the side bar, About and the report show them;
 "dev" here. -->
-<meta name="inga-build" content="9eb5b8f 2026-10-17">
+<meta name="inga-build" content="4c8f879 2026-10-18">
 <meta name="inga-version" content="0.32.0">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
@@ -280,10 +280,10 @@ label.chip input { margin: 0; }
 .set > label:first-child, .set > span:first-child { font-weight: 600; padding-top: 6px; }
 .set .meta { display: block; margin-top: 4px; }
 @media (max-width: 640px) { .set { grid-template-columns: minmax(0, 1fr); } }
-#bench, #kernels { overflow-x: auto; }
-#bench table, #kernels table { border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
-#bench th, #bench td, #kernels th, #kernels td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: right; white-space: nowrap; }
-#bench th:first-child, #bench td:first-child, #kernels th:first-child, #kernels td:first-child { text-align: left; white-space: normal; }
+#bench, #kernels, #cmp-out { overflow-x: auto; }
+#bench table, #kernels table, #cmp-out table { border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
+#bench th, #bench td, #kernels th, #kernels td, #cmp-out th, #cmp-out td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: right; white-space: nowrap; }
+#bench th:first-child, #bench td:first-child, #kernels th:first-child, #kernels td:first-child, #cmp-out th:first-child, #cmp-out td:first-child { text-align: left; white-space: normal; }
 pre.out { white-space: pre-wrap; word-break: break-word; font-size: .8rem; }
 
 /* The model picker (picker.js). */
@@ -353,6 +353,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-retry" viewBox="0 0 24 24"><path d="M19.5 12A7.5 7.5 0 1 1 12 4.5"/><path d="M9.5 2l2.5 2.5L9.5 7"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol> <!-- New chat (drawn for the browser page) -->
+  <symbol id="i-compare" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M6.5 20V10M11 20V5M15.5 20v-7M20 20v-4"/></symbol> <!-- Compare (drawn for the browser page) -->
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="M13.5 6.5l4 4"/></symbol> <!-- Rename (drawn for the browser page) -->
   <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol> <!-- Full screen (drawn for the browser page) -->
 </svg>
@@ -428,6 +429,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
     <button class="navb" id="nav-models" data-view="models"><svg class="ic"><use href="#i-package"/></svg><span data-i18n="nav.models">Models</span></button>
     <button class="navb" id="nav-settings" data-view="settings"><svg class="ic"><use href="#i-settings"/></svg><span data-i18n="nav.settings">Settings</span></button>
     <button class="navb" id="nav-diag" data-view="diag"><svg class="ic"><use href="#i-gauge"/></svg><span data-i18n="nav.diag">Tests and report</span></button>
+    <button class="navb" id="nav-compare" data-view="compare"><svg class="ic"><use href="#i-compare"/></svg><span data-i18n="nav.compare">Compare</span></button>
   </nav>
   <div class="side-h"><span data-i18n="side.convs">Conversations</span>
     <button id="convs-more" class="icon" type="button" aria-expanded="false" aria-controls="convs-actions" title="Export, import or delete every conversation" data-i18n-title="convs.more"><svg class="ic"><use href="#i-archive"/></svg></button></div>
@@ -715,6 +717,40 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
         <summary>What the report contains</summary>
         <pre id="report-text" class="out"></pre>
       </details>
+    </section>
+  </div></section>
+  <section class="view" id="view-compare" aria-label="Compare" hidden><div class="inner">
+    <section class="card">
+      <h2 data-i18n="cmp.title">Compare with other browser engines</h2>
+      <p class="note">The loaded model on Inga, and the same prompt and output length on the engines you tick, in this
+      browser on this GPU: time to first token (TTFT), prefill and decode speed, end-to-end time. Each engine runs once
+      to warm up, then the measured runs, averaged. The table says what ran next to the numbers (browser, GPU adapter,
+      model files, quantizations): copy it as Markdown, or attach it to the report. WebLLM and Transformers.js run
+      their own model files (MLC q4f16, ONNX), not this GGUF file: with different quantizations the comparison is
+      indicative. Ticking an engine downloads its module from jsDelivr (a pinned version) and its model files from
+      Hugging Face; nothing else leaves the page.</p>
+      <div class="meta" id="cmp-model">No model loaded: load one first (Models).</div>
+      <div class="row" style="margin-top:8px">
+        <label>Prompt words <input type="number" id="cmp-words" value="96" min="8" max="2000" style="width:6em"></label>
+        <label>Output tokens <input type="number" id="cmp-gen" value="64" min="2" max="1024" style="width:6em"></label>
+        <label>Measured runs <input type="number" id="cmp-reps" value="3" min="1" max="10" style="width:4em"></label>
+      </div>
+      <div class="row"><label><input type="checkbox" id="cmp-webllm"> WebLLM 0.2.85</label>
+        <input type="text" id="cmp-webllm-model" aria-label="WebLLM's prebuilt model" style="flex:1;min-width:14em"></div>
+      <div class="row"><label><input type="checkbox" id="cmp-tjs"> Transformers.js 4.3.0</label>
+        <input type="text" id="cmp-tjs-model" aria-label="Transformers.js's ONNX model" style="flex:1;min-width:14em">
+        <select id="cmp-tjs-dtype" aria-label="Transformers.js's dtype"><option>q4f16</option><option>q4</option><option>q8</option><option>fp16</option></select></div>
+      <div class="row"><label><input type="checkbox" id="cmp-sipp"> Sipp 0.1.4 (the same GGUF file)</label>
+        <input type="text" id="cmp-sipp-url" placeholder="The GGUF file's link" aria-label="The GGUF file's link for Sipp" style="flex:1;min-width:14em"></div>
+      <div class="row" style="margin-top:8px"><button id="cmp-run" disabled><svg class="ic"><use href="#i-compare"/></svg><span data-i18n="cmp.run">Run the comparison</span></button></div>
+      <div id="cmp-result" hidden style="margin-top:8px">
+        <p class="note" id="cmp-warn" hidden></p>
+        <div id="cmp-out" class="meta"></div>
+        <div class="row" style="margin-top:8px"><button id="cmp-copy" class="ghost"><svg class="ic"><use href="#i-copy"/></svg>Copy as Markdown</button>
+          <button id="cmp-attach" class="ghost"><svg class="ic"><use href="#i-flag"/></svg>Attach to the report</button>
+          <span class="meta" id="cmp-said"></span></div>
+        <details style="margin-top:8px"><summary>Markdown</summary><pre id="cmp-md" class="out"></pre></details>
+      </div>
     </section>
   </div></section>
 </div>

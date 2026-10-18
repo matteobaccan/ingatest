@@ -16,6 +16,7 @@ import { ask as askBox, setupAsk } from "./ask.js";
 import { fmt, createRate, downloadLine, estimate, lastSpeed, saveSpeed } from "./eta.js";
 import { gauge, gaugeTitle, promptLimit, detail, AUTO_FLOOR } from "./ctx.js";
 import { PRESET_FIELDS, catalogEntry, presetOf, presetValues, handFromSaved, describePreset } from "./preset.js";
+import { createCompare } from "./compare.js";
 
 // The test models: a fixed list, so runs on different devices compare (the maintainer's
 // matrix of models x CPU / GPU, with the Standard test). Sizes are approximate.
@@ -73,6 +74,7 @@ const thinkOpts = (opts) => {
 };
 // Shows the Think switch for a model that can think, hides it otherwise.
 const drawThink = () => { $("think").closest("label").hidden = !thinks(); };
+let rawRun = null; // a run of the Compare view (runRaw): its pieces and end go to it, not to the chat
 // The public beta (GitHub Pages, docs/wasm-beta.md; `?beta` elsewhere): Device defaults to
 // the GPU where the browser has WebGPU, off iOS (report.js reads the page's state).
 const BETA = location.hostname.endsWith(".github.io") || new URLSearchParams(location.search).has("beta");
@@ -106,6 +108,7 @@ function setBusy(b) {
   if (!loaded && !b && modelLock) dropModelLock();
   $("send").disabled = b || !loaded;
   $("stdtest").disabled = b || !loaded;
+  $("cmp-run").disabled = b || !loaded;
   $("prompt").disabled = !loaded;
   $("reset").disabled = b;
   $("new-chat").disabled = b;
@@ -400,6 +403,11 @@ function onMessage(m) {
 }
 
 function handleMessage(m) {
+  // A run of the Compare view: its answer is not part of a conversation.
+  if (rawRun && (m.type === "piece" || m.type === "done" || m.type === "error")) {
+    rawMessage(m);
+    return;
+  }
   // Any word from the worker during a load or an answer: it is alive.
   if (loading) armWatchdog();
   if (answer) armQuiet();
@@ -550,7 +558,7 @@ function handleMessage(m) {
       // How it ended (`max_tokens`: the limit) and the limit, for the note under it.
       const said = { role: "assistant", content: answerText, reasoning, model: modelName, ...(modelMark ? { mark: modelMark } : {}), at: Date.now(), seed: answerSeed,
         stop: s.stop, max: askedOpts?.max_tokens, ctx: ctxSize(), think: askedOpts?.thinking !== false && thinks(),
-        stats: { prompt_tps: s.prompt_tps, gen_tps: s.gen_tps, prompt_tokens: s.prompt_tokens, gen_tokens: s.gen_tokens } };
+        stats: { prompt_tps: s.prompt_tps, gen_tps: s.gen_tps, prompt_tokens: s.prompt_tokens, gen_tokens: s.gen_tokens, ttft_ms: s.ttft_ms } };
       messages.push(said);
       speedLine(answerBox, said);
       if (!stdRunning) limitNote(answerBox, said, true);
@@ -561,7 +569,7 @@ function handleMessage(m) {
       const r = s.reasoning_tokens ? t("st.thinking", num(s.reasoning_tokens)) : "";
       const stopKey = "st.stop." + s.stop;
       const stop = t(stopKey) === stopKey ? s.stop : t(stopKey);
-      $("stats").textContent = t("st.prompt", num(s.prompt_tokens - s.cached_tokens), num(s.prompt_tps, 1), num(s.cached_tokens)) +
+      $("stats").textContent = (s.ttft_ms != null ? t("speed.first", num(Math.round(s.ttft_ms))) + " · " : "") + t("st.prompt", num(s.prompt_tokens - s.cached_tokens), num(s.prompt_tps, 1), num(s.cached_tokens)) +
         " · " + t("st.answer", num(s.gen_tokens), num(s.gen_tps, 1), r) +
         ` · ${stop} · ` + t("st.memory", size(m.memory) + (m.gpu ? t("st.gpu", size(m.gpu.weight_bytes), size(m.gpu.other_bytes)) : "")) +
         readNote(s) + draftStats(s) + (s.gpu_sampled ? " · " + t("st.sampled", num(s.gpu_sampled)) : "") + " · " + t("st.seed", answerSeed) +
@@ -991,6 +999,7 @@ async function fromUrl(url, from = null) {
   // The speed measured, for the picker's estimate of the next download.
   if (ok && dlRate?.rate) saveSpeed(dlRate.rate);
   dlRate = null;
+  if (ok) rememberUrl(name, url);
   if (ok) loadStored(name);
   else if (from && /HTTP (404|401|403)/.test($("status").textContent)) {
     status(`${$("status").textContent}. This is the model catalog's ${from.model.name}, ${from.variant.quant}: the file is not ` +
@@ -1011,8 +1020,24 @@ function freshWorker() {
 
 let lastLoad = null; // the last load of a stored model, for a retry on the CPU
 
+// The link each stored model was downloaded from (the Compare view gives it to an
+// engine that reads the same GGUF file), kept in this browser.
+const URLS_KEY = "inga.model-urls";
+function modelUrls() {
+  try {
+    return JSON.parse(localStorage.getItem(URLS_KEY) || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+function rememberUrl(name, url) {
+  try {
+    localStorage.setItem(URLS_KEY, JSON.stringify({ ...modelUrls(), [name]: url }));
+  } catch {}
+}
+
 async function loadStored(name) {
-  source = { name };
+  source = { name, url: modelUrls()[name] ?? null };
   // What the variants are judged on, for the load line (variantLine).
   deviceEnv().then((e) => (lastEnv = e), () => {});
   setBusy(true);
@@ -1210,6 +1235,7 @@ function standardLine(s, m) {
     limitUsed,
     `GPU layers ${i.gpu_layers ?? 0}/${i.layers ?? "?"}${i.gpu_head ? "+output" : ""}`,
     `streamed ${i.streamed_layers ?? 0}${i.output_parts ? ` + output in ${i.output_parts} parts` : ""}`,
+    s.ttft_ms != null ? `ttft ${Math.round(s.ttft_ms)} ms` : "",
     `prompt ${s.prompt_tokens - s.cached_tokens} tok at ${s.prompt_tps.toFixed(2)} tok/s`,
     `answer ${s.gen_tokens} tok at ${s.gen_tps.toFixed(2)} tok/s`,
     `wasm ${mib(m.memory)}`,
@@ -2067,7 +2093,7 @@ function speedLine(row, m) {
   const el = row?.querySelector(".speed");
   if (!el || !m) return;
   const s = m.stats;
-  el.textContent = (s ? t("st.speed", num(s.prompt_tps, 1), num(s.gen_tps, 1)) : "") +
+  el.textContent = (s?.ttft_ms != null ? t("speed.first", num(Math.round(s.ttft_ms))) + ", " : "") + (s ? t("st.speed", num(s.prompt_tps, 1), num(s.gen_tps, 1)) : "") +
     (m.seed != null ? t("st.seed", m.seed) + ", " : "") + when(m.at ?? Date.now());
 }
 
@@ -2406,7 +2432,7 @@ $("fullscreen").onclick = () => (document.fullscreenElement ? document.exitFulls
 function showView(name) {
   // Leaving Settings: a load setting changed reloads the model.
   const leaving = !$("view-settings").hidden && name !== "settings";
-  for (const v of ["chat", "models", "settings", "diag"]) {
+  for (const v of ["chat", "models", "settings", "diag", "compare"]) {
     $("view-" + v).hidden = v !== name;
     if (v === name) $("nav-" + v).setAttribute("aria-current", "page");
     else $("nav-" + v).removeAttribute("aria-current");
@@ -2497,6 +2523,51 @@ $("wipe-models").onclick = async () => {
   setBusy(false);
 };
 
+// ---- The Compare view (compare.js): the loaded model against other browser engines ----
+
+// One answer of the loaded model outside the chat, for the Compare view: a new
+// conversation in the worker, `messages` and `opts` sent; resolves with what the page
+// saw (the request's time, its first piece's, its end's, on performance.now()) and the
+// worker's statistics.
+function runRaw(messages, opts) {
+  return new Promise((resolve, reject) => {
+    if (busy || !source) {
+      reject(new Error(source ? "the page is busy" : "no model is loaded"));
+      return;
+    }
+    setBusy(true);
+    worker.postMessage({ type: "reset" });
+    rawRun = { t0: performance.now(), first: null, text: "", resolve, reject };
+    worker.postMessage({ type: "chat", messages, opts, stop: null });
+  });
+}
+
+function rawMessage(m) {
+  const r = rawRun;
+  if (m.type === "piece") {
+    if (r.first == null && m.text) r.first = performance.now();
+    r.text += m.text;
+    return;
+  }
+  rawRun = null;
+  setBusy(false);
+  if (m.type === "done") r.resolve({ t0: r.t0, first: r.first, end: performance.now(), stats: m.stats, text: r.text });
+  else r.reject(new Error(m.message));
+}
+
+const compare = createCompare({
+  run: runRaw,
+  status,
+  // The loaded model: its file's name and where it came from, and where it runs.
+  model: () => ({
+    file: source?.name ?? source?.file?.name ?? null,
+    url: source?.url ?? null,
+    name: modelName,
+    device: !source ? null : onGpu ? `WebGPU (${loadedInfo?.info?.gpu?.name || "GPU"}, ${loadedInfo?.info?.gpu_layers}/${loadedInfo?.info?.layers} layers)` : `CPU (${loadedInfo?.info?.isa ?? "wasm"}, ${loadedInfo?.info?.threads ?? 1} threads)`,
+  }),
+  version: () => `beta ${document.querySelector('meta[name="inga-build"]')?.content || "dev"}`,
+});
+
 // What the beta's report button (report.js) adds to its issue: the load and the last answer.
 window.ingaState = () => ({
   model: source?.name ?? source?.file?.name ?? null,
@@ -2519,6 +2590,8 @@ window.ingaState = () => ({
   preset: $("preset-line")?.textContent ?? "",
   env: lastEnv,
   variant: variantLine(source?.name),
+  // The Compare view's table, when its "Attach to the report" was pressed.
+  compare: compare.attached(),
 });
 
 // The model's Info panel (the ⓘ next to the model chip): info.js's sections, Copy.

@@ -45,7 +45,8 @@
 // {type: "retry", device, note} (the GPU refused the model while it loaded: load it
 // again with `device` in a fresh worker, `note` saying why) |
 // {type: "piece", text, reasoning} (reasoning: a thinking model's, apart from its answer) |
-// {type: "done", stats, memory, gpu} | {type: "error", message} |
+// {type: "done", stats, memory, gpu} (stats.ttft_ms: the time to first token, from the
+// request to its first piece, the prompt's processing included) | {type: "error", message} |
 // {type: "count", id, tokens, parts} (tokens null: no model, or a module without countChat) |
 // {type: "trimmed", dropped, tokens} (a chat's oldest messages left out to fit `fit`) |
 // {type: "disktest", bytes, write_mbs, read_mbs} |
@@ -57,6 +58,8 @@
 // gpuprobe.js; asked by `gpuProbe` in a load, whose `gpuMeasured` gives a kept one).
 
 import { fitMessages, breakdown, autoContext, kvShape } from "./ctx.js";
+
+import { ttftMs } from "./bench.js";
 
 const CHUNK = 8 << 20; // bytes read from a file per push
 const DIR = "models";
@@ -742,7 +745,11 @@ async function handle(m) {
       // With cross-origin isolation the page shares a flag the callback reads; without
       // it the page stops an answer by ending this worker.
       const flag = m.stop ? new Int32Array(m.stop) : null;
+      // The time to first token: from here to the first piece (reasoning included).
+      const t0 = performance.now();
+      let first = null;
       const onPiece = (text, reasoning) => {
+        if (first == null && text) first = performance.now();
         post({ type: "piece", text, reasoning });
         return flag ? Atomics.load(flag, 0) !== 0 : false;
       };
@@ -755,9 +762,10 @@ async function handle(m) {
           post({ type: "trimmed", dropped: fit.dropped, tokens: fit.tokens });
         }
       }
-      const stats = onGpu() ? await stepped(m, onPiece)
-        : m.type === "chat" ? model.chat(JSON.stringify(m.messages), opts, onPiece) : model.complete(m.text, opts, onPiece);
-      post({ type: "done", stats: JSON.parse(stats), memory: mod.memoryBytes(), gpu: gpuInfo() });
+      const stats = JSON.parse(onGpu() ? await stepped(m, onPiece)
+        : m.type === "chat" ? model.chat(JSON.stringify(m.messages), opts, onPiece) : model.complete(m.text, opts, onPiece));
+      stats.ttft_ms = ttftMs(t0, first, stats.prompt_secs);
+      post({ type: "done", stats, memory: mod.memoryBytes(), gpu: gpuInfo() });
       break;
     }
     case "count": {
