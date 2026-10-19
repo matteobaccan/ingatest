@@ -56,6 +56,25 @@ export function closest(name) {
   return hit ? { webllm: hit[1], transformers: hit[2] } : { webllm: CLOSEST[0][1], transformers: CLOSEST[0][2] };
 }
 
+// Whether the GPU adapter the engines get has shader-f16 (true when it cannot be told).
+async function hasF16() {
+  try {
+    const a = await navigator.gpu?.requestAdapter({ powerPreference: "high-performance" });
+    return !a || a.features.has("shader-f16");
+  } catch {
+    return true;
+  }
+}
+
+// The f32 build of an engine's f16 model or type, for an adapter without shader-f16
+// (Pascal GPUs, among others), where the f16 kernels fail to compile; `id` itself
+// otherwise, and for a test's stand-in engine.
+export async function forAdapter(engine, id, f16) {
+  if (globalThis.ingaCompareStubs?.[engine] || (f16 ?? (await hasF16()))) return id;
+  if (engine === "webllm") return id.replace("q4f16_1", "q4f32_1");
+  return { q4f16: "q4", fp16: "fp32" }[id] ?? id;
+}
+
 // An engine's module: the test's stand-in, or the pinned version from the CDN.
 async function load(name) {
   const stub = globalThis.ingaCompareStubs?.[name];
@@ -85,7 +104,8 @@ async function adapterName() {
     const a = await navigator.gpu?.requestAdapter({ powerPreference: "high-performance" });
     if (!a) return navigator.gpu ? "WebGPU: no adapter" : "no WebGPU";
     const i = a.info || {};
-    return [i.vendor, i.architecture, i.device, i.description].filter(Boolean).join(" ") || "unnamed adapter";
+    const name = [i.vendor, i.architecture, i.device, i.description].filter(Boolean).join(" ") || "unnamed adapter";
+    return `${name} (shader-f16 ${a.features.has("shader-f16") ? "yes" : "no"})`;
   } catch (e) {
     return `WebGPU: ${e.message}`;
   }
@@ -128,7 +148,7 @@ export function createCompare({ run, status, model, version }) {
 
   // WebLLM: its prebuilt model, streamed through its OpenAI-like API.
   async function webllm(prompt, gen, reps, say) {
-    const id = $("cmp-webllm-model").value.trim();
+    const id = await forAdapter("webllm", $("cmp-webllm-model").value.trim());
     const lib = await load("webllm");
     const engine = await lib.CreateMLCEngine(id, { initProgressCallback: (p) => status(`Compare: WebLLM loading ${id}: ${p.text ?? ""}`) });
     const runs = [];
@@ -162,7 +182,7 @@ export function createCompare({ run, status, model, version }) {
   // Transformers.js: its ONNX model on WebGPU, greedy, streamed.
   async function transformers(prompt, gen, reps, say) {
     const id = $("cmp-tjs-model").value.trim();
-    const dtype = $("cmp-tjs-dtype").value;
+    const dtype = await forAdapter("transformers", $("cmp-tjs-dtype").value);
     const lib = await load("transformers");
     status(`Compare: Transformers.js loading ${id} (${dtype})…`);
     const tok = await lib.AutoTokenizer.from_pretrained(id);

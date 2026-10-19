@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 <!-- The commit and UTC date of a published build ("abc1234 2026-10-16") and Inga's version
 (Cargo.toml), which the Pages workflow writes: the side bar, About and the report show them;
 "dev" here. -->
-<meta name="inga-build" content="d0a019c 2026-10-19">
+<meta name="inga-build" content="1a09bff 2026-10-19">
 <meta name="inga-version" content="0.33.1">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
@@ -727,7 +727,8 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
       to warm up, then the measured runs, averaged. The table says what ran next to the numbers (browser, GPU adapter,
       model files, quantizations): copy it as Markdown, or attach it to the report. WebLLM and Transformers.js run
       their own model files (MLC q4f16, ONNX), not this GGUF file: with different quantizations the comparison is
-      indicative. Ticking an engine downloads its module from jsDelivr (a pinned version) and its model files from
+      indicative. On a GPU without shader-f16 (Pascal, among others) they run their f32 builds (MLC q4f32, ONNX q4
+      instead of q4f16), whose f16 kernels would not compile there; the table names what ran. Ticking an engine downloads its module from jsDelivr (a pinned version) and its model files from
       Hugging Face; nothing else leaves the page.</p>
       <div class="meta" id="cmp-model">No model loaded: load one first (Models).</div>
       <div class="row" style="margin-top:8px">
