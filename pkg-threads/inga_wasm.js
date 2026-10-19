@@ -510,7 +510,7 @@ function __wbg_get_imports(memory) {
             const ret = arg0.call(arg1, arg2, arg3);
             return ret;
         }, arguments); },
-        __wbg_error_8cca72144a8eba9e: function(arg0, arg1) {
+        __wbg_error_08a278faa6f5f048: function(arg0, arg1) {
             console.error(getStringFromWasm0(arg0, arg1));
         },
         __wbg_get_31af05bd4842a84f: function() { return handleError(function (arg0, arg1) {
