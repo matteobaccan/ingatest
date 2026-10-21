@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 <!-- The commit and UTC date of a published build ("abc1234 2026-10-16") and Inga's version
 (Cargo.toml), which the Pages workflow writes: the side bar, About and the report show them;
 "dev" here. -->
-<meta name="inga-build" content="4c127db 2026-10-21">
+<meta name="inga-build" content="f17734d 2026-10-21">
 <meta name="inga-version" content="0.33.4">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
@@ -585,6 +585,9 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
         <span class="meta">Given to the model before the conversation, through its chat template.</span></div></div>
       <div class="set"><label for="past" data-i18n="set.past">Past messages sent</label><div><input type="number" id="past" value="0" min="0" step="1">
         <span class="meta">How many of the conversation's last messages go with each question (0: all of them, as long as the context holds them).</span></div></div>
+      <div class="set"><span data-i18n="set.warm">Process ahead</span><div>
+        <label class="row" style="gap:6px"><input type="checkbox" id="warm"> <span data-i18n="set.warmon">Process the system prompt before the first question</span></label>
+        <span class="meta">While the model is idle, a new or reopened conversation's system prompt and messages are processed before you send the question, so its answer starts with only the question to read. Off by default: not measured yet. Not on the GPU.</span></div></div>
       <div class="set"><label for="sendkey" data-i18n="set.sendkey">Send key</label><div><select id="sendkey"><option value="enter" selected data-i18n="opt.enter">Enter</option><option value="ctrl" data-i18n="opt.ctrl">Ctrl+Enter (⌘+Enter)</option></select></div></div>
     </section>
     <section class="card">

@@ -694,6 +694,34 @@ async function stepped(m, onPiece) {
   return model.stats();
 }
 
+// The warm-up (docs/superpowers/specs/2026-10-20-warm-prompt-design.md §2): the part of
+// the chat `m.messages` before its next question, processed a pass of WARM_PASS tokens
+// at a time; the worker yields between passes, so a question that comes runs at once
+// and stops it (`warmStop`), what it processed staying in the cache. On the CPU only:
+// the GPU's steps are not measured yet.
+const WARM_PASS = 64;
+let warmStop = false;
+async function warm(m) {
+  const skip = (why) => post({ type: "warmed", skipped: why });
+  if (!model || typeof model.warmBegin !== "function") return skip("no model, or a module without warm-ups");
+  if (onGpu()) return skip("not on the GPU yet");
+  warmStop = false;
+  const t0 = performance.now();
+  const total = model.warmBegin(JSON.stringify(m.messages), JSON.stringify(m.opts ?? {}));
+  if (total < 16) return skip(`only ${total} tokens before the question`);
+  const held = model;
+  let have = -1;
+  for (;;) {
+    await new Promise((r) => setTimeout(r, 0));
+    if (warmStop || model !== held) break;
+    const now = model.warmStep(WARM_PASS);
+    if (now <= have) break;
+    have = now;
+    if (now >= total) break;
+  }
+  post({ type: "warmed", tokens: Math.max(have, 0), total, ms: performance.now() - t0, stopped: warmStop });
+}
+
 async function handle(m) {
   switch (m.type) {
     case "download":
@@ -768,6 +796,9 @@ async function handle(m) {
       post({ type: "done", stats, memory: mod.memoryBytes(), gpu: gpuInfo() });
       break;
     }
+    case "warm":
+      await warm(m);
+      break;
     case "count": {
       let tokens = null;
       let parts = null;
@@ -1103,6 +1134,8 @@ async function diskTest() {
 }
 
 self.onmessage = async ({ data }) => {
+  // A warm-up under way stops at its next pass when anything but a count comes.
+  if (!["warm", "count", "list"].includes(data?.type)) warmStop = true;
   try {
     await handle(data);
   } catch (e) {

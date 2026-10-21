@@ -586,6 +586,9 @@ function handleMessage(m) {
       if (m.id === countId) ctxParts = m.parts ?? (m.tokens == null ? false : null);
       drawGauge();
       break;
+    case "warmed":
+      loadLog(m.skipped ? `warm-up skipped: ${m.skipped}` : `warm-up: ${m.tokens} of the ${m.total} tokens before the question processed ahead in ${Math.round(m.ms)} ms${m.stopped ? ", stopped by a question" : ""}`);
+      break;
     case "trimmed":
       trimmedNote = t(m.dropped === 1 ? "ctx.trimmed.one" : "ctx.trimmed", m.dropped);
       status(t("st.answering") + " " + trimmedNote);
@@ -1660,7 +1663,7 @@ function importFile(file) {
 // ---- Settings, kept in this browser (localStorage, when it allows) ----
 
 const SETTINGS = ["ctx", "kv", "max", "temp", "seed", "think", "wmem", "wmem-mb", "draft", "device", "gmem", "gmem-mb", "gacct",
-  "topp", "topk", "minp", "rep", "pres", "freq", "sys-on", "sys", "past", "sendkey", "theme", "fontsize", "lang", "loglevel"];
+  "topp", "topk", "minp", "rep", "pres", "freq", "sys-on", "sys", "past", "warm", "sendkey", "theme", "fontsize", "lang", "loglevel"];
 // The settings that are a choice among options, and those options.
 const CHOICES = { kv: ["auto", "f16", "q8_0", "q4_0"], wmem: ["auto", "all", "mb"], device: ["cpu", "auto", "gpu"], gmem: ["auto", "mb"], gacct: ["auto", "one", "apart"],
   sendkey: ["enter", "ctrl"], theme: ["auto", "light", "dark"], fontsize: ["small", "normal", "large", "xlarge"], lang: ["en", "it"],
@@ -1821,6 +1824,8 @@ for (const id of SETTINGS) {
     if (["theme", "fontsize", "lang", "sendkey"].includes(id)) applyLook();
     // What the model reads, or the context it has: the gauge again.
     if (["sys-on", "sys", "past", "ctx", "lang"].includes(id)) countSoon(0);
+    // The conversation's part before the question again, with the new system prompt.
+    if (["sys-on", "sys", "warm"].includes(id)) warmSoon();
     // The answer's room in the ring's panel.
     else if (id === "max") drawGauge();
     // The context, the memory limits, the draft and the device are a load's: say so
@@ -2314,6 +2319,27 @@ function newChat() {
   ctxUsed = 0;
   ctxParts = null;
   countSoon(0);
+  warmSoon();
+}
+
+// ---- The warm-up (docs/superpowers/specs/2026-10-20-warm-prompt-design.md §2): with
+// Settings' "Process ahead" on (off by default: not measured yet), a new or reopened
+// conversation's system prompt and messages are processed while nothing runs, before
+// the question is sent; the worker stops it at its next pass when anything else comes ----
+let warmTimer = null;
+function warmSoon(ms = 800) {
+  clearTimeout(warmTimer);
+  if (!$("warm").checked) return;
+  warmTimer = setTimeout(warmNow, ms);
+}
+function warmNow() {
+  warmTimer = null;
+  if (!$("warm").checked || !source || !worker || busy || onGpu || stdRunning) return;
+  // The model's turn would come first: nothing to process ahead.
+  if (messages.length && messages.at(-1).role !== "assistant") return;
+  const sent = wire(messages);
+  if (!sent.length) return;
+  worker.postMessage({ type: "warm", messages: sent, opts: thinkOpts({ thinking: $("think").checked }) });
 }
 
 // The first message of a new conversation creates it, titled after that message.
@@ -2356,6 +2382,7 @@ async function openChat(id) {
   showConvs();
   showView("chat");
   countSoon(0);
+  warmSoon();
 }
 
 async function showConvs() {

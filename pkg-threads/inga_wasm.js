@@ -266,6 +266,39 @@ export class Model {
         }
         return ret[0];
     }
+    /**
+     * Starts processing ahead the part of the chat `messages` (as [`Model::chat`]'s)
+     * before its next user message, with `opts`' `thinking`; returns its tokens, which
+     * [`Model::warm_step`] processes a pass at a time (the worker yields between them,
+     * so a question that comes stops it).
+     * @param {string} messages
+     * @param {string} opts
+     * @returns {number}
+     */
+    warmBegin(messages, opts) {
+        const ptr0 = passStringToWasm0(messages, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(opts, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.model_warmBegin(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
+    }
+    /**
+     * Processes the next `pass` tokens of the warm-up; returns the tokens of it the cache
+     * holds from its start.
+     * @param {number} pass
+     * @returns {number}
+     */
+    warmStep(pass) {
+        const ret = wasm.model_warmStep(this.__wbg_ptr, pass);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
+    }
 }
 if (Symbol.dispose) Model.prototype[Symbol.dispose] = Model.prototype.free;
 
