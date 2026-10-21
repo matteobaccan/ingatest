@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 <!-- The commit and UTC date of a published build ("abc1234 2026-10-16") and Inga's version
 (Cargo.toml), which the Pages workflow writes: the side bar, About and the report show them;
 "dev" here. -->
-<meta name="inga-build" content="d7ef41d 2026-10-21">
+<meta name="inga-build" content="7bbff10 2026-10-21">
 <meta name="inga-version" content="0.33.4">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
@@ -26,7 +26,7 @@ report as its text); the beta's guide. The Pages workflow sets them for the publ
 <script src="coi.js"></script>
 <style>
 /* Inga's own colours: the tokens and values of the native web UI's Light and Dark themes
-   (crates/inga-server/webui/page.html), and --warn for the "tight" marks. */
+   (crates/inga-server/webui/css/themes.css), and --warn for the "tight" marks. */
 :root {
   color-scheme: light;
   --bg: #f5f6fa; --panel: #ffffff; --hover: #f0f1f8; --text: #1b1d2a; --muted: #5f6380;
@@ -330,7 +330,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
 </style>
 </head>
 <body>
-<!-- The icons: symbols of the native web UI's sprite (crates/inga-server/webui/page.html, docs/icons.html), and three drawn in their style. -->
+<!-- The icons: symbols of the native web UI's sprite (crates/inga-server/webui/html/icons.svg, docs/icons.html), and three drawn in their style. -->
 <svg xmlns="http://www.w3.org/2000/svg" id="icons" aria-hidden="true" width="0" height="0" style="position:absolute">
   <symbol id="i-chat" viewBox="0 0 24 24"><path d="M6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4 3.5V16h-.5A2.5 2.5 0 0 1 4 13.5v-7A2.5 2.5 0 0 1 6.5 4Z"/><path d="M8 8.5h8M8 12h5"/></symbol>
   <symbol id="i-package" viewBox="0 0 24 24"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9M8 5.25l8 4.5"/></symbol>
@@ -367,7 +367,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
 </svg>
 <div id="app">
 <aside id="side" aria-label="Inga">
-  <div class="brand"><span id="brand-mark" aria-hidden="true"><!-- Inga's animated mark, copied from crates/inga-server/webui/page.html (#logo): keep the two in sync. --><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="38" height="38" aria-hidden="true">
+  <div class="brand"><span id="brand-mark" aria-hidden="true"><!-- Inga's animated mark, copied from crates/inga-server/webui/html/shell.html (#logo): keep the two in sync. --><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="38" height="38" aria-hidden="true">
     <!-- Inga by Matteo Baccan: the mark, animated. The brain appears, then, in a loop, its
        pieces burst apart in a flash of sparks and come back together: a model at work.
        Still for prefers-reduced-motion. -->

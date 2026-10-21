@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 // Markdown, built as DOM nodes (never as HTML): the renderer of Inga's web UI
-// (crates/inga-server/webui/page.html, "Markdown, built as DOM nodes"), without its
+// (crates/inga-server/webui/js/markdown.js, "Markdown, built as DOM nodes"), without its
 // formulas and diagrams (this page has neither library: they stay as their source).
 // Code blocks, inline code, bold, italic, links (http and https only), headings, lists,
 // quotes and rules. The model's text only ever becomes text nodes.
