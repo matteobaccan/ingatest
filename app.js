@@ -82,7 +82,47 @@ const BETA = location.hostname.endsWith(".github.io") || new URLSearchParams(loc
 function status(text, err = false) {
   $("status").textContent = text;
   $("status").className = err ? "err" : "";
+  $("status").removeAttribute("aria-expanded");
+  $("status").removeAttribute("tabindex");
+  $("status").removeAttribute("role");
 }
+
+// A load's summary on a phone-sized line: what loaded and where, then the one piece of
+// advice that matters; the rest (memory, limits, storage, context, draft) is in the same
+// element, shown when the line is clicked or tapped (and in the load log). A text of a
+// thousand characters wrapped to thirty lines took the chat's and the composer's room.
+function statusLoaded(summary, advice, details) {
+  const el = $("status");
+  el.className = "loaded";
+  el.textContent = summary;
+  if (advice) el.append(Object.assign(document.createElement("span"), { className: "advice", textContent: " " + advice }));
+  if (details) {
+    el.append(Object.assign(document.createElement("span"), { className: "more", textContent: " " + details }));
+    el.setAttribute("aria-expanded", "false");
+    el.setAttribute("role", "button");
+    el.tabIndex = 0;
+  }
+  loadLog([summary, advice, details].filter(Boolean).join(" "));
+}
+// A note after the status line, kept visible: a load's summary keeps its parts.
+function statusAppend(text) {
+  const el = $("status");
+  if (!el.classList.contains("loaded")) return status(el.textContent + " " + text, el.className === "err");
+  el.append(Object.assign(document.createElement("span"), { className: "note", textContent: " " + text }));
+}
+
+function toggleStatus() {
+  const el = $("status");
+  if (!el.classList.contains("loaded") || !el.querySelector(".more")) return;
+  const open = el.classList.toggle("open");
+  el.setAttribute("aria-expanded", String(open));
+}
+$("status").addEventListener("click", toggleStatus);
+$("status").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  e.preventDefault();
+  toggleStatus();
+});
 
 function progress(done, total, text = "") {
   const p = $("progress");
@@ -370,7 +410,7 @@ function workerLost(why) {
 // line (a load that stops says where; Copy it into a report). The Settings' "Load log"
 // keeps every step, only the start, the end and the errors, or nothing.
 let logT0 = null;
-const LOG_SUMMARY = /^(load asked|ready to chat|page error|No word|the page received)/;
+const LOG_SUMMARY = /^(load asked|Loaded in|ready to chat|page error|No word|the page received)/;
 function loadLog(text, reset = false) {
   const level = $("loglevel")?.value ?? "all";
   if (level === "off" || (level === "summary" && !LOG_SUMMARY.test(text) && !/error|fail|refus|stopp/i.test(text))) return;
@@ -499,10 +539,14 @@ function handleMessage(m) {
       slowLine = slowNote(i);
       autoLine = autoText(m.ctx_auto);
       showAuto();
-      status(`Loaded in ${m.secs.toFixed(1)} s: ${i.architecture}, ${i.layers} layers, ${fmt(i.bytes)} of weights, ` +
-        `context ${i.ctx}, ${where}; WebAssembly memory ${fmt(m.memory)}${gpuBytes(m.gpu)}; ` +
+      // Under one limit for WebAssembly memory and the GPU, with storage needed, the
+      // advice is Device CPU: raising GPU memory would only take more from the CPU.
+      const advice = oneLimitSlow(i) ? t("slow.devcpu") : slowLine;
+      statusLoaded(`Loaded in ${m.secs.toFixed(1)} s: ${i.architecture}, ${i.layers} layers, ${fmt(i.bytes)} of weights, ` +
+        `context ${i.ctx}, ${where};`, advice,
+        `WebAssembly memory ${fmt(m.memory)}${gpuBytes(m.gpu)}; ` +
         `${limitUsed}; ${deviceUsed.label}.` + (variantLine(source?.name) ? " " + variantLine(source?.name) + "." : "") + (why ? ` ${why}.` : "") + streamNote(i) + draftNote(i) + (reloadWhy ? " " + t("reloaded", ...reloadWhy) : "") +
-        (autoLine ? " " + autoLine + "." : "") + (ctxLine ? " " + ctxLine : "") + (slowLine ? " " + slowLine : ""));
+        (autoLine ? " " + autoLine + "." : "") + (ctxLine ? " " + ctxLine : ""));
       reloadWhy = null;
       $("wmem-hint").textContent = "";
       presetAfterLoad(i);
@@ -747,6 +791,10 @@ function gpuBench() {
 // memory and the GPU's bytes, or the limit for WebAssembly memory alone (the test of
 // whether iOS counts a tab's GPU buffers with its memory); and the warning when that
 // one limit makes the CPU read layers from storage.
+// One limit for WebAssembly memory and the GPU's bytes, and a model that needs storage:
+// probably slower than Device CPU (accountingNote's warning).
+const oneLimitSlow = (i) => i.gpu_accounting === "one" && !!(i.streamed_layers || i.output_parts);
+
 function accountingNote(i) {
   if (!i.gpu_accounting) return "";
   const gpu = fmt(i.gpu_planned);
@@ -754,7 +802,7 @@ function accountingNote(i) {
   let t = i.gpu_accounting === "separate"
     ? `GPU memory accounting: apart${how} (the limit covers WebAssembly memory only, ${fmt(i.memory_planned)} planned; the GPU's ${gpu} only its own budget)`
     : `GPU memory accounting: one limit${how} (the GPU's ${gpu} counted with WebAssembly memory, ${fmt(i.memory_planned)} planned in all)`;
-  if (i.gpu_accounting === "one" && (i.streamed_layers || i.output_parts)) {
+  if (oneLimitSlow(i)) {
     t += `. Warning: slower than Device CPU, probably: this model needs storage, and the GPU's share of the one limit leaves the CPU ` +
       `${fmt(i.resident_weights)} of weights and ${fmt(i.stream_read_per_token)} read from storage per token ` +
       `(Qwen3-4B on an iPhone 16 Pro: 0.9 tok/s this way, 2.3 on Device CPU)`;
@@ -806,7 +854,9 @@ async function chooseDevice() {
   if (!adapter) return { device: "cpu", label: "device CPU: WebGPU offers no adapter here" };
   await probeAdapter();
   const i = adapter.info || {};
-  const name = [i.vendor, i.architecture, i.device, i.description].filter(Boolean).join(" ") || "unnamed adapter";
+  // Each value once: WebKit gives "apple" as the vendor, the architecture, the device and
+  // the description alike.
+  const name = [...new Set([i.vendor, i.architecture, i.device, i.description].filter(Boolean))].join(" ") || "unnamed adapter";
   if (asked === "gpu") return { device: "gpu", label: `device GPU (Device setting, adapter ${name})` };
   if (GPU_FASTER.some((f) => f.adapter.test(name))) return { device: "gpu", auto: true, label: `device GPU (Auto: measured faster than the CPU on ${name})` };
   return { device: "cpu", label: `device CPU (Auto: the GPU, ${name}, has not been measured faster than the CPU here; choose GPU in the Settings to try it)` };
@@ -826,7 +876,9 @@ async function gpuInfo() {
       return;
     }
     const i = a.info || {};
-    const name = [i.vendor, i.architecture, i.device, i.description].filter(Boolean).join(" ") || "unnamed adapter";
+    // Each value once: WebKit gives "apple" as the vendor, the architecture, the device and
+  // the description alike.
+  const name = [...new Set([i.vendor, i.architecture, i.device, i.description].filter(Boolean))].join(" ") || "unnamed adapter";
     const l = a.limits;
     // The subgroups' widths: GPUAdapterInfo's (Chrome 134 on), else the older limits'.
     const lo = i.subgroupMinSize ?? l.minSubgroupSize;
@@ -2682,8 +2734,8 @@ function holdModel(name) {
   navigator.locks.request(key, { mode: "shared" }, async () => {
     try {
       const q = await navigator.locks.query();
-      if (modelLock === mine && q.held.filter((l) => l.name === key).length > 1 && !$("status").className) {
-        status($("status").textContent + " " + t("tabs.shared"));
+      if (modelLock === mine && q.held.filter((l) => l.name === key).length > 1 && $("status").className !== "err") {
+        statusAppend(t("tabs.shared"));
       }
     } catch {}
     return held;

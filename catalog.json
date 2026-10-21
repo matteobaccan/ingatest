@@ -1,7 +1,7 @@
 {
  "_comment": "Inga -- Local LLM inference engine in Rust. Copyright (c) Matteo Baccan -- https://github.com/matteobaccan/inga. SPDX-License-Identifier: MIT. The browser page's model catalog (docs/wasm-beta.md): GGUF files on Hugging Face whose architecture Inga runs. A variant with \"approx\": true has a size estimated from the parameters and the quantization, its path not yet checked against Hugging Face: python3 tools/wasm-catalog.py --write checks every file and writes the exact sizes. A model with \"starter\": true is one the page offers to try first, when no model is loaded (the smallest variant that fits of the smallest such model).",
  "version": 1,
- "checked": "2026-10-19",
+ "checked": "2026-10-21",
  "families": [
   {
    "id": "llama",
