@@ -852,12 +852,12 @@ function __wbg_get_imports() {
         __wbg_end_82fd0c12ba185009: function(arg0) {
             arg0.end();
         },
-        __wbg_error_7a17bac71a4e6865: function(arg0, arg1) {
-            console.error(getStringFromWasm0(arg0, arg1));
-        },
         __wbg_error_8c8dff942c7c4f11: function(arg0) {
             const ret = arg0.error;
             return ret;
+        },
+        __wbg_error_e43c41345ea05c17: function(arg0, arg1) {
+            console.error(getStringFromWasm0(arg0, arg1));
         },
         __wbg_features_5cac120c28ba0475: function(arg0) {
             const ret = arg0.features;
