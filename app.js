@@ -17,6 +17,7 @@ import { fmt, createRate, downloadLine, estimate, lastSpeed, saveSpeed } from ".
 import { gauge, gaugeTitle, promptLimit, detail, AUTO_FLOOR } from "./ctx.js";
 import { PRESET_FIELDS, catalogEntry, presetOf, presetValues, handFromSaved, describePreset } from "./preset.js";
 import { createCompare } from "./compare.js";
+import { gpuPace, paceText, adapterKey, adapterName, adapterFields, lossOf, noteLoss, tryGpuAgain, readLosses, writeLosses, browserText } from "./gpupace.js";
 
 // The test models: a fixed list, so runs on different devices compare (the maintainer's
 // matrix of models x CPU / GPU, with the Standard test). Sizes are approximate.
@@ -48,12 +49,14 @@ let answer = null; // the element of the answer streaming
 let answerBox = null; // its message (the bubble with the speed line)
 let answerSeed = null; // the seed it draws with
 let answerText = ""; // its raw text (what goes back to the model), rendered as Markdown
+let answerPieces = 0; // the pieces it received (about its tokens), for a GPU lost
 let renderTimer = null; // a render of the answer pending (at most one every RENDER_MS)
 const RENDER_MS = 100;
 let thinking = null; // the <details> of its reasoning, once a thinking model reasons
 let used = false; // this worker has loaded a model: its WebAssembly memory never shrinks
 let stopFlag = null;
 let keepChat = false; // the model loads again after a stop: the chat stays
+let lostGpu = null; // {name, label, adapter, cpu}: the model a GPU lost (gpuLost), until a load
 let gpuUsed = ""; // the GPU memory limit of the load, as the load line says it
 let gpuLabel = ""; // the same with why (Auto's rule, or the Settings'), for the Info panel
 let limitUsed = ""; // the memory limit the model being loaded was given, as the load line says it
@@ -410,7 +413,7 @@ function workerLost(why) {
 // line (a load that stops says where; Copy it into a report). The Settings' "Load log"
 // keeps every step, only the start, the end and the errors, or nothing.
 let logT0 = null;
-const LOG_SUMMARY = /^(load asked|Loaded in|ready to chat|page error|No word|the page received)/;
+const LOG_SUMMARY = /^(load asked|Loaded in|ready to chat|page error|No word|the page received|GPU lost)/;
 function loadLog(text, reset = false) {
   const level = $("loglevel")?.value ?? "all";
   if (level === "off" || (level === "summary" && !LOG_SUMMARY.test(text) && !/error|fail|refus|stopp/i.test(text))) return;
@@ -541,7 +544,7 @@ function handleMessage(m) {
       showAuto();
       // Under one limit for WebAssembly memory and the GPU, with storage needed, the
       // advice is Device CPU: raising GPU memory would only take more from the CPU.
-      const advice = oneLimitSlow(i) ? t("slow.devcpu") : slowLine;
+      const advice = deviceUsed.gpuReset && !onGpu ? t("lost.cpu.loaded", deviceUsed.name) : oneLimitSlow(i) ? t("slow.devcpu") : slowLine;
       statusLoaded(`Loaded in ${m.secs.toFixed(1)} s: ${i.architecture}, ${i.layers} layers, ${fmt(i.bytes)} of weights, ` +
         `context ${i.ctx}, ${where};`, advice,
         `WebAssembly memory ${fmt(m.memory)}${gpuBytes(m.gpu)}; ` +
@@ -567,6 +570,7 @@ function handleMessage(m) {
     }
     case "piece":
       if (!answer) break;
+      answerPieces++;
       liveSpeed();
       if (m.reasoning) think(m.text);
       else {
@@ -838,6 +842,17 @@ function setupDevice() {
 // CPU, and Llama 3.2 1B Q4_K_M's prompt ran at 8.8 tok/s on the GPU against 24.3.
 // `?gpu_faster` in the page's address takes every adapter for one (the browser tests).
 const GPU_FASTER = new URLSearchParams(location.search).has("gpu_faster") ? [{ adapter: /./ }] : [];
+// `?gpu_pace=mobile` or `?gpu_pace=desktop` in the page's address forces the pacing of a
+// mobile-class GPU on or off (gpupace.js; the browser tests, a tester's check).
+const PACE_FORCE = new URLSearchParams(location.search).get("gpu_pace");
+// This browser's localStorage, or null where reading it throws.
+function store() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 // The device a load uses, and what the load line says of it: the Device setting, with
 // Auto resolved (the GPU when the browser has a WebGPU adapter and it was measured
@@ -846,9 +861,13 @@ const GPU_FASTER = new URLSearchParams(location.search).has("gpu_faster") ? [{ a
 // one limit for both, the GPU's share leaves the CPU fewer weights: on an iPhone 16 Pro,
 // Qwen3-4B Q4_K_M answered at 0.9 tok/s with 14 layers on the GPU against 2.3 on the CPU
 // alone); with Device GPU it warns instead.
-async function chooseDevice() {
-  const asked = $("device").value;
-  if (asked === "cpu") return { device: "cpu", label: "device CPU (Device setting)" };
+//
+// After a GPU reset the user may reload on the CPU or the GPU (`force`); an adapter reset
+// twice in this browser loads on the CPU unless forced (gpupace.js). On a mobile-class
+// device the GPU's load is paced (`pace`: Gpu.tune's switches).
+async function chooseDevice(force = null) {
+  const asked = force ?? $("device").value;
+  if (asked === "cpu") return { device: "cpu", label: force ? "device CPU (Reload on the CPU, after the GPU was reset)" : "device CPU (Device setting)" };
   if (!navigator.gpu) return { device: "cpu", label: `device CPU: no WebGPU in this browser (Device ${asked === "gpu" ? "GPU" : "Auto"})` };
   let adapter = null;
   try {
@@ -856,13 +875,18 @@ async function chooseDevice() {
   } catch {}
   if (!adapter) return { device: "cpu", label: "device CPU: WebGPU offers no adapter here" };
   await probeAdapter();
-  const i = adapter.info || {};
   // Each value once: WebKit gives "apple" as the vendor, the architecture, the device and
   // the description alike.
-  const name = [...new Set([i.vendor, i.architecture, i.device, i.description].filter(Boolean))].join(" ") || "unnamed adapter";
-  if (asked === "gpu") return { device: "gpu", label: `device GPU (Device setting, adapter ${name})` };
-  if (GPU_FASTER.some((f) => f.adapter.test(name))) return { device: "gpu", auto: true, label: `device GPU (Auto: measured faster than the CPU on ${name})` };
-  return { device: "cpu", label: `device CPU (Auto: the GPU, ${name}, has not been measured faster than the CPU here; choose GPU in the Settings to try it)` };
+  const name = adapterName(adapter.info);
+  const pace = gpuPace(navigator, adapter.info, PACE_FORCE);
+  const paced = pace.spec ? `; paced for a mobile GPU, ${pace.why}: ${paceText(pace.spec)}` : "";
+  const base = { adapter: adapterFields(adapter.info), key: adapterKey(adapter.info), name, pace: pace.spec };
+  if (!force && lossOf(readLosses(store()), base.key).cpu) {
+    return { ...base, device: "cpu", gpuReset: true, label: `device CPU: the GPU (${name}) was reset twice in this browser (Try the GPU again, in Settings, uses it again)` };
+  }
+  if (asked === "gpu") return { ...base, device: "gpu", label: `device GPU (${force ? "Reload on the GPU" : "Device setting"}, adapter ${name}${paced})` };
+  if (GPU_FASTER.some((f) => f.adapter.test(name))) return { ...base, device: "gpu", auto: true, label: `device GPU (Auto: measured faster than the CPU on ${name}${paced})` };
+  return { ...base, device: "cpu", label: `device CPU (Auto: the GPU, ${name}, has not been measured faster than the CPU here; choose GPU in the Settings to try it)` };
 }
 
 // What the browser's WebGPU adapter is and its limits, for the "GPU info" button.
@@ -1091,7 +1115,10 @@ function rememberUrl(name, url) {
   } catch {}
 }
 
-async function loadStored(name) {
+// `force`: "cpu" or "gpu", a reload after the GPU was reset (gpuLost), whatever the
+// Device setting says.
+async function loadStored(name, force = null) {
+  lostGpu = null;
   source = { name, url: modelUrls()[name] ?? null };
   // What the variants are judged on, for the load line (variantLine).
   deviceEnv().then((e) => (lastEnv = e), () => {});
@@ -1104,7 +1131,7 @@ async function loadStored(name) {
   used = true;
   const { budget, label } = memoryLimit();
   limitUsed = label;
-  deviceUsed = await chooseDevice();
+  deviceUsed = await chooseDevice(force);
   if (deviceUsed.device === "gpu") await gpuMemoryMeasured();
   const gpuBudget = gpuLimit(budget);
   const separate = gpuSeparate();
@@ -1117,7 +1144,7 @@ async function loadStored(name) {
   // A draft model drafts on the CPU only: on the GPU the model answers without it.
   const draft = deviceUsed.device === "gpu" ? null : draftFor(name);
   if (deviceUsed.device === "gpu" && draftFor(name)) deviceUsed.label += "; no draft model on the GPU yet (Draft model ignored)";
-  lastLoad = { type: "load", name, ctx: ctx(), kv: $("kv").value, budget, draft, device: deviceUsed.device, gpuBudget: gpuBudget.bytes, gpuSeparate: separate, auto: !!deviceUsed.auto, gpuProbe, gpuMeasured: gpuMeasured.bytes };
+  lastLoad = { type: "load", name, ctx: ctx(), kv: $("kv").value, budget, draft, device: deviceUsed.device, gpuBudget: gpuBudget.bytes, gpuSeparate: separate, auto: !!deviceUsed.auto, gpuProbe, gpuMeasured: gpuMeasured.bytes, pace: deviceUsed.device === "gpu" ? deviceUsed.pace ?? "" : "" };
   startLoading();
   worker.postMessage(lastLoad);
 }
@@ -1239,6 +1266,7 @@ function ask(text, opts) {
   answerBox = botBubble(null);
   answer = answerBox.querySelector(".a");
   answerText = "";
+  answerPieces = 0;
   live = { n: 0, t0: null, shown: 0 };
   $("chat").append(answerBox);
   answerBox.scrollIntoView({ block: "end" });
@@ -2255,7 +2283,12 @@ function rememberFile(name, file) {
 // What Reload would load: {file, label} when no model is loaded and the open chat's
 // model is stored here; else null.
 function reopenTarget() {
-  if (source || !chat) return null;
+  if (source) return null;
+  // The model a GPU lost, stored (a chat may have no message yet).
+  if (lostGpu?.name && storedSize[lostGpu.name] != null && (!chat || (chat.file ?? lostGpu.name) === lostGpu.name)) {
+    return { file: lostGpu.name, label: chat?.model || lostGpu.label };
+  }
+  if (!chat) return null;
   let file = chat.file;
   // A chat saved before it kept its file: by its model's name.
   if (file === undefined) file = storedSize[chat.model] != null ? chat.model : (fileByName[chat.model] ?? null);
@@ -2281,9 +2314,14 @@ function reopen() {
 
 // The buttons: in the status bar and above the composer, while no model is loaded and a
 // chat with messages is open (an empty chat has its own call to action).
+//
+// After a GPU lost (lostGpu), two: "Reload on the CPU" (also in the status bar) and
+// "Reload on the GPU", or "Try the GPU again" once the adapter defaults to the CPU (its
+// note beside them).
 function drawReopen() {
   const r = reopenTarget();
-  const show = !source && !busy && pageReady && (!!r || messages.length > 0);
+  const lost = !!(lostGpu && r);
+  const show = !source && !busy && pageReady && (!!r || messages.length > 0 || lost);
   const label = r ? t("reopen", r.label) : t("empty.choose");
   for (const id of ["reopen-status", "reopen-go"]) {
     const b = $(id);
@@ -2291,13 +2329,29 @@ function drawReopen() {
     b.title = r ? t("reopen.t", r.label) : "";
     b.querySelector("use").setAttribute("href", r ? "#i-retry" : "#i-package");
   }
+  if (lost) {
+    $("reopen-status").lastChild.textContent = t("lost.cpu");
+    $("reopen-status").title = t("lost.cpu.t", r.label);
+    $("reopen-status").querySelector("use").setAttribute("href", "#i-cpu");
+    $("reopen-go").lastChild.textContent = lostGpu.cpu ? t("lost.again") : t("lost.gpu");
+    $("reopen-go").title = t("lost.gpu.t", r.label);
+    $("reopen-go").querySelector("use").setAttribute("href", "#i-gpu");
+    $("reopen-cpu").lastChild.textContent = t("lost.cpu");
+    $("reopen-cpu").title = t("lost.cpu.t", r.label);
+  }
+  $("reopen-cpu").hidden = !(show && lost);
+  // The CPU first: the way that works on a GPU that keeps resetting.
+  if (lost) $("reopen-bar").prepend($("reopen-cpu"));
   $("reopen-status").hidden = !show;
   $("reopen-bar").hidden = !show;
-  $("reopen-why").textContent = !show ? "" : r ? t("reopen.why", r.label) : t("reopen.choose.why");
+  $("reopen-why").textContent = !show ? "" : lost ? (lostGpu.cpu ? t("lost.cpu.note", lostGpu.adapter) : t("lost.why", r.label))
+    : r ? t("reopen.why", r.label) : t("reopen.choose.why");
 }
+$("reopen-cpu").onclick = () => reloadAfterLoss("cpu");
 for (const id of ["reopen-status", "reopen-go"]) {
   $(id).onclick = () => {
-    if (reopenTarget()) reopen();
+    if (lostGpu && reopenTarget()) reloadAfterLoss(id === "reopen-status" ? "cpu" : "gpu");
+    else if (reopenTarget()) reopen();
     else {
       showView("models");
       picker.open();
@@ -2799,8 +2853,17 @@ function releaseModel() {
 
 // The WebGPU device was lost (the worker's `gpulost`: the GPU reset, the driver
 // restarted, the system took its memory back): the model on it is gone. Said once,
-// nothing retried: the user loads the model again.
+// nothing retried: the user loads the model again, on the CPU or the GPU (the buttons of
+// drawReopen). The reset is remembered for the adapter in this browser (gpupace.js):
+// from the second, its loads go to the CPU, said with a way to try the GPU again. The
+// message carries what a report needs (the adapter, the browser, the model, the
+// backend and its pacing, where the answer was), as does the load log ("{}").
 function gpuLost(m) {
+  const dev = deviceUsed;
+  const name = source?.name ?? null;
+  const model = modelName || name || source?.file?.name || "?";
+  const phase = m.phase ?? (loading ? "load" : answer ? (answerPieces ? "answer" : "prompt") : "idle");
+  const tokens = m.gen_tokens ?? answerPieces;
   afterLoad = null;
   stopLoading();
   progress(0, 0);
@@ -2816,8 +2879,68 @@ function gpuLost(m) {
   worker.terminate();
   startWorker();
   $("stop").disabled = true;
+  let entry = null;
+  if (dev?.key != null) {
+    const r = noteLoss(readLosses(store()), dev.key);
+    writeLosses(store(), r.rec);
+    entry = r.entry;
+  }
+  const adapter = dev?.name ?? "?";
+  const g = m.gpu;
+  const pace = g?.prompt_chunk ? t("gpu.lost.paced", g.submit_limit, g.prompt_chunk) : t("gpu.lost.unpaced", g?.submit_limit ?? 2048);
+  const where = phase === "load" ? t("gpu.lost.load") : phase === "prompt" ? t("gpu.lost.prompt", m.prompt_tokens ?? "?")
+    : phase === "answer" ? t("gpu.lost.answer", tokens, m.prompt_tokens ?? "?") : t("gpu.lost.idle");
+  const diag = t("gpu.lost.diag", adapter, browserText(navigator), model,
+    `WebGPU (${pace}${g?.most_dispatches ? t("gpu.lost.most", g.most_dispatches, g.submits) : ""})`, where);
+  lostGpu = { name, label: model, adapter, cpu: !!entry?.cpu };
   setBusy(false);
-  status(t("gpu.lost", m.message || m.reason || "no reason given"), true);
+  status(t("gpu.lost", m.message || m.reason || "no reason given") + " " + (lostGpu.cpu ? t("gpu.lost.cpu", adapter) + " " : "") + diag, true);
+  // The load log keeps it whole, in English, for a report.
+  const a = dev?.adapter ?? {};
+  loadLog(`GPU lost (${m.reason ?? "unknown"}: ${m.message || "no message"}): adapter vendor "${a.vendor ?? ""}", architecture "${a.architecture ?? ""}", ` +
+    `device "${a.device ?? ""}", description "${a.description ?? ""}"; browser ${browserText(navigator)}; model ${model}; backend WebGPU, ` +
+    `${paceText(lastLoad?.pace)}, ${g ? `${g.submits} submissions, at most ${g.most_dispatches} dispatches in one` : "submissions not known"}; ` +
+    `step ${phase}, prompt ${m.prompt_tokens ?? "?"} tokens, answer ${tokens} tokens; resets of this adapter here: ${entry?.losses ?? "?"}` +
+    `${entry?.cpu ? " (it now defaults to the CPU)" : ""}; user agent ${navigator.userAgent}`);
+  drawReopen();
+  if (entry?.now) drawGpuResetNote();
+}
+
+// The model to load again after a GPU lost, and the device: "cpu" or "gpu" ("gpu" from
+// an adapter that defaults to the CPU lifts that first: Try the GPU again).
+function reloadAfterLoss(device) {
+  const r = reopenTarget();
+  if (!r || busy) return;
+  if (device === "gpu" && lostGpu?.cpu && deviceUsed?.key != null) {
+    writeLosses(store(), tryGpuAgain(readLosses(store()), deviceUsed.key));
+    drawGpuResetNote();
+  }
+  lostGpu = null;
+  released = null;
+  keepChat = true;
+  loadStored(r.file, device);
+}
+
+// The Settings' note under Device, while this browser's adapter defaults to the CPU
+// after its resets: what happened and "Try the GPU again" (the next load uses the GPU).
+async function drawGpuResetNote() {
+  const el = $("gpu-reset-note");
+  let a = null;
+  try {
+    a = navigator.gpu ? await navigator.gpu.requestAdapter({ powerPreference: "high-performance" }) : null;
+  } catch {}
+  const key = a ? adapterKey(a.info) : null;
+  const on = key != null && lossOf(readLosses(store()), key).cpu;
+  el.hidden = !on;
+  if (!on) return;
+  el.firstElementChild.textContent = t("lost.cpu.note", adapterName(a.info)) + " ";
+  el.lastElementChild.onclick = () => {
+    writeLosses(store(), tryGpuAgain(readLosses(store()), key));
+    if (lostGpu) lostGpu.cpu = false;
+    el.hidden = true;
+    $("device-hint").textContent = t("lost.tried");
+    drawReopen();
+  };
 }
 
 // ---- The model picker (picker.js): the catalog, and what fits this browser ----
@@ -2949,6 +3072,7 @@ pageReady = true;
 
 showSuggested();
 setupDevice();
+drawGpuResetNote();
 gmemHint();
 renderChat();
 setBusy(false);

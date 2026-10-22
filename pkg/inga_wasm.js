@@ -41,7 +41,10 @@ export class Gpu {
      * `subgroup_sizes` (the adapter's min and max, 0 when not told), `subgroups_text`,
      * `subgroup_kernels` (those that run with `sg=on`: "sg", "sgx" or "none"),
      * `timestamp_query`, `tuning`, `kernels` (those compiled so far),
-     * `weight_bytes`, `other_bytes`.
+     * `weight_bytes`, `other_bytes`, the pacing (`submit_limit`: the most dispatches
+     * in one submission; `prompt_chunk`: the prompts' largest chunk asked, null for
+     * the default; `Gpu::tune`'s `submit=` and `chunk=`) and what it gave so far
+     * (`submits`, `most_dispatches`: the most one submission carried).
      * @returns {string}
      */
     info() {
@@ -103,7 +106,8 @@ export class Gpu {
      * (`tests/browser.cjs bench-gpu ... off=...`); `f16=on|off`, `rows=8|4`,
      * `tiles=64|32`, `slab=64|128` and `preset=default|apple` choose the kernels from
      * the next step on (the page's GPU benchmark; Apple's preset from the adapter's
-     * vendor).
+     * vendor); `submit=N` (dispatches per submission, from the next one) and
+     * `chunk=N` (the prompts' largest chunk, for the next load) pace a mobile GPU.
      *
      * # Errors
      * An unknown switch or value.
@@ -1376,27 +1380,27 @@ function __wbg_get_imports() {
             arg0.writeBuffer(arg1, arg2, getArrayU8FromWasm0(arg3, arg4), arg5, arg6);
         }, arguments); },
         __wbindgen_generic_0000000000000001: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 2082, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
+            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 2107, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
             const ret = makeMutClosure(arg0, arg1, wasm_bindgen_bcc2b4372220b143___convert__closures_____invoke___wasm_bindgen_bcc2b4372220b143___JsValue__core_37ee0ce0c4cd57d5___result__Result_____wasm_bindgen_bcc2b4372220b143___JsError___true_);
             return ret;
         },
         __wbindgen_generic_0000000000000002: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [NamedExternref("GPUDevice")], shim_idx: 151, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
+            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [NamedExternref("GPUDevice")], shim_idx: 153, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
             const ret = makeMutClosure(arg0, arg1, wasm_bindgen_bcc2b4372220b143___convert__closures_____invoke___wasm_bindgen_bcc2b4372220b143___sys__JsNullable_wgpu_608faf0a5db93dee___backend__webgpu__webgpu_sys__gen_GpuError__GpuError___core_37ee0ce0c4cd57d5___result__Result_____wasm_bindgen_bcc2b4372220b143___JsError___true_);
             return ret;
         },
         __wbindgen_generic_0000000000000003: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [NamedExternref("GPUUncapturedErrorEvent")], shim_idx: 155, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [NamedExternref("GPUUncapturedErrorEvent")], shim_idx: 157, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
             const ret = makeMutClosure(arg0, arg1, wasm_bindgen_bcc2b4372220b143___convert__closures_____invoke___wgpu_608faf0a5db93dee___backend__webgpu__webgpu_sys__gen_GpuDeviceLostInfo__GpuDeviceLostInfo______true_);
             return ret;
         },
         __wbindgen_generic_0000000000000004: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [NamedExternref("any")], shim_idx: 151, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
+            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [NamedExternref("any")], shim_idx: 153, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
             const ret = makeMutClosure(arg0, arg1, wasm_bindgen_bcc2b4372220b143___convert__closures_____invoke___wasm_bindgen_bcc2b4372220b143___sys__JsNullable_wgpu_608faf0a5db93dee___backend__webgpu__webgpu_sys__gen_GpuError__GpuError___core_37ee0ce0c4cd57d5___result__Result_____wasm_bindgen_bcc2b4372220b143___JsError___true__42);
             return ret;
         },
         __wbindgen_generic_0000000000000005: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [NamedExternref("undefined")], shim_idx: 151, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
+            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [NamedExternref("undefined")], shim_idx: 153, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
             const ret = makeMutClosure(arg0, arg1, wasm_bindgen_bcc2b4372220b143___convert__closures_____invoke___wasm_bindgen_bcc2b4372220b143___sys__JsNullable_wgpu_608faf0a5db93dee___backend__webgpu__webgpu_sys__gen_GpuError__GpuError___core_37ee0ce0c4cd57d5___result__Result_____wasm_bindgen_bcc2b4372220b143___JsError___true__43);
             return ret;
         },

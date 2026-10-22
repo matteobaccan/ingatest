@@ -15,6 +15,7 @@
 // plain issue with the report as its text, for a repository without the form.
 
 import { infoSections, infoText } from "./info.js";
+import { adapterKey, lossOf, readLosses } from "./gpupace.js";
 
 const meta = (name) => document.querySelector(`meta[name="${name}"]`)?.content?.trim() ?? "";
 const REPO = `https://github.com/${meta("inga-report-repo") || "matteobaccan/inga"}`;
@@ -93,6 +94,12 @@ async function gpuText() {
     `Limits: maxBufferSize ${mib(l.maxBufferSize)}, maxStorageBufferBindingSize ${mib(l.maxStorageBufferBindingSize)}, ` +
       `maxComputeWorkgroupStorageSize ${l.maxComputeWorkgroupStorageSize} B`,
   ];
+  // The resets this adapter had in this browser (app.js gpuLost, gpupace.js).
+  let lost = null;
+  try {
+    lost = lossOf(readLosses(window.localStorage), adapterKey(i));
+  } catch {}
+  if (lost?.losses) lines.push(`Resets (device lost) in this browser: ${lost.losses}${lost.cpu ? "; its models now load on the CPU" : ""}`);
   return lines.join("\n");
 }
 

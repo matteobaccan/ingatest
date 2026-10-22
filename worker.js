@@ -27,7 +27,8 @@
 // the model, its KV cache and buffers included, the GPU's too; what does not fit is read
 // from OPFS while it runs; draft: another stored model that drafts for it, its memory out
 // of the same budget, on the CPU only; gpuBudget: what the GPU may hold, with device
-// "gpu"; note: why an earlier attempt fell back, for the load line) | {type: "import", file} (a picked file copied into OPFS) |
+// "gpu"; note: why an earlier attempt fell back, for the load line; pace: Gpu.tune's
+// switches for a mobile-class GPU, "" for the defaults, gpupace.js) | {type: "import", file} (a picked file copied into OPFS) |
 // {type: "disktest"} | {type: "delete", path} (any stored file) | {type: "wipe"} (all of
 // this site's OPFS) | {type: "panic", what} (a test: the module panics) |
 // {type: "gpubench", tokens} (the GPU benchmark: the loaded GPU model under each of
@@ -41,7 +42,9 @@
 // ctx.js's autoContext of the load, the context and KV cache chosen; ctx_cut: the
 // context was lowered from ctx_asked to the most the limits hold, {asked, got, budget,
 // gpuBudget, device}) | {type: "models", models} |
-// {type: "gpulost", reason, message} (the WebGPU device was lost: the model is gone) |
+// {type: "gpulost", reason, message, phase, prompt_tokens, gen_tokens, gpu} (the WebGPU
+// device was lost: the model is gone; phase "load", "prompt", "answer" or "idle", the
+// answer's tokens so far, and the device's pacing and submissions, Gpu.info) |
 // {type: "retry", device, note} (the GPU refused the model while it loaded: load it
 // again with `device` in a fresh worker, `note` saying why) |
 // {type: "piece", text, reasoning} (reasoning: a thinking model's, apart from its answer) |
@@ -392,13 +395,42 @@ function requestSubgroups() {
 // once (`gpulost`), ends this worker and asks for a new load:
 // nothing here tries the device again, so a GPU that keeps failing is not driven in a
 // loop.
+// What it says comes with where the worker was (`phase`: loading, reading the prompt,
+// answering, idle; the answer's tokens) and how the device was paced, for the page's
+// diagnostics (a tester's screenshot is enough to tell what reset it).
 function watchLost(device) {
   device?.lost?.then((info) => {
     if (info?.reason === "destroyed") return;
     const message = String(info?.message || "").trim();
+    let stats = null;
+    let g = null;
+    try {
+      if (phase === "prompt" || phase === "answer") stats = JSON.parse(model.stats());
+    } catch {}
+    try {
+      g = gpu ? JSON.parse(gpu.info()) : null;
+    } catch {}
     // The page ends this worker (its memory with it) and starts a fresh one.
-    post({ type: "gpulost", reason: info?.reason ?? "unknown", message });
+    post({ type: "gpulost", reason: info?.reason ?? "unknown", message, phase,
+      prompt_tokens: stats?.prompt_tokens ?? null, gen_tokens: stats?.gen_tokens ?? null,
+      gpu: g && { name: g.name, submit_limit: g.submit_limit, prompt_chunk: g.prompt_chunk, submits: g.submits, most_dispatches: g.most_dispatches } });
   });
+}
+
+// Where the worker is, for a device lost: "load", "prompt", "answer" or "idle".
+let phase = "idle";
+
+// The pacing the page asked for this load (Gpu.tune's `submit=` and `chunk=`, gpupace.js:
+// a mobile-class GPU), "" for the defaults; applied to the device before the model's
+// weights go up (the prompts' chunk is the model's).
+let paceAsked = "";
+function applyPace() {
+  try {
+    gpu.tune(paceAsked || "submit=off,chunk=off");
+    if (paceAsked) step(`GPU: paced for a mobile GPU (${paceAsked})`);
+  } catch (e) {
+    step(`GPU: pacing ${paceAsked} refused (${e?.message ?? e})`);
+  }
 }
 
 // The GPU memory this adapter holds at full speed, measured before the model's device
@@ -657,6 +689,7 @@ async function load(blob, name, ctx, device, note = null) {
   const asked = auto?.ctx ?? (ctx || 2048);
   if (auto) step(`context ${auto.ctx} (${auto.why}), KV cache ${auto.kv}`);
   mod = device === "gpu" ? await webgpu() : inga;
+  if (device === "gpu") applyPace();
   const loader = device === "gpu" ? mod.Loader.withGpu(gpu) : new mod.Loader();
   for (let at = 0; at < blob.size; at += CHUNK) {
     const chunk = new Uint8Array(await blob.slice(at, at + CHUNK).arrayBuffer());
@@ -686,10 +719,18 @@ async function stepped(m, onPiece) {
   if (m.type === "chat") model.chatBegin(JSON.stringify(m.messages), opts);
   else model.completeBegin(m.text, opts);
   stopAsked = false;
-  for (;;) {
-    const r = model.step((text, reasoning) => onPiece(text, reasoning) || stopAsked);
-    if (r === 1) await model.ready();
-    else if (r === 2) break;
+  phase = "prompt";
+  try {
+    for (;;) {
+      const r = model.step((text, reasoning) => {
+        phase = "answer";
+        return onPiece(text, reasoning) || stopAsked;
+      });
+      if (r === 1) await model.ready();
+      else if (r === 2) break;
+    }
+  } finally {
+    phase = "idle";
   }
   return model.stats();
 }
@@ -732,15 +773,25 @@ async function handle(m) {
       step(`load asked: ${m.name ?? m.file?.name}, device ${m.device ?? "cpu"}, limit ${m.budget == null ? "none" : Math.round(m.budget / 1048576) + " MiB"}`);
       closeStream();
       kvAsked = m.kv || "auto";
+      paceAsked = m.pace || "";
+      phase = "load";
       if ((m.budget != null || m.draft || m.device === "gpu") && !m.file) {
         gpuMeasuredBytes = m.gpuMeasured ?? null;
         if (m.gpuProbe && m.device === "gpu") gpuMeasuredBytes = (await gpuMemory()) ?? gpuMeasuredBytes;
-        await loadStreamed(m.name, m.budget, m.ctx, m.draft, m.device, m.gpuBudget, m.gpuOff, m.gpuSeparate, m.auto, m.note ?? null);
+        try {
+          await loadStreamed(m.name, m.budget, m.ctx, m.draft, m.device, m.gpuBudget, m.gpuOff, m.gpuSeparate, m.auto, m.note ?? null);
+        } finally {
+          phase = "idle";
+        }
         break;
       }
       let blob = m.file;
       if (!blob) blob = await (await (await modelsDir()).getFileHandle(m.name)).getFile();
-      await load(blob, m.name ?? m.file.name, m.ctx, m.device, m.note ?? null);
+      try {
+        await load(blob, m.name ?? m.file.name, m.ctx, m.device, m.note ?? null);
+      } finally {
+        phase = "idle";
+      }
       break;
     }
     case "list":
@@ -1010,6 +1061,7 @@ async function loadStreamed(name, budget, ctx, draft, device, gpuBudget, gpuOff,
     try {
       step("GPU: opening the device");
       mod = await webgpu();
+      applyPace();
       if (gpuOff) gpu.tune(gpuOff);
       step("GPU: opening the model file");
       h = await open();

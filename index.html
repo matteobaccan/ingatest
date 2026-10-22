@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 <!-- The commit and UTC date of a published build ("abc1234 2026-10-16") and Inga's version
 (Cargo.toml), which the Pages workflow writes: the side bar, About and the report show them;
 "dev" here. -->
-<meta name="inga-build" content="22eb8d7 2026-10-22">
+<meta name="inga-build" content="ba95bc5 2026-10-22">
 <meta name="inga-version" content="0.36.0">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
@@ -478,7 +478,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
   <section class="view" id="view-chat" aria-label="Chat">
     <div id="chat"></div>
     <div id="composer">
-      <div id="reopen-bar" hidden><button id="reopen-go" class="reopen" type="button"><svg class="ic"><use href="#i-retry"/></svg><span></span></button><span class="meta" id="reopen-why"></span></div>
+      <div id="reopen-bar" hidden><button id="reopen-cpu" class="reopen" type="button" hidden><svg class="ic"><use href="#i-cpu"/></svg><span></span></button><button id="reopen-go" class="reopen" type="button"><svg class="ic"><use href="#i-retry"/></svg><span></span></button><span class="meta" id="reopen-why"></span></div>
       <div class="box">
         <textarea id="prompt" rows="2" placeholder="Write a message" data-i18n-ph="chat.ph" disabled></textarea>
         <div class="tools">
@@ -624,6 +624,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
         <select id="device"><option value="cpu" selected>CPU</option><option value="auto" data-i18n="opt.auto">Auto</option><option value="gpu" data-i18n="opt.gpu">GPU (experimental)</option></select>
         <button id="gpu-info" class="ghost">GPU info</button>
         <span class="meta" id="device-hint"></span>
+        <span class="meta" id="gpu-reset-note" hidden><span></span><button id="gpu-again" class="ghost" type="button" data-i18n="lost.again">Try the GPU again</button></span>
         <span class="meta reload-note" data-i18n="set.reloadnote">Applies when you leave Settings (the model reloads).</span>
         <span class="meta" id="gpu-line"></span>
         <span class="meta">CPU: WebAssembly SIMD on this device's cores. GPU (experimental): the layers through WebGPU, as
