@@ -543,7 +543,7 @@ function __wbg_get_imports(memory) {
             const ret = arg0.call(arg1, arg2, arg3);
             return ret;
         }, arguments); },
-        __wbg_error_fd777f28df19bacc: function(arg0, arg1) {
+        __wbg_error_200e102bfa5a385c: function(arg0, arg1) {
             console.error(getStringFromWasm0(arg0, arg1));
         },
         __wbg_get_31af05bd4842a84f: function() { return handleError(function (arg0, arg1) {
