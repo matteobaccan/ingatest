@@ -31,7 +31,7 @@
 // switches for a mobile-class GPU, "" for the defaults, gpupace.js) | {type: "import", file} (a picked file copied into OPFS) |
 // {type: "disktest"} | {type: "delete", path} (any stored file) | {type: "wipe"} (all of
 // this site's OPFS) | {type: "panic", what} (a test: the module panics) |
-// {type: "gpubench", tokens} (the GPU benchmark: the loaded GPU model under each of
+// {type: "gpubench", tokens, rows} (the GPU benchmark: the loaded GPU model under each of
 // BENCH's kernel choices) | {type: "gpuprofile", tokens, mode} (the kernel times of
 // `tokens` decode steps, Gpu.profileStart's mode) | {type: "gpucheck", storageBuffers} (every kernel compiled on
 // the GPU, `storageBuffers` lowering maxStorageBuffersPerShaderStage) | {type: "tune", spec} (Gpu.tune's
@@ -562,8 +562,9 @@ async function benchRun(tokens) {
 
 // Runs the loaded GPU model under each of BENCH's configurations (a short warm-up run
 // first, which compiles its kernels, then the prompt and `tokens` tokens), posting a
-// row per configuration, then puts the kernels back as they were.
-async function gpuBench(tokens) {
+// row per configuration, then puts the kernels back as they were. `only`: the indices of
+// BENCH to run (the browser tests split the benchmark in parts), all when absent.
+async function gpuBench(tokens, only) {
   if (!onGpu()) throw new Error("load a model with Device GPU first: the GPU benchmark runs the loaded model on the GPU");
   const before = gpu.tuning();
   const info = JSON.parse(gpu.info());
@@ -572,8 +573,9 @@ async function gpuBench(tokens) {
   let first = null;
   stopAsked = false;
   try {
-    for (const c of BENCH) {
+    for (const [i, c] of BENCH.entries()) {
       if (stopAsked) break;
+      if (only && !only.includes(i)) continue;
       const missing = c.f16 && !info.shader_f16 ? "no shader-f16 on this adapter"
         : c.sg && info.subgroup_kernels === "none" ? `no subgroups on this adapter${info.subgroups ? ` (${info.subgroups_text}: not a width WebGPU allows)` : ""}` : null;
       if (missing) {
@@ -882,7 +884,7 @@ async function handle(m) {
       stopAsked = true;
       break;
     case "gpubench":
-      await gpuBench(m.tokens || 32);
+      await gpuBench(m.tokens || 32, m.rows);
       break;
     case "gpuprofile":
       await gpuProfile(m.tokens || 16, m.mode);

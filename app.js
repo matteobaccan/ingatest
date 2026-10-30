@@ -788,10 +788,13 @@ function gpuBench() {
   $("stop").disabled = false;
   $("bench").textContent = "";
   status(t("st.bench"));
-  // `?bench_tokens=N` in the page's address: N tokens instead of 32 (the browser tests,
-  // on a software GPU).
-  const n = Number(new URLSearchParams(location.search).get("bench_tokens")) || 32;
-  worker.postMessage({ type: "gpubench", tokens: n });
+  // `?bench_tokens=N` in the page's address: N tokens instead of 32; `?bench_rows=0,3`:
+  // only those of the benchmark's configurations (the browser tests, on a software GPU,
+  // run it in parts).
+  const q = new URLSearchParams(location.search);
+  const n = Number(q.get("bench_tokens")) || 32;
+  const rows = q.get("bench_rows")?.split(",").map(Number).filter(Number.isInteger) || undefined;
+  worker.postMessage({ type: "gpubench", tokens: n, rows });
 }
 
 // How the memory limit was applied with layers on the GPU: one limit for WebAssembly
