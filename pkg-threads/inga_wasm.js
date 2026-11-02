@@ -616,7 +616,7 @@ function __wbg_get_imports(memory) {
             const ret = arg0.call(arg1, arg2, arg3);
             return ret;
         }, arguments); },
-        __wbg_error_6551d9d73c7fcf9c: function(arg0, arg1) {
+        __wbg_error_b8ca259679f76c7c: function(arg0, arg1) {
             console.error(getStringFromWasm0(arg0, arg1));
         },
         __wbg_get_2080c49015e35254: function() { return handleError(function (arg0, arg1) {
@@ -701,7 +701,7 @@ function __wbg_get_imports(memory) {
             table.set(1026, true);
             table.set(1027, false);
         },
-        memory: memory || new WebAssembly.Memory({initial:27,maximum:65536,shared:true}),
+        memory: memory || new WebAssembly.Memory({initial:28,maximum:65536,shared:true}),
     };
     return {
         __proto__: null,
