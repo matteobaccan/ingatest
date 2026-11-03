@@ -16,7 +16,6 @@ import { ask as askBox, setupAsk } from "./ask.js";
 import { fmt, createRate, downloadLine, estimate, lastSpeed, saveSpeed } from "./eta.js";
 import { gauge, gaugeTitle, promptLimit, detail, AUTO_FLOOR } from "./ctx.js";
 import { PRESET_FIELDS, catalogEntry, presetOf, presetValues, handFromSaved, describePreset } from "./preset.js";
-import { createCompare } from "./compare.js";
 import { gpuPace, paceText, adapterKey, adapterName, adapterFields, lossOf, noteLoss, tryGpuAgain, readLosses, writeLosses, browserText } from "./gpupace.js";
 
 // The test models: a fixed list, so runs on different devices compare (the maintainer's
@@ -62,7 +61,7 @@ let gpuLabel = ""; // the same with why (Auto's rule, or the Settings'), for the
 let limitUsed = ""; // the memory limit the model being loaded was given, as the load line says it
 let deviceUsed = { device: "cpu", label: "" }; // the device chosen for it (chooseDevice)
 let onGpu = false; // the loaded model runs on the GPU (WebGPU)
-let lastStats = null; // the last answer's statistics ("done"), for the beta's report
+let lastStats = null; // the last answer's statistics ("done"), for the report
 let modelName = ""; // the loaded model's name, on its answers
 let pageReady = false; // the page's script has run to its end (the picker made)
 let loadedInfo = null; // the last "loaded" message: info, memory, gpu, note
@@ -77,10 +76,9 @@ const thinkOpts = (opts) => {
 };
 // Shows the Think switch for a model that can think, hides it otherwise.
 const drawThink = () => { $("think").closest("label").hidden = !thinks(); };
-let rawRun = null; // a run of the Compare view (runRaw): its pieces and end go to it, not to the chat
-// The public beta (GitHub Pages, docs/wasm-beta.md; `?beta` elsewhere): Device defaults to
-// the GPU where the browser has WebGPU, off iOS (report.js reads the page's state).
-const BETA = location.hostname.endsWith(".github.io") || new URLSearchParams(location.search).has("beta");
+// The published page (GitHub Pages, docs/wasm.md; `?published` elsewhere): Device defaults
+// to the GPU where the browser has WebGPU, off iOS (report.js reads the page's state).
+const PUBLISHED = location.hostname.endsWith(".github.io") || new URLSearchParams(location.search).has("published");
 
 function status(text, err = false) {
   $("status").textContent = text;
@@ -151,11 +149,11 @@ function setBusy(b) {
   if (!loaded && !b && modelLock) dropModelLock();
   $("send").disabled = b || !loaded;
   $("stdtest").disabled = b || !loaded;
-  $("cmp-run").disabled = b || !loaded;
   $("prompt").disabled = !loaded;
   $("reset").disabled = b;
-  $("new-chat").disabled = b;
-  for (const x of document.querySelectorAll("#convs button")) x.disabled = b;
+  // The current conversation's entry stays on while the page works: it is the way back to
+  // the chat from another view (New chat shows the chat then, without starting one).
+  for (const x of document.querySelectorAll("#convs button")) x.disabled = b && !(x.classList.contains("open") && x.closest("li")?.getAttribute("aria-current") === "true");
   $("gpubench").disabled = b || !loaded || !onGpu;
   sendHint();
   // An empty chat says whether a model is there (a load, a model deleted).
@@ -446,11 +444,6 @@ function onMessage(m) {
 }
 
 function handleMessage(m) {
-  // A run of the Compare view: its answer is not part of a conversation.
-  if (rawRun && (m.type === "piece" || m.type === "done" || m.type === "error")) {
-    rawMessage(m);
-    return;
-  }
   // Any word from the worker during a load or an answer: it is alive.
   if (loading) armWatchdog();
   if (answer) armQuiet();
@@ -1081,7 +1074,6 @@ async function fromUrl(url, from = null) {
   // The speed measured, for the picker's estimate of the next download.
   if (ok && dlRate?.rate) saveSpeed(dlRate.rate);
   dlRate = null;
-  if (ok) rememberUrl(name, url);
   if (ok) loadStored(name);
   else if (from && /HTTP (404|401|403)/.test($("status").textContent)) {
     status(`${$("status").textContent}. This is the model catalog's ${from.model.name}, ${from.variant.quant}: the file is not ` +
@@ -1102,27 +1094,11 @@ function freshWorker() {
 
 let lastLoad = null; // the last load of a stored model, for a retry on the CPU
 
-// The link each stored model was downloaded from (the Compare view gives it to an
-// engine that reads the same GGUF file), kept in this browser.
-const URLS_KEY = "inga.model-urls";
-function modelUrls() {
-  try {
-    return JSON.parse(localStorage.getItem(URLS_KEY) || "{}") || {};
-  } catch {
-    return {};
-  }
-}
-function rememberUrl(name, url) {
-  try {
-    localStorage.setItem(URLS_KEY, JSON.stringify({ ...modelUrls(), [name]: url }));
-  } catch {}
-}
-
 // `force`: "cpu" or "gpu", a reload after the GPU was reset (gpuLost), whatever the
 // Device setting says.
 async function loadStored(name, force = null) {
   lostGpu = null;
-  source = { name, url: modelUrls()[name] ?? null };
+  source = { name };
   // What the variants are judged on, for the load line (variantLine).
   deviceEnv().then((e) => (lastEnv = e), () => {});
   setBusy(true);
@@ -1724,9 +1700,9 @@ function restoreSettings() {
     v = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
   } catch {}
   if (!v || typeof v !== "object") {
-    // A first visit to the beta: WebGPU when the browser has it (the GPU's own fallbacks
+    // A first visit to the published page: WebGPU when the browser has it (the GPU's own fallbacks
     // load on the CPU what it does not run); not on iOS, where the GPU was slower.
-    if (BETA && navigator.gpu && !isIOS()) $("device").value = "gpu";
+    if (PUBLISHED && navigator.gpu && !isIOS()) $("device").value = "gpu";
     return;
   }
   // A page saved before the presets: the fields not at their default were set by hand.
@@ -1917,8 +1893,10 @@ $("std-clear").onclick = async () => {
 showResults();
 $("stop").onclick = stop;
 $("reset").onclick = () => newChat();
-$("new-chat").onclick = () => {
-  newChat();
+// New chat, the views' first entry: a new conversation; while a model loads or an answer
+// is written it only shows the chat (the earlier conversations: the list below it).
+$("nav-chat").onclick = () => {
+  if (!busy) newChat();
   showView("chat");
 };
 // The draft counts too, once the typing pauses.
@@ -2425,6 +2403,11 @@ async function persistChat() {
 }
 
 async function openChat(id) {
+  // The conversation open: back to it as it is (from another view), nothing read again.
+  if (id === chat?.id) {
+    showView("chat");
+    return;
+  }
   if (busy) return;
   const c = (await chats.list()).find((x) => x.id === id);
   if (!c) return;
@@ -2484,6 +2467,7 @@ async function showConvs() {
     ul.append(li);
   }
   $("convs-export").disabled = $("convs-export-md").disabled = $("convs-clear").disabled = !all.length;
+  markNewChat();
   setBusy(busy);
 }
 
@@ -2560,23 +2544,34 @@ $("convs-clear").onclick = async () => {
 // About: what Inga is, who makes it, the links (a dialog; Escape closes it too).
 $("about-btn").onclick = () => $("about").showModal();
 $("about-close").onclick = () => $("about").close();
+// A click on the backdrop closes it too (the dialog has no padding of its own).
+$("about").addEventListener("click", (e) => e.target === $("about") && $("about").close());
 if (!document.fullscreenEnabled) $("fullscreen").hidden = true;
 $("fullscreen").onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {});
 
-// ---- The views (Chat, Models, Settings, Tests and report) and the side bar's drawer ----
+// ---- The views (Chat, Models, Settings, Tests and report: New chat, the next two, and
+// Test at the side bar's foot) and the side bar's drawer ----
 
 function showView(name) {
   // Leaving Settings: a load setting changed reloads the model.
   const leaving = !$("view-settings").hidden && name !== "settings";
-  for (const v of ["chat", "models", "settings", "diag", "compare"]) {
+  for (const v of ["chat", "models", "settings", "diag"]) {
     $("view-" + v).hidden = v !== name;
     if (v === name) $("nav-" + v).setAttribute("aria-current", "page");
     else $("nav-" + v).removeAttribute("aria-current");
   }
+  markNewChat();
   $("app").classList.remove("drawer");
   if (leaving) reloadIfChanged();
 }
-for (const b of document.querySelectorAll(".navb")) b.onclick = () => showView(b.dataset.view);
+// New chat is marked only while the chat shows a new conversation: a stored one is
+// marked in the list instead.
+function markNewChat() {
+  if ($("view-chat").hidden || chat) $("nav-chat").removeAttribute("aria-current");
+  else $("nav-chat").setAttribute("aria-current", "page");
+}
+// The other views; New chat has its own (above).
+for (const b of document.querySelectorAll("#side [data-view]:not(#nav-chat)")) b.onclick = () => showView(b.dataset.view);
 $("menu").onclick = () => $("app").classList.toggle("drawer");
 $("scrim").onclick = () => $("app").classList.remove("drawer");
 $("model-chip").onclick = () => picker.open();
@@ -2659,52 +2654,7 @@ $("wipe-models").onclick = async () => {
   setBusy(false);
 };
 
-// ---- The Compare view (compare.js): the loaded model against other browser engines ----
-
-// One answer of the loaded model outside the chat, for the Compare view: a new
-// conversation in the worker, `messages` and `opts` sent; resolves with what the page
-// saw (the request's time, its first piece's, its end's, on performance.now()) and the
-// worker's statistics.
-function runRaw(messages, opts) {
-  return new Promise((resolve, reject) => {
-    if (busy || !source) {
-      reject(new Error(source ? "the page is busy" : "no model is loaded"));
-      return;
-    }
-    setBusy(true);
-    worker.postMessage({ type: "reset" });
-    rawRun = { t0: performance.now(), first: null, text: "", resolve, reject };
-    worker.postMessage({ type: "chat", messages, opts, stop: null });
-  });
-}
-
-function rawMessage(m) {
-  const r = rawRun;
-  if (m.type === "piece") {
-    if (r.first == null && m.text) r.first = performance.now();
-    r.text += m.text;
-    return;
-  }
-  rawRun = null;
-  setBusy(false);
-  if (m.type === "done") r.resolve({ t0: r.t0, first: r.first, end: performance.now(), stats: m.stats, text: r.text });
-  else r.reject(new Error(m.message));
-}
-
-const compare = createCompare({
-  run: runRaw,
-  status,
-  // The loaded model: its file's name and where it came from, and where it runs.
-  model: () => ({
-    file: source?.name ?? source?.file?.name ?? null,
-    url: source?.url ?? null,
-    name: modelName,
-    device: !source ? null : onGpu ? `WebGPU (${loadedInfo?.info?.gpu?.name || "GPU"}, ${loadedInfo?.info?.gpu_layers}/${loadedInfo?.info?.layers} layers)` : `CPU (${loadedInfo?.info?.isa ?? "wasm"}, ${loadedInfo?.info?.threads ?? 1} threads)`,
-  }),
-  version: () => `beta ${document.querySelector('meta[name="inga-build"]')?.content || "dev"}`,
-});
-
-// What the beta's report button (report.js) adds to its issue: the load and the last answer.
+// What the report button (report.js) adds to its issue: the load and the last answer.
 window.ingaState = () => ({
   model: source?.name ?? source?.file?.name ?? null,
   info: loadedInfo?.info ?? null,
@@ -2726,8 +2676,6 @@ window.ingaState = () => ({
   preset: $("preset-line")?.textContent ?? "",
   env: lastEnv,
   variant: variantLine(source?.name),
-  // The Compare view's table, when its "Attach to the report" was pressed.
-  compare: compare.attached(),
 });
 
 // The model's Info panel (the ⓘ next to the model chip): info.js's sections, Copy.

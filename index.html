@@ -8,21 +8,21 @@ SPDX-License-Identifier: MIT
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inga (beta)</title>
+<title>Inga</title>
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <!-- The commit and UTC date of a published build ("abc1234 2026-10-16") and Inga's version
 (Cargo.toml), which the Pages workflow writes: the side bar, About and the report show them;
 "dev" here. -->
-<meta name="inga-build" content="b0ea314 2026-11-02">
-<meta name="inga-version" content="0.42.0">
+<meta name="inga-build" content="a4a12bd 2026-11-03">
+<meta name="inga-version" content="0.43.0">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
 <!-- Where "Report on GitHub" opens an issue, and with which issue form (empty: a plain issue with the
-report as its text); the beta's guide. The Pages workflow sets them for the public build. -->
+report as its text); the page's guide. The Pages workflow sets them for the public build. -->
 <meta name="inga-report-repo" content="matteobaccan/ingatest">
 <meta name="inga-report-template" content="">
 <meta name="inga-guide" content="https://github.com/matteobaccan/ingatest#readme">
-<!-- Cross-origin isolation on GitHub Pages (the beta): a service worker, before app.js. -->
+<!-- Cross-origin isolation on GitHub Pages (the published page): a service worker, before app.js. -->
 <script src="coi.js"></script>
 <style>
 /* Inga's own colours: the tokens and values of the native web UI's Light and Dark themes
@@ -34,6 +34,9 @@ report as its text); the beta's guide. The Pages workflow sets them for the publ
   --code: #f3f4f9; --danger: #c4271b; --ok: #15803d; --warn: #b45309; --shadow: 0 1px 3px rgba(20, 20, 60, .08);
   --emma: #008088; /* Emma's family (Egomnia's teal): her avatar's ring and her model chip */
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --aside-w: 270px; --chat-w: 820px;
+  /* Spacing in multiples of 8 (AGENTS.md's visual rules) and the radii of the web UI's
+     base.css (crates/inga-server/webui/css/base.css). */
+  --sp1: 8px; --sp2: 16px; --sp3: 24px; --sp4: 32px; --r-s: 6px; --r-m: 10px; --r-l: 14px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
@@ -85,8 +88,8 @@ progress { width: 100%; height: 6px; accent-color: var(--accent); }
 details summary { cursor: pointer; color: var(--muted); }
 
 /* The side bar: Inga's mark, the views, the conversations, New chat. A drawer on phones. */
-#side { width: var(--aside-w); flex: none; display: flex; flex-direction: column; gap: 10px; padding: 14px 10px; background: var(--panel); border-right: 1px solid var(--line); }
-#side .brand { display: flex; gap: 10px; align-items: center; padding: 0 6px; }
+#side { width: var(--aside-w); flex: none; display: flex; flex-direction: column; gap: var(--sp1); padding: var(--sp2) var(--sp1); background: var(--panel); border-right: 1px solid var(--line); }
+#side .brand { display: flex; gap: var(--sp1); align-items: center; padding: 0 var(--sp1); }
 #side .brand #brand-mark { display: block; width: 38px; height: 38px; flex: none; line-height: 0; }
 #side .brand #brand-mark svg { width: 38px; height: 38px; }
 /* The mark's loop (its pieces burst apart and come back) runs while a model loads or an
@@ -96,14 +99,8 @@ details summary { cursor: pointer; color: var(--muted); }
 #brand-mark.busy svg { --ia-cycle: 1.4s; }
 /* A hidden tab animates nothing (app.js's visibilitychange). */
 .tab-hidden #brand-mark svg * { animation: none !important; }
-#side .brand .name { font-weight: 700; font-size: 1.15rem; display: flex; gap: 6px; align-items: center; }
-/* The beta's mark: a small pill in the accent. */
-.beta { font-size: .62rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 1; padding: 3px 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent); cursor: help; }
-#side .brand .sub { color: var(--muted); font-size: .8rem; }
+#side .brand .name { font-weight: 600; font-size: 1.15rem; }
 .reload-note { display: block; font-style: italic; }
-#side .brand .by { color: var(--muted); font-size: .72rem; overflow-wrap: anywhere; }
-#side .brand .by a { color: var(--accent); }
-dialog#about { width: min(440px, calc(100vw - 32px)); padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--text); box-sizing: border-box; }
 dialog#ask { width: min(420px, calc(100vw - 24px)); padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--text); box-sizing: border-box; box-shadow: 0 10px 40px rgb(0 0 0 / .25); }
 dialog#ask::backdrop { background: rgb(0 0 0 / .45); }
 /* The model's Info panel: styled as the question box. */
@@ -121,13 +118,36 @@ dialog#ask p[hidden], dialog#ask input[hidden], dialog#ask button[hidden] { disp
 dialog#ask input { width: 100%; box-sizing: border-box; margin: 0 0 14px; }
 .ask-buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ask-buttons .grow { flex: 1; }
+/* About: Inga's logo and name, what runs where, the version, the links as rows; the
+   neutral palette, no shadow, two weights, spacing from the tokens above. */
+dialog#about { width: min(480px, calc(100vw - var(--sp4))); max-height: calc(100dvh - var(--sp4)); padding: 0; border: 1px solid var(--line); border-radius: var(--r-l); background: var(--panel); color: var(--text); box-sizing: border-box; overflow-y: auto; }
 dialog#about::backdrop { background: rgb(0 0 0 / .45); }
-dialog#about p { margin: 10px 0; } dialog#about ul { margin: 8px 0 0; padding-left: 20px; } dialog#about li { margin: 4px 0; }
-dialog#about a { color: var(--accent); }
+#about .about-head { display: flex; gap: var(--sp2); align-items: center; padding: var(--sp3) var(--sp3) var(--sp2); }
+#about .about-head img { width: 48px; height: 48px; flex: none; display: block; }
+#about .about-head .grow { flex: 1; min-width: 0; }
+#about .about-head h2 { margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.25; }
+#about .about-head p { margin: 0; color: var(--muted); font-size: .9rem; }
+#about .about-head button.icon { align-self: flex-start; }
+#about .about-body { display: flex; flex-direction: column; gap: var(--sp2); padding: 0 var(--sp3) var(--sp3); }
+#about .about-body > p { margin: 0; overflow-wrap: anywhere; }
+#about .about-facts { list-style: none; margin: 0; padding: var(--sp2); display: flex; flex-direction: column; gap: var(--sp2); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-m); }
+#about .about-facts li { display: flex; gap: var(--sp2); align-items: flex-start; font-size: .9rem; overflow-wrap: anywhere; }
+#about .about-facts .ic { color: var(--muted); margin-top: 1px; vertical-align: 0; }
+#about .about-facts li > div { display: flex; flex-direction: column; min-width: 0; }
+#about .about-facts b { font-weight: 600; }
+#about .about-facts li span { color: var(--muted); }
+#about .about-links { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-m); overflow: hidden; }
+#about .about-links a { display: flex; gap: var(--sp2); align-items: center; min-height: 48px; padding: var(--sp1) var(--sp2); color: var(--text); text-decoration: none; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+#about .about-links a:first-child { border-top: 0; }
+#about .about-links a:hover { background: var(--hover); }
+#about .about-links a > span { flex: 1; min-width: 0; }
+#about .about-links .ic { color: var(--muted); }
+#about .about-links a > .ic:first-child { color: var(--accent); }
+#about .about-ver { margin: 0; color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .navs { display: flex; flex-direction: column; gap: 2px; }
-.navb { display: flex; gap: 10px; align-items: center; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--text); text-align: left; }
+.navb { display: flex; gap: var(--sp1); align-items: center; width: 100%; padding: var(--sp1); border: 0; border-radius: var(--r-m); background: transparent; color: var(--text); text-align: left; }
 .navb[aria-current=page] { background: var(--user); color: var(--accent); font-weight: 600; }
-.side-h { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; padding: 4px 4px 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.side-h { color: var(--muted); font-size: .8rem; padding: var(--sp1) 0 0 var(--sp1); display: flex; align-items: center; justify-content: space-between; gap: var(--sp1); }
 .side-h button.icon { padding: 4px; }
 .side-h button.icon[aria-expanded=true] { background: var(--hover); color: var(--accent); }
 /* Every conversation at once: export, import, delete (a confirmation in the bar). */
@@ -149,9 +169,11 @@ button.ghost.danger { color: var(--danger); }
 /* A short screen with every conversation's actions open: the side bar scrolls. */
 #side { overflow-y: auto; }
 #side > * { flex-shrink: 0; } #side > #convs { flex-shrink: 1; }
-#side .foot { display: flex; gap: 4px; align-items: center; border-top: 1px solid var(--line); padding-top: 10px; }
-#side .foot #new-chat { margin-left: auto; }
-#side .ver { color: var(--muted); font-size: .7rem; padding: 0 6px; margin-top: -4px; overflow-wrap: anywhere; }
+#side .foot { display: flex; gap: var(--sp1); align-items: center; border-top: 1px solid var(--line); padding-top: var(--sp1); }
+/* Test: the tests-and-report view, at the foot (no longer in the views' list). */
+#side .foot #nav-diag { margin-left: auto; }
+#side .foot #nav-diag[aria-current=page] { background: var(--user); }
+#side .ver { color: var(--muted); font-size: .7rem; padding: 0 var(--sp1); overflow-wrap: anywhere; }
 #scrim { display: none; }
 
 /* The main pane: the conversation's header, the status line, a view. */
@@ -288,10 +310,10 @@ label.chip input { margin: 0; }
 .set > label:first-child, .set > span:first-child { font-weight: 600; padding-top: 6px; }
 .set .meta { display: block; margin-top: 4px; }
 @media (max-width: 640px) { .set { grid-template-columns: minmax(0, 1fr); } }
-#bench, #kernels, #cmp-out { overflow-x: auto; }
-#bench table, #kernels table, #cmp-out table { border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
-#bench th, #bench td, #kernels th, #kernels td, #cmp-out th, #cmp-out td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: right; white-space: nowrap; }
-#bench th:first-child, #bench td:first-child, #kernels th:first-child, #kernels td:first-child, #cmp-out th:first-child, #cmp-out td:first-child { text-align: left; white-space: normal; }
+#bench, #kernels { overflow-x: auto; }
+#bench table, #kernels table { border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
+#bench th, #bench td, #kernels th, #kernels td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: right; white-space: nowrap; }
+#bench th:first-child, #bench td:first-child, #kernels th:first-child, #kernels td:first-child { text-align: left; white-space: normal; }
 pre.out { white-space: pre-wrap; word-break: break-word; font-size: .8rem; }
 
 /* The model picker (picker.js). */
@@ -361,9 +383,11 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-retry" viewBox="0 0 24 24"><path d="M19.5 12A7.5 7.5 0 1 1 12 4.5"/><path d="M9.5 2l2.5 2.5L9.5 7"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol> <!-- New chat (drawn for the browser page) -->
-  <symbol id="i-compare" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M6.5 20V10M11 20V5M15.5 20v-7M20 20v-4"/></symbol> <!-- Compare (drawn for the browser page) -->
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="M13.5 6.5l4 4"/></symbol> <!-- Rename (drawn for the browser page) -->
   <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol> <!-- Full screen (drawn for the browser page) -->
+  <symbol id="i-lock" viewBox="0 0 24 24"><path d="M7 11h10a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2Z"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol> <!-- About: private -->
+  <symbol id="i-docs" viewBox="0 0 24 24"><path d="M8.5 6.5V4.5A1 1 0 0 1 9.5 3.5h6l4 4v10a1 1 0 0 1-1 1h-1.5"/><path d="M12.5 6.5h-6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V10.5ZM8 12.5h5.5M8 16h4"/></symbol> <!-- About: the guide -->
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M8.5 7.5 4 12l4.5 4.5M15.5 7.5 20 12l-4.5 4.5M13.5 5.5l-3 13"/></symbol> <!-- About: the author on GitHub -->
 </svg>
 <div id="app">
 <aside id="side" aria-label="Inga">
@@ -430,14 +454,12 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
     <g class="ia-whole"><g><g clip-path="url(#iw-cl0)"><path d="M249.0 101.0 L249.0 102.0 L243.3 101.1 L237.4 99.0 L231.3 97.0 L225.3 96.6 L219.6 98.3 L214.3 101.6 L209.2 105.3 L204.1 108.0 L198.4 109.0 L192.2 108.7 L185.8 108.3 L179.8 109.1 L174.6 112.0 L170.3 116.4 L166.6 121.4 L162.5 125.6 L157.6 128.3 L151.7 129.8 L145.4 131.1 L139.7 133.3 L135.2 137.1 L132.3 142.3 L130.1 148.1 L127.6 153.4 L124.0 157.6 L118.9 160.7 L113.2 163.6 L108.1 167.1 L104.7 171.7 L103.1 177.4 L102.6 183.5 L102.0 189.4 L100.0 194.5 L96.4 199.0 L91.8 203.2 L87.7 207.8 L85.3 213.1 L85.1 218.9 L86.3 224.9 L87.6 230.8 L87.6 236.3 L85.7 241.6 L82.6 246.9 L79.8 252.3 L78.7 258.0 L79.8 263.4 L82.6 268.7 L85.7 273.8 L87.6 278.9 L87.6 284.2 L86.3 289.8 L85.1 295.6 L85.3 301.2 L87.7 306.2 L91.8 310.7 L96.4 314.7 L100.0 319.0 L102.0 324.0 L102.6 329.6 L103.1 335.5 L104.7 341.0 L108.1 345.4 L113.2 348.8 L118.9 351.5 L124.0 354.5 L127.6 358.6 L130.1 363.7 L132.3 369.2 L135.2 374.3 L139.7 377.9 L145.4 380.0 L151.7 381.2 L157.6 382.7 L162.5 385.3 L166.6 389.4 L170.3 394.1 L174.6 398.4 L179.8 401.1 L185.8 402.0 L192.2 401.6 L198.4 401.3 L204.1 402.2 L209.2 404.8 L214.3 408.4 L219.6 411.6 L225.3 413.2 L231.3 412.8 L237.4 410.9 L243.3 408.9 L249.0 408.0 L249.0 408.0 Z" fill="url(#ia-brain)"/><g clip-path="url(#iw-hl)"><path d="M222 136 C186 118 160 158 124 142" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M234 180 C198 198 176 160 138 186 S106 202 98 224" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M218 234 C190 256 158 220 128 250" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M234 284 C200 266 178 310 140 288 S108 298 96 278" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M220 336 C192 318 166 356 130 334" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M208 382 C182 366 160 394 142 376" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/></g><path d="M249.0 101.0 L249.0 102.0 L243.3 101.1 L237.4 99.0 L231.3 97.0 L225.3 96.6 L219.6 98.3 L214.3 101.6 L209.2 105.3 L204.1 108.0 L198.4 109.0 L192.2 108.7 L185.8 108.3 L179.8 109.1 L174.6 112.0 L170.3 116.4 L166.6 121.4 L162.5 125.6 L157.6 128.3 L151.7 129.8 L145.4 131.1 L139.7 133.3 L135.2 137.1 L132.3 142.3 L130.1 148.1 L127.6 153.4 L124.0 157.6 L118.9 160.7 L113.2 163.6 L108.1 167.1 L104.7 171.7 L103.1 177.4 L102.6 183.5 L102.0 189.4 L100.0 194.5 L96.4 199.0 L91.8 203.2 L87.7 207.8 L85.3 213.1 L85.1 218.9 L86.3 224.9 L87.6 230.8 L87.6 236.3 L85.7 241.6 L82.6 246.9 L79.8 252.3 L78.7 258.0 L79.8 263.4 L82.6 268.7 L85.7 273.8 L87.6 278.9 L87.6 284.2 L86.3 289.8 L85.1 295.6 L85.3 301.2 L87.7 306.2 L91.8 310.7 L96.4 314.7 L100.0 319.0 L102.0 324.0 L102.6 329.6 L103.1 335.5 L104.7 341.0 L108.1 345.4 L113.2 348.8 L118.9 351.5 L124.0 354.5 L127.6 358.6 L130.1 363.7 L132.3 369.2 L135.2 374.3 L139.7 377.9 L145.4 380.0 L151.7 381.2 L157.6 382.7 L162.5 385.3 L166.6 389.4 L170.3 394.1 L174.6 398.4 L179.8 401.1 L185.8 402.0 L192.2 401.6 L198.4 401.3 L204.1 402.2 L209.2 404.8 L214.3 408.4 L219.6 411.6 L225.3 413.2 L231.3 412.8 L237.4 410.9 L243.3 408.9 L249.0 408.0 L249.0 408.0 Z" fill="none" stroke="#1E1B4B" stroke-width="10" stroke-linejoin="round"/></g></g><g><g clip-path="url(#iw-cr0)"><path d="M263.0 101.0 L263.0 102.0 L268.7 101.1 L274.6 99.0 L280.7 97.0 L286.7 96.6 L292.4 98.3 L297.7 101.6 L302.8 105.3 L307.9 108.0 L313.6 109.0 L319.8 108.7 L326.2 108.3 L332.2 109.1 L337.4 112.0 L341.7 116.4 L345.4 121.4 L349.5 125.6 L354.4 128.3 L360.3 129.8 L366.6 131.1 L372.3 133.3 L376.8 137.1 L379.7 142.3 L381.9 148.1 L384.4 153.4 L388.0 157.6 L393.1 160.7 L398.8 163.6 L403.9 167.1 L407.3 171.7 L408.9 177.4 L409.4 183.5 L410.0 189.4 L412.0 194.5 L415.6 199.0 L420.2 203.2 L424.3 207.8 L426.7 213.1 L426.9 218.9 L425.7 224.9 L424.4 230.8 L424.4 236.3 L426.3 241.6 L429.4 246.9 L432.2 252.3 L433.3 258.0 L432.2 263.4 L429.4 268.7 L426.3 273.8 L424.4 278.9 L424.4 284.2 L425.7 289.8 L426.9 295.6 L426.7 301.2 L424.3 306.2 L420.2 310.7 L415.6 314.7 L412.0 319.0 L410.0 324.0 L409.4 329.6 L408.9 335.5 L407.3 341.0 L403.9 345.4 L398.8 348.8 L393.1 351.5 L388.0 354.5 L384.4 358.6 L381.9 363.7 L379.7 369.2 L376.8 374.3 L372.3 377.9 L366.6 380.0 L360.3 381.2 L354.4 382.7 L349.5 385.3 L345.4 389.4 L341.7 394.1 L337.4 398.4 L332.2 401.1 L326.2 402.0 L319.8 401.6 L313.6 401.3 L307.9 402.2 L302.8 404.8 L297.7 408.4 L292.4 411.6 L286.7 413.2 L280.7 412.8 L274.6 410.9 L268.7 408.9 L263.0 408.0 L263.0 408.0 Z" fill="url(#ia-brain)"/><g clip-path="url(#iw-hr)"><path d="M290 136 C326 118 352 158 388 142" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M278 180 C314 198 336 160 374 186 S406 202 414 224" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M294 234 C322 256 354 220 384 250" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M278 284 C312 266 334 310 372 288 S404 298 416 278" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M292 336 C320 318 346 356 382 334" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/><path d="M304 382 C330 366 352 394 370 376" fill="none" stroke="#6D28D9" stroke-width="10" stroke-linecap="round" opacity=".6"/></g><path d="M263.0 101.0 L263.0 102.0 L268.7 101.1 L274.6 99.0 L280.7 97.0 L286.7 96.6 L292.4 98.3 L297.7 101.6 L302.8 105.3 L307.9 108.0 L313.6 109.0 L319.8 108.7 L326.2 108.3 L332.2 109.1 L337.4 112.0 L341.7 116.4 L345.4 121.4 L349.5 125.6 L354.4 128.3 L360.3 129.8 L366.6 131.1 L372.3 133.3 L376.8 137.1 L379.7 142.3 L381.9 148.1 L384.4 153.4 L388.0 157.6 L393.1 160.7 L398.8 163.6 L403.9 167.1 L407.3 171.7 L408.9 177.4 L409.4 183.5 L410.0 189.4 L412.0 194.5 L415.6 199.0 L420.2 203.2 L424.3 207.8 L426.7 213.1 L426.9 218.9 L425.7 224.9 L424.4 230.8 L424.4 236.3 L426.3 241.6 L429.4 246.9 L432.2 252.3 L433.3 258.0 L432.2 263.4 L429.4 268.7 L426.3 273.8 L424.4 278.9 L424.4 284.2 L425.7 289.8 L426.9 295.6 L426.7 301.2 L424.3 306.2 L420.2 310.7 L415.6 314.7 L412.0 319.0 L410.0 324.0 L409.4 329.6 L408.9 335.5 L407.3 341.0 L403.9 345.4 L398.8 348.8 L393.1 351.5 L388.0 354.5 L384.4 358.6 L381.9 363.7 L379.7 369.2 L376.8 374.3 L372.3 377.9 L366.6 380.0 L360.3 381.2 L354.4 382.7 L349.5 385.3 L345.4 389.4 L341.7 394.1 L337.4 398.4 L332.2 401.1 L326.2 402.0 L319.8 401.6 L313.6 401.3 L307.9 402.2 L302.8 404.8 L297.7 408.4 L292.4 411.6 L286.7 413.2 L280.7 412.8 L274.6 410.9 L268.7 408.9 L263.0 408.0 L263.0 408.0 Z" fill="none" stroke="#1E1B4B" stroke-width="10" stroke-linejoin="round"/></g></g></g>
     <circle class="ia-spark ia-s0" cx="256" cy="258" r="5" fill="#FDE68A"/><circle class="ia-spark ia-s1" cx="256" cy="258" r="8" fill="#FDE68A"/><circle class="ia-spark ia-s2" cx="256" cy="258" r="5" fill="#FDE68A"/><circle class="ia-spark ia-s3" cx="256" cy="258" r="8" fill="#FDE68A"/><circle class="ia-spark ia-s4" cx="256" cy="258" r="5" fill="#FDE68A"/><circle class="ia-spark ia-s5" cx="256" cy="258" r="8" fill="#FDE68A"/><circle class="ia-spark ia-s6" cx="256" cy="258" r="5" fill="#FDE68A"/><circle class="ia-spark ia-s7" cx="256" cy="258" r="8" fill="#FDE68A"/><circle class="ia-spark ia-s8" cx="256" cy="258" r="5" fill="#FDE68A"/><circle class="ia-spark ia-s9" cx="256" cy="258" r="8" fill="#FDE68A"/><circle class="ia-spark ia-s10" cx="256" cy="258" r="5" fill="#FDE68A"/><circle class="ia-spark ia-s11" cx="256" cy="258" r="8" fill="#FDE68A"/>
   </g>
-</svg></span><div><div class="name">Inga <span class="beta" title="Beta: Inga in the browser is experimental" data-i18n="brand.beta" data-i18n-title="brand.beta.t">Beta</span></div><div class="sub" data-i18n="brand.sub">AI models running in your browser</div>
-    <div class="by"><span data-i18n="brand.by">A new inference engine, coming soon — by</span> <a href="https://github.com/matteobaccan" target="_blank" rel="noopener">Matteo Baccan</a></div></div></div>
+</svg></span><div class="name">Inga</div></div>
   <nav class="navs" aria-label="Views">
-    <button class="navb" id="nav-chat" data-view="chat" aria-current="page"><svg class="ic"><use href="#i-chat"/></svg><span data-i18n="nav.chat">Chat</span></button>
+    <!-- New chat: a new conversation (the older ones: the list below). -->
+    <button class="navb" id="nav-chat" data-view="chat" aria-current="page" title="Start a new conversation" data-i18n-title="nav.chat.t"><svg class="ic"><use href="#i-plus"/></svg><span data-i18n="nav.chat">New chat</span></button>
     <button class="navb" id="nav-models" data-view="models"><svg class="ic"><use href="#i-package"/></svg><span data-i18n="nav.models">Models</span></button>
     <button class="navb" id="nav-settings" data-view="settings"><svg class="ic"><use href="#i-settings"/></svg><span data-i18n="nav.settings">Settings</span></button>
-    <button class="navb" id="nav-diag" data-view="diag"><svg class="ic"><use href="#i-gauge"/></svg><span data-i18n="nav.diag">Tests and report</span></button>
-    <button class="navb" id="nav-compare" data-view="compare"><svg class="ic"><use href="#i-compare"/></svg><span data-i18n="nav.compare">Compare</span></button>
   </nav>
   <div class="side-h"><span data-i18n="side.convs">Conversations</span>
     <button id="convs-more" class="icon" type="button" aria-expanded="false" aria-controls="convs-actions" title="Export, import or delete every conversation" data-i18n-title="convs.more"><svg class="ic"><use href="#i-archive"/></svg></button></div>
@@ -452,8 +474,9 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
   <div class="foot">
     <button id="about-btn" class="icon" type="button" title="About Inga" aria-label="About Inga" data-i18n-title="about.btn" aria-haspopup="dialog"><svg class="ic"><use href="#i-info"/></svg></button>
     <button id="theme-btn" class="icon" type="button" title="Theme: auto" aria-label="Theme"><svg class="ic"><use href="#i-theme-auto"/></svg></button>
-    <a class="icon" href="https://github.com/matteobaccan/inga/blob/main/docs/wasm-beta.md" target="_blank" rel="noopener" title="The beta's guide" aria-label="The beta's guide" style="padding:6px;color:var(--muted)"><svg class="ic"><use href="#i-external"/></svg></a>
-    <button id="new-chat" type="button"><svg class="ic"><use href="#i-plus"/></svg><span data-i18n="chat.new">New chat</span></button>
+    <a class="icon" href="https://github.com/matteobaccan/inga/blob/main/docs/wasm.md" target="_blank" rel="noopener" title="The guide: what works, the browsers, how to report" aria-label="The guide" data-i18n-title="foot.guide" style="padding:6px;color:var(--muted)"><svg class="ic"><use href="#i-external"/></svg></a>
+    <!-- Test: the tests-and-report view (its id is the views' own, nav-VIEW). -->
+    <button id="nav-diag" class="ghost" data-view="diag" type="button" title="The Standard test, the GPU benchmark, the disk speed and the report" data-i18n-title="nav.diag.t"><svg class="ic"><use href="#i-gauge"/></svg><span data-i18n="nav.diag">Test</span></button>
   </div>
   <div id="page-version" class="ver">dev</div>
 </aside>
@@ -499,10 +522,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
   </section>
 
   <section class="view" id="view-models" aria-label="Models" hidden><div class="inner">
-    <p class="note" id="beta-note" hidden><strong>Beta.</strong> A first public test of Inga in the browser:
-    pick a model, chat, run the Standard test (Tests and report), then press "Report on GitHub" there (what works
-    and what does not: <a href="https://github.com/matteobaccan/inga/blob/main/docs/wasm-beta.md">the beta's guide</a>).</p>
-    <p class="note">An experiment: Inga compiled to WebAssembly, running on this device's CPU (WebAssembly
+    <p class="note">Inga compiled to WebAssembly, running on this device's CPU (WebAssembly
     SIMD; one thread, or every core when the page is cross-origin isolated), or with its layers on the GPU
     through WebGPU (Settings, Device: experimental). A model larger than the tab's memory runs with part of it
     read from this site's storage at every token. Nothing is sent anywhere: the model runs in this page. Tested in
@@ -716,7 +736,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
     </section>
     <section class="card">
       <h2 data-i18n="diag.report">Report</h2>
-      <p class="note">Opens GitHub's issue form for this beta with what the page knows filled in: this browser and
+      <p class="note">Opens a GitHub issue with what the page knows filled in: this browser and
       its GPU adapter, the model and how it loaded, the speeds (the last answer, the Standard test, the GPU
       benchmark and kernel times if you ran them), the load log and the errors the page saw. Nothing is sent from
       here: you read it on GitHub, add what you did, and submit it (a GitHub account is needed).</p>
@@ -729,41 +749,6 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
         <summary>What the report contains</summary>
         <pre id="report-text" class="out"></pre>
       </details>
-    </section>
-  </div></section>
-  <section class="view" id="view-compare" aria-label="Compare" hidden><div class="inner">
-    <section class="card">
-      <h2 data-i18n="cmp.title">Compare with other browser engines</h2>
-      <p class="note">The loaded model on Inga, and the same prompt and output length on the engines you tick, in this
-      browser on this GPU: time to first token (TTFT), prefill and decode speed, end-to-end time. Each engine runs once
-      to warm up, then the measured runs, averaged. The table says what ran next to the numbers (browser, GPU adapter,
-      model files, quantizations): copy it as Markdown, or attach it to the report. WebLLM and Transformers.js run
-      their own model files (MLC q4f16, ONNX), not this GGUF file: with different quantizations the comparison is
-      indicative. On a GPU without shader-f16 (Pascal, among others) they run their f32 builds (MLC q4f32, ONNX q4
-      instead of q4f16), whose f16 kernels would not compile there; the table names what ran. Ticking an engine downloads its module from jsDelivr (a pinned version) and its model files from
-      Hugging Face; nothing else leaves the page.</p>
-      <div class="meta" id="cmp-model">No model loaded: load one first (Models).</div>
-      <div class="row" style="margin-top:8px">
-        <label>Prompt words <input type="number" id="cmp-words" value="96" min="8" max="2000" style="width:6em"></label>
-        <label>Output tokens <input type="number" id="cmp-gen" value="64" min="2" max="1024" style="width:6em"></label>
-        <label>Measured runs <input type="number" id="cmp-reps" value="3" min="1" max="10" style="width:4em"></label>
-      </div>
-      <div class="row"><label><input type="checkbox" id="cmp-webllm"> WebLLM 0.2.85</label>
-        <input type="text" id="cmp-webllm-model" aria-label="WebLLM's prebuilt model" style="flex:1;min-width:14em"></div>
-      <div class="row"><label><input type="checkbox" id="cmp-tjs"> Transformers.js 4.3.0</label>
-        <input type="text" id="cmp-tjs-model" aria-label="Transformers.js's ONNX model" style="flex:1;min-width:14em">
-        <select id="cmp-tjs-dtype" aria-label="Transformers.js's dtype"><option>q4f16</option><option>q4</option><option>q8</option><option>fp16</option></select></div>
-      <div class="row"><label><input type="checkbox" id="cmp-sipp"> Sipp 0.1.4 (the same GGUF file)</label>
-        <input type="text" id="cmp-sipp-url" placeholder="The GGUF file's link" aria-label="The GGUF file's link for Sipp" style="flex:1;min-width:14em"></div>
-      <div class="row" style="margin-top:8px"><button id="cmp-run" disabled><svg class="ic"><use href="#i-compare"/></svg><span data-i18n="cmp.run">Run the comparison</span></button></div>
-      <div id="cmp-result" hidden style="margin-top:8px">
-        <p class="note" id="cmp-warn" hidden></p>
-        <div id="cmp-out" class="meta"></div>
-        <div class="row" style="margin-top:8px"><button id="cmp-copy" class="ghost"><svg class="ic"><use href="#i-copy"/></svg>Copy as Markdown</button>
-          <button id="cmp-attach" class="ghost"><svg class="ic"><use href="#i-flag"/></svg>Attach to the report</button>
-          <span class="meta" id="cmp-said"></span></div>
-        <details style="margin-top:8px"><summary>Markdown</summary><pre id="cmp-md" class="out"></pre></details>
-      </div>
     </section>
   </div></section>
 </div>
@@ -783,20 +768,26 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
   <div id="info-body"></div>
   <div class="ask-buttons"><span class="meta" id="info-out"></span><span class="grow"></span><button id="info-copy" type="button" data-i18n="info.copy">Copy</button></div>
 </dialog>
-<dialog id="about" aria-labelledby="about-title">
-  <div class="row" style="justify-content:space-between;flex-wrap:nowrap">
-    <h2 id="about-title" style="margin:0" data-i18n="about.title">About Inga</h2>
-    <button id="about-close" class="ghost" type="button" data-i18n="about.close">Close</button>
+<dialog id="about" aria-labelledby="about-title" aria-describedby="about-what">
+  <div class="about-head">
+    <img src="logo.svg" alt="" width="48" height="48">
+    <div class="grow"><h2 id="about-title">Inga</h2><p data-i18n="about.sub">A local inference engine in Rust, by Matteo Baccan</p></div>
+    <button id="about-close" class="icon" type="button" title="Close" aria-label="Close" data-i18n-title="about.close"><svg class="ic"><use href="#i-close"/></svg></button>
   </div>
-  <p data-i18n="about.what">Inga is a new local inference engine written in Rust, by Matteo Baccan, to be published soon.</p>
-  <p data-i18n="about.beta">This page is its beta, running entirely in your browser (WebAssembly and WebGPU).</p>
-  <p data-i18n="about.private">Nothing leaves this device except the model's download.</p>
-  <p class="meta"><span data-i18n="about.version">Version</span>: <span id="about-version">dev</span></p>
-  <ul>
-    <li><a href="https://github.com/matteobaccan" target="_blank" rel="noopener" data-i18n="about.profile">Matteo Baccan on GitHub</a></li>
-    <li><a href="https://github.com/matteobaccan/ingatest/issues" target="_blank" rel="noopener" data-i18n="about.issues">The beta's issues</a></li>
-    <li><a href="https://github.com/matteobaccan/inga/blob/main/docs/wasm-beta.md" target="_blank" rel="noopener" data-i18n="about.guide">The beta's guide</a></li>
-  </ul>
+  <div class="about-body">
+    <p id="about-what" data-i18n="about.what">This page runs Inga in your browser: pick a model and chat, with nothing to install.</p>
+    <ul class="about-facts">
+      <li><svg class="ic"><use href="#i-cpu"/></svg><div><b data-i18n="about.where">In this browser</b><span data-i18n="about.where.t">On this device's CPU through WebAssembly, or on its GPU through WebGPU.</span></div></li>
+      <li><svg class="ic"><use href="#i-lock"/></svg><div><b data-i18n="about.private">Private</b><span data-i18n="about.private.t">Nothing leaves this device except the model's download.</span></div></li>
+      <li><svg class="ic"><use href="#i-database"/></svg><div><b data-i18n="about.stored">Kept here</b><span data-i18n="about.stored.t">The models, the conversations and the settings stay in this browser.</span></div></li>
+    </ul>
+    <nav class="about-links" aria-label="Links">
+      <a href="https://github.com/matteobaccan" target="_blank" rel="noopener"><svg class="ic"><use href="#i-code"/></svg><span data-i18n="about.profile">Matteo Baccan on GitHub</span><svg class="ic"><use href="#i-external"/></svg></a>
+      <a href="https://github.com/matteobaccan/ingatest/issues" target="_blank" rel="noopener"><svg class="ic"><use href="#i-flag"/></svg><span data-i18n="about.issues">Report a problem</span><svg class="ic"><use href="#i-external"/></svg></a>
+      <a href="https://github.com/matteobaccan/inga/blob/main/docs/wasm.md" target="_blank" rel="noopener"><svg class="ic"><use href="#i-docs"/></svg><span data-i18n="about.guide">The guide: what works, the browsers</span><svg class="ic"><use href="#i-external"/></svg></a>
+    </nav>
+    <p class="about-ver"><span data-i18n="about.version">Version</span> <span id="about-version">dev</span></p>
+  </div>
 </dialog>
 <dialog id="picker" aria-labelledby="picker-title">
   <div class="top">

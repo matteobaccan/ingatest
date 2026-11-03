@@ -6,7 +6,7 @@
 // here, so a tester can see, and send, why it runs slow or fast: the model, its
 // context, the device (the WebGPU adapter and its limits), where its layers went, the
 // CPU, the speeds, the page, and what the fit estimate was judged on. Built from
-// app.js's `window.ingaState()` (the state the beta's report reads too) and the
+// app.js's `window.ingaState()` (the state the report reads too) and the
 // browser's own answers (the adapter, userAgentData); every label in the page's
 // language (i18n.js), the numbers too. The same text goes into the report.
 

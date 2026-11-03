@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 // The service worker that makes the page cross-origin isolated where its host cannot
-// send the headers (GitHub Pages, the beta: docs/wasm-beta.md). It adds
+// send the headers (GitHub Pages, the published page: docs/wasm.md). It adds
 // `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy:
 // require-corp` to the page's own responses (same origin only: a cross-origin download,
 // a model from Hugging Face, is a CORS request, which COEP allows as it is, and is not

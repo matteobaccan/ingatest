@@ -939,7 +939,7 @@ function __wbg_get_imports() {
             const ret = arg0.error;
             return ret;
         },
-        __wbg_error_b8ca259679f76c7c: function(arg0, arg1) {
+        __wbg_error_e8180216e223982a: function(arg0, arg1) {
             console.error(getStringFromWasm0(arg0, arg1));
         },
         __wbg_features_7b0a0ba10b61a5e4: function(arg0) {

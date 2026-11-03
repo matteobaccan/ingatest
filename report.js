@@ -2,11 +2,11 @@
 // Copyright (c) Matteo Baccan -- https://github.com/matteobaccan/inga
 // SPDX-License-Identifier: MIT
 
-// The beta's report (docs/wasm-beta.md): gathers what a tester would otherwise copy by
-// hand (the browser, its WebGPU adapter, the model and how it loaded, the speeds, the
-// load log, the errors the page met) and opens GitHub's new issue form
-// (.github/ISSUE_TEMPLATE/wasm-beta-report.yml) with its fields filled. Nothing is
-// sent: the tester reads the issue on GitHub and submits it, or not. Reads the page's
+// The page's report (docs/wasm.md): gathers what a user would otherwise copy by hand
+// (the browser, its WebGPU adapter, the model and how it loaded, the speeds, the load
+// log, the errors the page met) and opens GitHub's new issue form
+// (.github/ISSUE_TEMPLATE/wasm-report.yml) with its fields filled. Nothing is
+// sent: the user reads the issue on GitHub and submits it, or not. Reads the page's
 // elements and app.js's `window.ingaState()`; changes nothing of the page's state.
 //
 // The repository and the form are the page's `inga-report-repo` and
@@ -40,11 +40,6 @@ new MutationObserver(() => {
   const s = $("status");
   if (s.className === "err") note(s.textContent);
 }).observe($("status"), { attributes: true, childList: true, characterData: true, subtree: true });
-
-const BETA = location.hostname.endsWith(".github.io") || new URLSearchParams(location.search).has("beta");
-if (BETA) $("beta-note").hidden = false;
-// The guide's link, where the page has one (the redesigned page's beta note has none).
-if (meta("inga-guide") && $("beta-guide")) $("beta-guide").href = meta("inga-guide");
 
 function build() {
   return document.querySelector('meta[name="inga-build"]')?.content || "dev";
@@ -138,8 +133,6 @@ function speedsText() {
   if (bench) lines.push("", "GPU benchmark:", bench);
   const k = tableText($("kernels"));
   if (k) lines.push("", "Kernel times:", k);
-  // The Compare view's table, when "Attach to the report" was pressed.
-  if (st.compare) lines.push("", "Compared with other browser engines:", st.compare);
   return lines.join("\n") || "No answer yet (the Standard test gives a comparable line).";
 }
 
@@ -151,7 +144,7 @@ function logText() {
 
 // The issue's address for these fields, the log cut from its start until it fits.
 function issueUrl(f) {
-  const title = `WASM beta: ${f.modelShort} on ${f.browserShort}`;
+  const title = `Inga in the browser: ${f.modelShort} on ${f.browserShort}`;
   let log = f.log;
   for (;;) {
     const q = TEMPLATE

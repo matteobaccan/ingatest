@@ -1,4 +1,4 @@
-# Inga in the browser — beta
+# Inga in the browser
 
 **Open it: <https://matteobaccan.github.io/ingatest/>**
 
@@ -12,9 +12,10 @@ automatically at every change.
 
 ## How to report
 
-1. Load a model (a small one first, SmolLM2-135M), ask something, press **Standard
-   test** (and, on the GPU, **GPU benchmark**).
-2. Press **Report on GitHub** at the bottom of the page: it opens an issue here with the
+1. Load a model (a small one first, SmolLM2-135M), ask something, then open **Test**
+   (at the foot of the side bar) and press **Standard test** (and, on the GPU,
+   **GPU benchmark**).
+2. Press **Report on GitHub** there: it opens an issue here with the
    browser, the GPU, the model, the speeds and the log filled in. Say what you did and
    what went wrong, then submit it (a GitHub account is needed).
 3. Without a GitHub account, **Copy report** and send the text to the maintainer.

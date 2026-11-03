@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 // Cross-origin isolation where the host cannot send the headers: on GitHub Pages (the
-// beta, docs/wasm-beta.md) this registers coi-sw.js, which adds them, and loads the page
+// published page, docs/wasm.md) this registers coi-sw.js, which adds them, and loads the page
 // again once under its control, so `crossOriginIsolated` turns true and app.js loads
 // the threaded module (web/pkg-threads, every core). Anywhere else it does nothing (a
 // server that sends the headers needs no worker; the browser tests serve the page with
