@@ -1,0 +1,283 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="2160" viewBox="0 0 1200 2160" role="img" aria-labelledby="title desc">
+<title id="title">Where the model runs: the memory and device plan</title>
+<desc id="desc">Flowchart: other machines (pipeline, experts, tensor parallelism, mesh), the memory budget and plan (everything in RAM, experts streamed from disk, layers streamed), the GPU choice (CPU only, CUDA then Metal then Vulkan, named devices), fitting layers on the GPU and the KV cache types and places.</desc>
+<!-- A diagram of docs/architecture-flow.md, kept by hand: every branch names the file
+     and the function that takes the decision; change them together. -->
+<style>
+  .bg { fill: #f5f5f7; }
+  .t1 { font: 600 22px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #1c1c21; }
+  .t2 { font: 400 14px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #62626d; }
+  .sec { font: 600 16px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #1c1c21; }
+  .rule { stroke: #e3e3e9; stroke-width: 1; }
+  .h { font: 600 14px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #1c1c21; }
+  .b { font: 400 13px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #3a3a44; }
+  .c { font: 400 11.5px ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; fill: #62626d; }
+  .lbl { font: 400 12px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #4f46e5;
+         paint-order: stroke; stroke: #f5f5f7; stroke-width: 4px; stroke-linejoin: round; }
+  .note { font: 400 11.5px ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; fill: #62626d; }
+  .edge { fill: none; stroke: #8a8a96; stroke-width: 1.5; }
+  .loop { fill: none; stroke: #8a8a96; stroke-width: 1.5; stroke-dasharray: 6 4; }
+  .head { fill: #8a8a96; }
+  .step { fill: #ffffff; stroke: #c9c9d3; stroke-width: 1.25; }
+  .dec { fill: #eeedfc; stroke: #4f46e5; stroke-width: 1.25; }
+  .term { fill: #ffffff; stroke: #1c1c21; stroke-width: 1.25; }
+  .cpu { fill: #e7f3f6; stroke: #0e7490; stroke-width: 1.25; }
+  .gpu { fill: #fbefe8; stroke: #c2410c; stroke-width: 1.25; }
+  .disk { fill: #f7f1e4; stroke: #a16207; stroke-width: 1.25; }
+  .net { fill: #eef1f5; stroke: #64748b; stroke-width: 1.25; }
+  .out { fill: #fbeceb; stroke: #c4271b; stroke-width: 1.25; }
+  .box { fill: none; stroke: #c9c9d3; stroke-width: 1; stroke-dasharray: 4 4; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #111114; }
+    .t1, .sec, .h { fill: #ececf1; }
+    .t2, .c, .note { fill: #9d9da9; }
+    .b { fill: #cfcfd8; }
+    .rule { stroke: #2c2c33; }
+    .lbl { fill: #8b8ff9; stroke: #111114; }
+    .edge, .loop { stroke: #7a7a86; }
+    .head { fill: #7a7a86; }
+    .step { fill: #1b1b1f; stroke: #3a3a44; }
+    .dec { fill: #23233a; stroke: #8b8ff9; }
+    .term { fill: #1b1b1f; stroke: #ececf1; }
+    .cpu { fill: #12262b; stroke: #22d3ee; }
+    .gpu { fill: #2b1a12; stroke: #fb923c; }
+    .disk { fill: #29230f; stroke: #facc15; }
+    .net { fill: #1c2129; stroke: #94a3b8; }
+    .out { fill: #2d1515; stroke: #f87171; }
+    .box { stroke: #3a3a44; }
+  }
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker></defs>
+<rect width="1200" height="2160" class="bg"/>
+<text x="32" y="44" class="t1" text-anchor="start">Where the model runs: the memory and device plan</text>
+<text x="32" y="70" class="t2" text-anchor="start">After the load: other machines, the memory plan, the GPU and the KV cache, as load_engine_only (src/commands/mod.rs) runs them in order</text>
+<g class="legend">
+<rect x="32" y="96" width="24" height="16" rx="8" class="term"/>
+<text x="64" y="108" class="b" text-anchor="start">start or end</text>
+<rect x="172" y="96" width="24" height="16" rx="4" class="step"/>
+<text x="204" y="108" class="b" text-anchor="start">step</text>
+<polygon points="268,95 280,104 268,113 256,104" class="dec"/>
+<text x="288" y="108" class="b" text-anchor="start">decision</text>
+<rect x="368" y="96" width="24" height="16" rx="4" class="cpu"/>
+<text x="400" y="108" class="b" text-anchor="start">CPU and RAM</text>
+<rect x="501" y="96" width="24" height="16" rx="4" class="gpu"/>
+<text x="533" y="108" class="b" text-anchor="start">GPU</text>
+<rect x="578" y="96" width="24" height="16" rx="4" class="disk"/>
+<text x="610" y="108" class="b" text-anchor="start">disk</text>
+<rect x="662" y="96" width="24" height="16" rx="4" class="net"/>
+<text x="694" y="108" class="b" text-anchor="start">other machines</text>
+<rect x="816" y="96" width="24" height="16" rx="4" class="out"/>
+<text x="848" y="108" class="b" text-anchor="start">elsewhere or refused</text>
+<text x="1012" y="108" class="c" text-anchor="start">file · function</text>
+</g>
+<text x="32" y="160" class="sec" text-anchor="start">1. One machine or several</text>
+<path d="M32,172 L1168,172" class="rule"/>
+<g class="node"><rect x="400.0" y="192" width="400" height="40" rx="20.0" class="term"/>
+<text x="600" y="217" class="h" text-anchor="middle">A loaded GgufFile and its ModelSpec</text>
+</g>
+<path d="M600.0,232 L600,256" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="600" data-cy="304" data-w="256" data-h="96"><polygon points="600,256.0 728.0,304 600,352.0 472.0,304" class="dec"/>
+<text x="600" y="300" class="h" text-anchor="middle">Other machines</text>
+<text x="600" y="318" class="h" text-anchor="middle">asked for?</text>
+</g>
+<g class="free">
+<text x="448" y="296" class="note" text-anchor="end">load_engine_only</text>
+<text x="448" y="312" class="note" text-anchor="end">src/commands/mod.rs</text>
+</g>
+<g class="node"><rect x="864.0" y="232" width="304" height="128" rx="8" class="net"/>
+<text x="1016" y="258.0" class="h" text-anchor="middle">Other machines run parts</text>
+<text x="1016" y="276.0" class="b" text-anchor="middle">layers (--nodes), experts (--expert-nodes)</text>
+<text x="1016" y="293.0" class="b" text-anchor="middle">or tensor slices (--tp-nodes); a mesh's</text>
+<text x="1016" y="310.0" class="b" text-anchor="middle">satellites, a prompt read by a prefill node;</text>
+<text x="1016" y="327.0" class="b" text-anchor="middle">no GPU layers with these yet</text>
+<text x="1016" y="344.0" class="c" text-anchor="middle">plan_pipeline · mesh::load · inga-dist</text>
+</g>
+<path d="M728,304 L864.0,304" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="744" y="296" class="lbl" text-anchor="start">yes</text>
+</g>
+<text x="32" y="408" class="sec" text-anchor="start">2. The memory plan</text>
+<path d="M32,420 L1168,420" class="rule"/>
+<g class="node"><rect x="300.0" y="448" width="600" height="96" rx="8" class="step"/>
+<text x="600" y="475.0" class="h" text-anchor="middle">Budget: the RAM available, capped by --mem-limit</text>
+<text x="600" y="493.0" class="b" text-anchor="middle">optional first: the experts converted or striped over disks</text>
+<text x="600" y="510.0" class="b" text-anchor="middle">(--quantize-experts, --experts-precision, --experts-dir)</text>
+<text x="600" y="527.0" class="c" text-anchor="middle">Engine::prepare (crates/inga-engine/src/session.rs)</text>
+</g>
+<path d="M600,352 L600.0,448" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="608" y="384" class="lbl" text-anchor="start">no</text>
+</g>
+<g class="node"><rect x="300.0" y="584" width="600" height="64" rx="8" class="step"/>
+<text x="600" y="612.5" class="h" text-anchor="middle">Need: resident weights + KV cache for --ctx + overhead</text>
+<text x="600" y="629.5" class="c" text-anchor="middle">Plan::new (crates/inga-engine/src/plan.rs)</text>
+</g>
+<path d="M600.0,544 L600.0,584" class="edge" marker-end="url(#a)"/>
+<path d="M600.0,648 L600,680" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="600" data-cy="728" data-w="256" data-h="96"><polygon points="600,680.0 728.0,728 600,776.0 472.0,728" class="dec"/>
+<text x="600" y="724" class="h" text-anchor="middle">Does it fit</text>
+<text x="600" y="742" class="h" text-anchor="middle">the budget?</text>
+</g>
+<g class="free">
+<text x="752" y="720" class="note" text-anchor="start">Plan::planned</text>
+<text x="752" y="736" class="note" text-anchor="start">ExpertTier</text>
+</g>
+<path d="M600,776 L600,792" class="edge"/>
+<path d="M224,792 L976,792" class="edge"/>
+<path d="M224,792 L224,824" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="232" y="814" class="lbl" text-anchor="start">yes</text>
+</g>
+<path d="M600,792 L600,824" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="608" y="814" class="lbl" text-anchor="start">no, a mixture of experts</text>
+</g>
+<path d="M976,792 L976,824" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="984" y="814" class="lbl" text-anchor="start">no, otherwise</text>
+</g>
+<g class="node"><rect x="48.0" y="824" width="352" height="128" rx="8" class="cpu"/>
+<text x="224" y="867.0" class="h" text-anchor="middle">Everything in RAM</text>
+<text x="224" y="885.0" class="b" text-anchor="middle">memory-mapped from the file</text>
+<text x="224" y="902.0" class="b" text-anchor="middle">(ExpertTier::Ram for experts)</text>
+<text x="224" y="919.0" class="c" text-anchor="middle">Plan { fits: true }</text>
+</g>
+<g class="node"><rect x="424.0" y="824" width="352" height="128" rx="8" class="disk"/>
+<text x="600" y="850.0" class="h" text-anchor="middle">Experts streamed from disk</text>
+<text x="600" y="868.0" class="b" text-anchor="middle">a cache of at least n_expert_used experts,</text>
+<text x="600" y="885.0" class="b" text-anchor="middle">positioned reads, evicted by LFRU;</text>
+<text x="600" y="902.0" class="b" text-anchor="middle">--prerouter reads ahead, --pin-experts</text>
+<text x="600" y="919.0" class="b" text-anchor="middle">keeps the hot ones of earlier runs</text>
+<text x="600" y="936.0" class="c" text-anchor="middle">ExpertTier::Disk · experts.rs</text>
+</g>
+<g class="node"><rect x="800.0" y="824" width="352" height="128" rx="8" class="disk"/>
+<text x="976" y="850.0" class="h" text-anchor="middle">Layers streamed from disk</text>
+<text x="976" y="868.0" class="b" text-anchor="middle">the next layer's mapping advised</text>
+<text x="976" y="885.0" class="b" text-anchor="middle">WILLNEED, the current one DONTNEED;</text>
+<text x="976" y="902.0" class="b" text-anchor="middle">the embeddings and the output layer</text>
+<text x="976" y="919.0" class="b" text-anchor="middle">stay resident</text>
+<text x="976" y="936.0" class="c" text-anchor="middle">Plan::stream_layers</text>
+</g>
+<text x="32" y="1032" class="sec" text-anchor="start">3. The device</text>
+<path d="M32,1044 L1168,1044" class="rule"/>
+<path d="M224.0,952 L224.0,1000" class="edge"/>
+<path d="M600.0,952 L600.0,1000" class="edge"/>
+<path d="M976.0,952 L976.0,1000" class="edge"/>
+<path d="M224.0,1000 L976.0,1000" class="edge"/>
+<path d="M600,1000 L600,1072" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="600" data-cy="1120" data-w="256" data-h="96"><polygon points="600,1072.0 728.0,1120 600,1168.0 472.0,1120" class="dec"/>
+<text x="600" y="1125" class="h" text-anchor="middle">Which GPU?</text>
+</g>
+<g class="free">
+<text x="752" y="1112" class="note" text-anchor="start">candidates</text>
+<text x="752" y="1128" class="note" text-anchor="start">crates/inga-engine/src/device.rs</text>
+</g>
+<path d="M600,1168 L600,1184" class="edge"/>
+<path d="M224,1184 L976,1184" class="edge"/>
+<path d="M224,1184 L224,1216" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="232" y="1206" class="lbl" text-anchor="start">--device cpu, --gpu-layers 0</text>
+</g>
+<path d="M600,1184 L600,1216" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="608" y="1206" class="lbl" text-anchor="start">auto, the default</text>
+</g>
+<path d="M976,1184 L976,1216" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="984" y="1206" class="lbl" text-anchor="start">--device NAME or a list</text>
+</g>
+<g class="node"><rect x="48.0" y="1216" width="352" height="112" rx="8" class="cpu"/>
+<text x="224" y="1242.5" class="h" text-anchor="middle">CPU only</text>
+<text x="224" y="1260.5" class="b" text-anchor="middle">also when an option needs it (--image,</text>
+<text x="224" y="1277.5" class="b" text-anchor="middle">--collect-imatrix, --control-vector...)</text>
+<text x="224" y="1294.5" class="b" text-anchor="middle">or when no GPU is found</text>
+<text x="224" y="1311.5" class="c" text-anchor="middle">cpu_only_why · gpu_lines</text>
+</g>
+<g class="node"><rect x="424.0" y="1216" width="352" height="112" rx="8" class="gpu"/>
+<text x="600" y="1242.5" class="h" text-anchor="middle">The best GPU first</text>
+<text x="600" y="1260.5" class="b" text-anchor="middle">CUDA, then Metal, then Vulkan; discrete</text>
+<text x="600" y="1277.5" class="b" text-anchor="middle">first, the most free memory first; an</text>
+<text x="600" y="1294.5" class="b" text-anchor="middle">integrated GPU only alone; HIP only named</text>
+<text x="600" y="1311.5" class="c" text-anchor="middle">candidates (DeviceSel::Auto)</text>
+</g>
+<g class="node"><rect x="800.0" y="1216" width="352" height="112" rx="8" class="gpu"/>
+<text x="976" y="1242.5" class="h" text-anchor="middle">The GPUs named</text>
+<text x="976" y="1260.5" class="b" text-anchor="middle">that device only, or the layers split</text>
+<text x="976" y="1277.5" class="b" text-anchor="middle">across the GPUs of the list</text>
+<text x="976" y="1294.5" class="b" text-anchor="middle">(--gpu-split)</text>
+<text x="976" y="1311.5" class="c" text-anchor="middle">DeviceSel::Split · attach_split</text>
+</g>
+<g class="node"><rect x="48.0" y="1384" width="352" height="96" rx="8" class="cpu"/>
+<text x="224" y="1411.0" class="h" text-anchor="middle">Weights repacked for the CPU</text>
+<text x="224" y="1429.0" class="b" text-anchor="middle">rows in groups of eight for its kernels;</text>
+<text x="224" y="1446.0" class="b" text-anchor="middle">--no-repack keeps them as stored</text>
+<text x="224" y="1463.0" class="c" text-anchor="middle">Engine::repack · inga-cpu/src/repack.rs</text>
+</g>
+<path d="M224.0,1328 L224.0,1384" class="edge" marker-end="url(#a)"/>
+<g class="node"><rect x="508.0" y="1384" width="560" height="96" rx="8" class="gpu"/>
+<text x="788" y="1411.0" class="h" text-anchor="middle">Fit: the last layers first</text>
+<text x="788" y="1429.0" class="b" text-anchor="middle">the output layer once every layer fits; routed experts</text>
+<text x="788" y="1446.0" class="b" text-anchor="middle">from the last layer back (--experts-on, --cpu-moe)</text>
+<text x="788" y="1463.0" class="c" text-anchor="middle">fit_with · place_experts (src/commands/placement.rs)</text>
+</g>
+<path d="M600.0,1328 L600.0,1360" class="edge"/>
+<path d="M976.0,1328 L976.0,1360" class="edge"/>
+<path d="M600.0,1360 L976.0,1360" class="edge"/>
+<path d="M788.0,1360 L788.0,1384" class="edge" marker-end="url(#a)"/>
+<path d="M788.0,1480 L788,1512" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="788" data-cy="1560" data-w="224" data-h="96"><polygon points="788,1512.0 900.0,1560 788,1608.0 676.0,1560" class="dec"/>
+<text x="788" y="1556" class="h" text-anchor="middle">Upload</text>
+<text x="788" y="1574" class="h" text-anchor="middle">fits?</text>
+</g>
+<path d="M900,1560 L1144,1560 L1144,1432.0 L1068.0,1432.0" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="916" y="1552" class="lbl" text-anchor="start">no: fewer layers, again</text>
+</g>
+<g class="free">
+<text x="916" y="1584" class="note" text-anchor="start">upload_fitting: out of memory;</text>
+<text x="916" y="1600" class="note" text-anchor="start">a GPU lacking a weight type or</text>
+<text x="916" y="1616" class="note" text-anchor="start">the architecture: the next one</text>
+<text x="916" y="1632" class="note" text-anchor="start">(try_each)</text>
+</g>
+<g class="node"><rect x="508.0" y="1648" width="560" height="80" rx="8" class="gpu"/>
+<text x="788" y="1675.5" class="h" text-anchor="middle">The RAM the GPU took goes to the CPU's experts</text>
+<text x="788" y="1693.5" class="b" text-anchor="middle">the memory plan made again</text>
+<text x="788" y="1710.5" class="c" text-anchor="middle">Engine::plan_after_gpu · Plan::after_gpu</text>
+</g>
+<path d="M788,1608 L788.0,1648" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="796" y="1632" class="lbl" text-anchor="start">yes</text>
+</g>
+<g class="node"><rect x="240.0" y="1808" width="720" height="80" rx="8" class="term"/>
+<text x="600" y="1835.5" class="h" text-anchor="middle">The placement map, printed before the first token</text>
+<text x="600" y="1853.5" class="b" text-anchor="middle">GPU: its layers, their KV cache, the output layer; CPU: the rest</text>
+<text x="600" y="1870.5" class="c" text-anchor="middle">placement::of_model · map.to_text</text>
+</g>
+<path d="M224.0,1480 L224.0,1776" class="edge"/>
+<path d="M788.0,1728 L788.0,1776" class="edge"/>
+<path d="M224.0,1776 L788.0,1776" class="edge"/>
+<path d="M600.0,1776 L600.0,1808" class="edge" marker-end="url(#a)"/>
+<text x="32" y="1928" class="sec" text-anchor="start">4. The KV cache</text>
+<path d="M32,1940 L1168,1940" class="rule"/>
+<g class="node"><rect x="48.0" y="1968" width="352" height="112" rx="8" class="step"/>
+<text x="224" y="2003.0" class="h" text-anchor="middle">Its type</text>
+<text x="224" y="2021.0" class="b" text-anchor="middle">f16 by default; q8_0, q4_0, q5_0 or</text>
+<text x="224" y="2038.0" class="b" text-anchor="middle">q4_K with --cache-type</text>
+<text x="224" y="2055.0" class="c" text-anchor="middle">inga_core::KvType</text>
+</g>
+<g class="node"><rect x="424.0" y="1968" width="352" height="112" rx="8" class="step"/>
+<text x="600" y="1994.5" class="h" text-anchor="middle">Its place</text>
+<text x="600" y="2012.5" class="b" text-anchor="middle">on the device of its layer; in inga serve</text>
+<text x="600" y="2029.5" class="b" text-anchor="middle">one prefix cache for the sessions, its pages</text>
+<text x="600" y="2046.5" class="b" text-anchor="middle">shared with --kv-pages</text>
+<text x="600" y="2063.5" class="c" text-anchor="middle">inga-server/src/pool.rs</text>
+</g>
+<g class="node"><rect x="800.0" y="1968" width="352" height="112" rx="8" class="disk"/>
+<text x="976" y="1994.5" class="h" text-anchor="middle">On disk</text>
+<text x="976" y="2012.5" class="b" text-anchor="middle">--kv-ram: the older blocks on disk;</text>
+<text x="976" y="2029.5" class="b" text-anchor="middle">--kv-disk: the prefix cache's copies and</text>
+<text x="976" y="2046.5" class="b" text-anchor="middle">the parked conversations</text>
+<text x="976" y="2063.5" class="c" text-anchor="middle">inga-engine/src/kv_disk.rs</text>
+</g>
+<text x="32" y="2128" class="t2" text-anchor="start">Next: one token on the CPU (core-token.svg).</text>
+</svg>

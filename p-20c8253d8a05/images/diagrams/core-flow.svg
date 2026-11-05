@@ -1,0 +1,314 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1712" viewBox="0 0 1200 1712" role="img" aria-labelledby="title desc">
+<title id="title">From a model reference to a loaded model</title>
+<desc id="desc">Flowchart: how Inga resolves a model reference (Ollama, Hugging Face or ModelScope, a cache folder, a path), opens its format (safetensors folder or file, Whisper ggml, GGUF) and recognises its kind (image, speech, projector, encoder, unsupported, language model) and the families of its layers.</desc>
+<!-- A diagram of docs/architecture-flow.md, kept by hand: every branch names the file
+     and the function that takes the decision; change them together. -->
+<style>
+  .bg { fill: #f5f5f7; }
+  .t1 { font: 600 22px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #1c1c21; }
+  .t2 { font: 400 14px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #62626d; }
+  .sec { font: 600 16px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #1c1c21; }
+  .rule { stroke: #e3e3e9; stroke-width: 1; }
+  .h { font: 600 14px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #1c1c21; }
+  .b { font: 400 13px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #3a3a44; }
+  .c { font: 400 11.5px ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; fill: #62626d; }
+  .lbl { font: 400 12px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #4f46e5;
+         paint-order: stroke; stroke: #f5f5f7; stroke-width: 4px; stroke-linejoin: round; }
+  .note { font: 400 11.5px ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; fill: #62626d; }
+  .edge { fill: none; stroke: #8a8a96; stroke-width: 1.5; }
+  .loop { fill: none; stroke: #8a8a96; stroke-width: 1.5; stroke-dasharray: 6 4; }
+  .head { fill: #8a8a96; }
+  .step { fill: #ffffff; stroke: #c9c9d3; stroke-width: 1.25; }
+  .dec { fill: #eeedfc; stroke: #4f46e5; stroke-width: 1.25; }
+  .term { fill: #ffffff; stroke: #1c1c21; stroke-width: 1.25; }
+  .cpu { fill: #e7f3f6; stroke: #0e7490; stroke-width: 1.25; }
+  .gpu { fill: #fbefe8; stroke: #c2410c; stroke-width: 1.25; }
+  .disk { fill: #f7f1e4; stroke: #a16207; stroke-width: 1.25; }
+  .net { fill: #eef1f5; stroke: #64748b; stroke-width: 1.25; }
+  .out { fill: #fbeceb; stroke: #c4271b; stroke-width: 1.25; }
+  .box { fill: none; stroke: #c9c9d3; stroke-width: 1; stroke-dasharray: 4 4; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #111114; }
+    .t1, .sec, .h { fill: #ececf1; }
+    .t2, .c, .note { fill: #9d9da9; }
+    .b { fill: #cfcfd8; }
+    .rule { stroke: #2c2c33; }
+    .lbl { fill: #8b8ff9; stroke: #111114; }
+    .edge, .loop { stroke: #7a7a86; }
+    .head { fill: #7a7a86; }
+    .step { fill: #1b1b1f; stroke: #3a3a44; }
+    .dec { fill: #23233a; stroke: #8b8ff9; }
+    .term { fill: #1b1b1f; stroke: #ececf1; }
+    .cpu { fill: #12262b; stroke: #22d3ee; }
+    .gpu { fill: #2b1a12; stroke: #fb923c; }
+    .disk { fill: #29230f; stroke: #facc15; }
+    .net { fill: #1c2129; stroke: #94a3b8; }
+    .out { fill: #2d1515; stroke: #f87171; }
+    .box { stroke: #3a3a44; }
+  }
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker></defs>
+<rect width="1200" height="1712" class="bg"/>
+<text x="32" y="44" class="t1" text-anchor="start">From a model reference to a loaded model</text>
+<text x="32" y="70" class="t2" text-anchor="start">inga run MODEL and inga serve MODEL: the reference, the file format and what the model is, with where in the code each choice is made</text>
+<g class="legend">
+<rect x="32" y="96" width="24" height="16" rx="8" class="term"/>
+<text x="64" y="108" class="b" text-anchor="start">start or end</text>
+<rect x="172" y="96" width="24" height="16" rx="4" class="step"/>
+<text x="204" y="108" class="b" text-anchor="start">step</text>
+<polygon points="268,95 280,104 268,113 256,104" class="dec"/>
+<text x="288" y="108" class="b" text-anchor="start">decision</text>
+<rect x="368" y="96" width="24" height="16" rx="4" class="cpu"/>
+<text x="400" y="108" class="b" text-anchor="start">CPU and RAM</text>
+<rect x="501" y="96" width="24" height="16" rx="4" class="gpu"/>
+<text x="533" y="108" class="b" text-anchor="start">GPU</text>
+<rect x="578" y="96" width="24" height="16" rx="4" class="disk"/>
+<text x="610" y="108" class="b" text-anchor="start">disk</text>
+<rect x="662" y="96" width="24" height="16" rx="4" class="net"/>
+<text x="694" y="108" class="b" text-anchor="start">other machines</text>
+<rect x="816" y="96" width="24" height="16" rx="4" class="out"/>
+<text x="848" y="108" class="b" text-anchor="start">elsewhere or refused</text>
+<text x="1012" y="108" class="c" text-anchor="start">file · function</text>
+</g>
+<text x="32" y="160" class="sec" text-anchor="start">1. The model reference</text>
+<path d="M32,172 L1168,172" class="rule"/>
+<g class="node"><rect x="400.0" y="192" width="400" height="40" rx="20.0" class="term"/>
+<text x="600" y="217" class="h" text-anchor="middle">inga run MODEL   ·   inga serve MODEL</text>
+</g>
+<path d="M600.0,232 L600,256" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="600" data-cy="304" data-w="256" data-h="96"><polygon points="600,256.0 728.0,304 600,352.0 472.0,304" class="dec"/>
+<text x="600" y="300" class="h" text-anchor="middle">What does</text>
+<text x="600" y="318" class="h" text-anchor="middle">MODEL name?</text>
+</g>
+<g class="free">
+<text x="752" y="296" class="note" text-anchor="start">resolve_model,</text>
+<text x="752" y="312" class="note" text-anchor="start">resolve_model_or_offer</text>
+<text x="752" y="328" class="note" text-anchor="start">src/commands/hub.rs</text>
+</g>
+<path d="M600,352 L600,368" class="edge"/>
+<path d="M168,368 L1032,368" class="edge"/>
+<path d="M168,368 L168,400" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="176" y="390" class="lbl" text-anchor="start">ollama://name</text>
+</g>
+<path d="M456,368 L456,400" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="464" y="390" class="lbl" text-anchor="start">hf://  ms://</text>
+</g>
+<path d="M744,368 L744,400" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="752" y="390" class="lbl" text-anchor="start">a cache folder</text>
+</g>
+<path d="M1032,368 L1032,400" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="1040" y="390" class="lbl" text-anchor="start">a path</text>
+</g>
+<g class="node"><rect x="36.0" y="400" width="264" height="96" rx="8" class="step"/>
+<text x="168" y="427.0" class="h" text-anchor="middle">Ollama's store</text>
+<text x="168" y="445.0" class="b" text-anchor="middle">offered for download on a</text>
+<text x="168" y="462.0" class="b" text-anchor="middle">terminal, else said how</text>
+<text x="168" y="479.0" class="c" text-anchor="middle">apps.rs · resolve_ollama</text>
+</g>
+<g class="node"><rect x="324.0" y="400" width="264" height="96" rx="8" class="net"/>
+<text x="456" y="427.0" class="h" text-anchor="middle">Hugging Face or ModelScope</text>
+<text x="456" y="445.0" class="b" text-anchor="middle">the cache, downloaded when</text>
+<text x="456" y="462.0" class="b" text-anchor="middle">missing; never in offline mode</text>
+<text x="456" y="479.0" class="c" text-anchor="middle">inga-hub · cache.rs, fetch.rs</text>
+</g>
+<g class="node"><rect x="612.0" y="400" width="264" height="96" rx="8" class="step"/>
+<text x="744" y="427.0" class="h" text-anchor="middle">A Hugging Face cache folder</text>
+<text x="744" y="445.0" class="b" text-anchor="middle">models--org--repo, resolved</text>
+<text x="744" y="462.0" class="b" text-anchor="middle">like hf://org/repo, with a note</text>
+<text x="744" y="479.0" class="c" text-anchor="middle">resolve_repo_folder</text>
+</g>
+<g class="node"><rect x="900.0" y="400" width="264" height="96" rx="8" class="step"/>
+<text x="1032" y="427.0" class="h" text-anchor="middle">A file or folder as it is</text>
+<text x="1032" y="445.0" class="b" text-anchor="middle">LM Studio's, Ollama's and saved</text>
+<text x="1032" y="462.0" class="b" text-anchor="middle">folders: listed by inga scan</text>
+<text x="1032" y="479.0" class="c" text-anchor="middle">inga-hub/src/local.rs</text>
+</g>
+<g class="node"><rect x="320.0" y="536" width="560" height="80" rx="8" class="step"/>
+<text x="600" y="563.5" class="h" text-anchor="middle">A variant: another quantization picked or made</text>
+<text x="600" y="581.5" class="b" text-anchor="middle">--variant: one already made, or made while the original runs</text>
+<text x="600" y="598.5" class="c" text-anchor="middle">src/commands/variants.rs · pick_or_convert</text>
+</g>
+<path d="M168.0,496 L168.0,512" class="edge"/>
+<path d="M456.0,496 L456.0,512" class="edge"/>
+<path d="M744.0,496 L744.0,512" class="edge"/>
+<path d="M1032.0,496 L1032.0,512" class="edge"/>
+<path d="M168.0,512 L1032.0,512" class="edge"/>
+<path d="M600.0,512 L600.0,536" class="edge" marker-end="url(#a)"/>
+<text x="32" y="664" class="sec" text-anchor="start">2. The file format</text>
+<path d="M32,676 L1168,676" class="rule"/>
+<path d="M600.0,616 L600,704" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="600" data-cy="752" data-w="256" data-h="96"><polygon points="600,704.0 728.0,752 600,800.0 472.0,752" class="dec"/>
+<text x="600" y="748" class="h" text-anchor="middle">Which file</text>
+<text x="600" y="766" class="h" text-anchor="middle">format?</text>
+</g>
+<g class="free">
+<text x="752" y="744" class="note" text-anchor="start">inga_formats::open_model</text>
+<text x="752" y="760" class="note" text-anchor="start">crates/inga-formats/src/safetensors.rs</text>
+</g>
+<path d="M600,800 L600,816" class="edge"/>
+<path d="M168,816 L1032,816" class="edge"/>
+<path d="M168,816 L168,848" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="176" y="838" class="lbl" text-anchor="start">a folder, config.json</text>
+</g>
+<path d="M456,816 L456,848" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="464" y="838" class="lbl" text-anchor="start">*.safetensors</text>
+</g>
+<path d="M744,816 L744,848" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="752" y="838" class="lbl" text-anchor="start">whisper.cpp ggml</text>
+</g>
+<path d="M1032,816 L1032,848" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="1040" y="838" class="lbl" text-anchor="start">anything else</text>
+</g>
+<g class="node"><rect x="36.0" y="848" width="264" height="96" rx="8" class="step"/>
+<text x="168" y="875.0" class="h" text-anchor="middle">A safetensors folder</text>
+<text x="168" y="893.0" class="b" text-anchor="middle">Hugging Face names mapped to</text>
+<text x="168" y="910.0" class="b" text-anchor="middle">GGUF's; MLX weights converted</text>
+<text x="168" y="927.0" class="c" text-anchor="middle">open_dir · mlx.rs</text>
+</g>
+<g class="node"><rect x="324.0" y="848" width="264" height="96" rx="8" class="step"/>
+<text x="456" y="875.0" class="h" text-anchor="middle">One safetensors file</text>
+<text x="456" y="893.0" class="b" text-anchor="middle">the same names mapped,</text>
+<text x="456" y="910.0" class="b" text-anchor="middle">one file</text>
+<text x="456" y="927.0" class="c" text-anchor="middle">open_safetensors</text>
+</g>
+<g class="node"><rect x="612.0" y="848" width="264" height="96" rx="8" class="step"/>
+<text x="744" y="875.0" class="h" text-anchor="middle">A Whisper ggml file</text>
+<text x="744" y="893.0" class="b" text-anchor="middle">read under whisper.cpp's</text>
+<text x="744" y="910.0" class="b" text-anchor="middle">names</text>
+<text x="744" y="927.0" class="c" text-anchor="middle">open_whisper</text>
+</g>
+<g class="node"><rect x="900.0" y="848" width="264" height="96" rx="8" class="step"/>
+<text x="1032" y="875.0" class="h" text-anchor="middle">GGUF</text>
+<text x="1032" y="893.0" class="b" text-anchor="middle">split parts joined and checked;</text>
+<text x="1032" y="910.0" class="b" text-anchor="middle">unknown tensor types listed</text>
+<text x="1032" y="927.0" class="c" text-anchor="middle">GgufFile::open (file.rs)</text>
+</g>
+<g class="node"><rect x="280.0" y="984" width="640" height="64" rx="8" class="step"/>
+<text x="600" y="1012.5" class="h" text-anchor="middle">One GgufFile: the metadata and every tensor, memory-mapped</text>
+<text x="600" y="1029.5" class="c" text-anchor="middle">Engine::load_converting (crates/inga-engine/src/session.rs)</text>
+</g>
+<path d="M168.0,944 L168.0,960" class="edge"/>
+<path d="M456.0,944 L456.0,960" class="edge"/>
+<path d="M744.0,944 L744.0,960" class="edge"/>
+<path d="M1032.0,944 L1032.0,960" class="edge"/>
+<path d="M168.0,960 L1032.0,960" class="edge"/>
+<path d="M600.0,960 L600.0,984" class="edge" marker-end="url(#a)"/>
+<text x="32" y="1096" class="sec" text-anchor="start">3. What the model is</text>
+<path d="M32,1108 L1168,1108" class="rule"/>
+<path d="M600.0,1048 L600,1136" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="600" data-cy="1184" data-w="256" data-h="96"><polygon points="600,1136.0 728.0,1184 600,1232.0 472.0,1184" class="dec"/>
+<text x="600" y="1180" class="h" text-anchor="middle">general.</text>
+<text x="600" y="1198" class="h" text-anchor="middle">architecture?</text>
+</g>
+<g class="free">
+<text x="752" y="1168" class="note" text-anchor="start">load_engine_only (src/commands/mod.rs)</text>
+<text x="752" y="1184" class="note" text-anchor="start">ModelSpec::read (inga-model/src/spec.rs)</text>
+<text x="752" y="1200" class="note" text-anchor="start">support (inga-engine/src/support.rs)</text>
+</g>
+<path d="M600,1232 L600,1248" class="edge"/>
+<path d="M120,1248 L1080,1248" class="edge"/>
+<path d="M120,1248 L120,1280" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="128" y="1270" class="lbl" text-anchor="start">image</text>
+</g>
+<path d="M312,1248 L312,1280" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="320" y="1270" class="lbl" text-anchor="start">speech</text>
+</g>
+<path d="M504,1248 L504,1280" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="512" y="1270" class="lbl" text-anchor="start">clip</text>
+</g>
+<path d="M696,1248 L696,1280" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="704" y="1270" class="lbl" text-anchor="start">encoder</text>
+</g>
+<path d="M888,1248 L888,1280" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="896" y="1270" class="lbl" text-anchor="start">unknown</text>
+</g>
+<path d="M1080,1248 L1080,1280" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="1088" y="1270" class="lbl" text-anchor="start">an LLM</text>
+</g>
+<g class="node"><rect x="32.0" y="1280" width="176" height="96" rx="8" class="out"/>
+<text x="120" y="1307.0" class="h" text-anchor="middle">Image model</text>
+<text x="120" y="1325.0" class="b" text-anchor="middle">sd1, sdxl, sd3, flux,</text>
+<text x="120" y="1342.0" class="b" text-anchor="middle">qwen_image</text>
+<text x="120" y="1359.0" class="c" text-anchor="middle">inga-diffusion</text>
+</g>
+<g class="node"><rect x="224.0" y="1280" width="176" height="96" rx="8" class="out"/>
+<text x="312" y="1307.0" class="h" text-anchor="middle">Speech to text</text>
+<text x="312" y="1325.0" class="b" text-anchor="middle">whisper, parakeet,</text>
+<text x="312" y="1342.0" class="b" text-anchor="middle">cohere_asr</text>
+<text x="312" y="1359.0" class="c" text-anchor="middle">inga transcribe</text>
+</g>
+<g class="node"><rect x="416.0" y="1280" width="176" height="96" rx="8" class="step"/>
+<text x="504" y="1307.0" class="h" text-anchor="middle">Projector</text>
+<text x="504" y="1325.0" class="b" text-anchor="middle">images and audio for</text>
+<text x="504" y="1342.0" class="b" text-anchor="middle">a model: --mmproj</text>
+<text x="504" y="1359.0" class="c" text-anchor="middle">load_vision</text>
+</g>
+<g class="node"><rect x="608.0" y="1280" width="176" height="96" rx="8" class="out"/>
+<text x="696" y="1307.0" class="h" text-anchor="middle">Encoder</text>
+<text x="696" y="1325.0" class="b" text-anchor="middle">embeddings, rerank</text>
+<text x="696" y="1342.0" class="b" text-anchor="middle">in serve; run refuses</text>
+<text x="696" y="1359.0" class="c" text-anchor="middle">Arch::is_encoder</text>
+</g>
+<g class="node"><rect x="800.0" y="1280" width="176" height="96" rx="8" class="out"/>
+<text x="888" y="1307.0" class="h" text-anchor="middle">Not supported</text>
+<text x="888" y="1325.0" class="b" text-anchor="middle">the error names the</text>
+<text x="888" y="1342.0" class="b" text-anchor="middle">architecture</text>
+<text x="888" y="1359.0" class="c" text-anchor="middle">not_yet</text>
+</g>
+<g class="node"><rect x="992.0" y="1280" width="176" height="96" rx="8" class="step"/>
+<text x="1080" y="1307.0" class="h" text-anchor="middle">Language model</text>
+<text x="1080" y="1325.0" class="b" text-anchor="middle">its spec, tokenizer</text>
+<text x="1080" y="1342.0" class="b" text-anchor="middle">and chat template</text>
+<text x="1080" y="1359.0" class="c" text-anchor="middle">Model::load</text>
+</g>
+<path d="M1080.0,1376 L1080,1424" class="edge" marker-end="url(#a)"/>
+<rect x="32" y="1424" width="1136" height="216" rx="12" class="box"/>
+<text x="56" y="1456" class="h" text-anchor="start">The families its layers can have: Arch in crates/inga-model/src/spec.rs, run per layer at every token (core-token.svg)</text>
+<g class="node"><rect x="52.0" y="1480" width="256" height="64" rx="8" class="step"/>
+<text x="180.0" y="1508.5" class="h" text-anchor="middle">Dense</text>
+<text x="180.0" y="1525.5" class="c" text-anchor="middle">attention + FFN</text>
+</g>
+<g class="node"><rect x="332.0" y="1480" width="256" height="64" rx="8" class="step"/>
+<text x="460.0" y="1508.5" class="h" text-anchor="middle">Mixture of experts</text>
+<text x="460.0" y="1525.5" class="c" text-anchor="middle">Arch::is_moe</text>
+</g>
+<g class="node"><rect x="612.0" y="1480" width="256" height="64" rx="8" class="step"/>
+<text x="740.0" y="1508.5" class="h" text-anchor="middle">Gated DeltaNet hybrid</text>
+<text x="740.0" y="1525.5" class="c" text-anchor="middle">Arch::is_hybrid</text>
+</g>
+<g class="node"><rect x="892.0" y="1480" width="256" height="64" rx="8" class="step"/>
+<text x="1020.0" y="1508.5" class="h" text-anchor="middle">Kimi delta attention</text>
+<text x="1020.0" y="1525.5" class="c" text-anchor="middle">Arch::is_kda</text>
+</g>
+<g class="node"><rect x="52.0" y="1560" width="256" height="64" rx="8" class="step"/>
+<text x="180.0" y="1588.5" class="h" text-anchor="middle">Mamba-2 and SSM hybrids</text>
+<text x="180.0" y="1605.5" class="c" text-anchor="middle">is_ssm, is_mamba_hybrid</text>
+</g>
+<g class="node"><rect x="332.0" y="1560" width="256" height="64" rx="8" class="step"/>
+<text x="460.0" y="1588.5" class="h" text-anchor="middle">Short convolution (LFM)</text>
+<text x="460.0" y="1605.5" class="c" text-anchor="middle">Arch::is_shortconv</text>
+</g>
+<g class="node"><rect x="612.0" y="1560" width="256" height="64" rx="8" class="step"/>
+<text x="740.0" y="1588.5" class="h" text-anchor="middle">Latent attention (DeepSeek)</text>
+<text x="740.0" y="1605.5" class="c" text-anchor="middle">is_deepseek, is_sparse</text>
+</g>
+<g class="node"><rect x="892.0" y="1560" width="256" height="64" rx="8" class="step"/>
+<text x="1020.0" y="1588.5" class="h" text-anchor="middle">Diffusion language model</text>
+<text x="1020.0" y="1605.5" class="c" text-anchor="middle">DiffusionArch</text>
+</g>
+<text x="32" y="1680" class="t2" text-anchor="start">Next: where it runs (core-plan.svg). An image, speech or encoder model is refused by inga run with the command that runs it.</text>
+</svg>

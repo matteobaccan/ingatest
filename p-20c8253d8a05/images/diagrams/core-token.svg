@@ -1,0 +1,389 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="2504" viewBox="0 0 1200 2504" role="img" aria-labelledby="title desc">
+<title id="title">One token on the CPU</title>
+<desc id="desc">Flowchart: the prefix cache, prefill or decode threads, the per-layer dispatch (GPU stage, own layouts, SSM, DeltaNet, short convolution, attention), dense or mixture-of-experts feed-forward with experts in RAM, on disk, offloaded or remote, the sampler on the CPU or the GPU, speculative decoding, and the CPU kernels.</desc>
+<!-- A diagram of docs/architecture-flow.md, kept by hand: every branch names the file
+     and the function that takes the decision; change them together. -->
+<style>
+  .bg { fill: #f5f5f7; }
+  .t1 { font: 600 22px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #1c1c21; }
+  .t2 { font: 400 14px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #62626d; }
+  .sec { font: 600 16px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #1c1c21; }
+  .rule { stroke: #e3e3e9; stroke-width: 1; }
+  .h { font: 600 14px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #1c1c21; }
+  .b { font: 400 13px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #3a3a44; }
+  .c { font: 400 11.5px ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; fill: #62626d; }
+  .lbl { font: 400 12px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #4f46e5;
+         paint-order: stroke; stroke: #f5f5f7; stroke-width: 4px; stroke-linejoin: round; }
+  .note { font: 400 11.5px ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; fill: #62626d; }
+  .edge { fill: none; stroke: #8a8a96; stroke-width: 1.5; }
+  .loop { fill: none; stroke: #8a8a96; stroke-width: 1.5; stroke-dasharray: 6 4; }
+  .head { fill: #8a8a96; }
+  .step { fill: #ffffff; stroke: #c9c9d3; stroke-width: 1.25; }
+  .dec { fill: #eeedfc; stroke: #4f46e5; stroke-width: 1.25; }
+  .term { fill: #ffffff; stroke: #1c1c21; stroke-width: 1.25; }
+  .cpu { fill: #e7f3f6; stroke: #0e7490; stroke-width: 1.25; }
+  .gpu { fill: #fbefe8; stroke: #c2410c; stroke-width: 1.25; }
+  .disk { fill: #f7f1e4; stroke: #a16207; stroke-width: 1.25; }
+  .net { fill: #eef1f5; stroke: #64748b; stroke-width: 1.25; }
+  .out { fill: #fbeceb; stroke: #c4271b; stroke-width: 1.25; }
+  .box { fill: none; stroke: #c9c9d3; stroke-width: 1; stroke-dasharray: 4 4; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #111114; }
+    .t1, .sec, .h { fill: #ececf1; }
+    .t2, .c, .note { fill: #9d9da9; }
+    .b { fill: #cfcfd8; }
+    .rule { stroke: #2c2c33; }
+    .lbl { fill: #8b8ff9; stroke: #111114; }
+    .edge, .loop { stroke: #7a7a86; }
+    .head { fill: #7a7a86; }
+    .step { fill: #1b1b1f; stroke: #3a3a44; }
+    .dec { fill: #23233a; stroke: #8b8ff9; }
+    .term { fill: #1b1b1f; stroke: #ececf1; }
+    .cpu { fill: #12262b; stroke: #22d3ee; }
+    .gpu { fill: #2b1a12; stroke: #fb923c; }
+    .disk { fill: #29230f; stroke: #facc15; }
+    .net { fill: #1c2129; stroke: #94a3b8; }
+    .out { fill: #2d1515; stroke: #f87171; }
+    .box { stroke: #3a3a44; }
+  }
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker></defs>
+<rect width="1200" height="2504" class="bg"/>
+<text x="32" y="44" class="t1" text-anchor="start">One token on the CPU</text>
+<text x="32" y="70" class="t2" text-anchor="start">A session's pass: the prompt or one token, every layer by its family, the experts where the plan put them, the sampler and the drafts</text>
+<g class="legend">
+<rect x="32" y="96" width="24" height="16" rx="8" class="term"/>
+<text x="64" y="108" class="b" text-anchor="start">start or end</text>
+<rect x="172" y="96" width="24" height="16" rx="4" class="step"/>
+<text x="204" y="108" class="b" text-anchor="start">step</text>
+<polygon points="268,95 280,104 268,113 256,104" class="dec"/>
+<text x="288" y="108" class="b" text-anchor="start">decision</text>
+<rect x="368" y="96" width="24" height="16" rx="4" class="cpu"/>
+<text x="400" y="108" class="b" text-anchor="start">CPU and RAM</text>
+<rect x="501" y="96" width="24" height="16" rx="4" class="gpu"/>
+<text x="533" y="108" class="b" text-anchor="start">GPU</text>
+<rect x="578" y="96" width="24" height="16" rx="4" class="disk"/>
+<text x="610" y="108" class="b" text-anchor="start">disk</text>
+<rect x="662" y="96" width="24" height="16" rx="4" class="net"/>
+<text x="694" y="108" class="b" text-anchor="start">other machines</text>
+<rect x="816" y="96" width="24" height="16" rx="4" class="out"/>
+<text x="848" y="108" class="b" text-anchor="start">elsewhere or refused</text>
+<text x="1012" y="108" class="c" text-anchor="start">file · function</text>
+</g>
+<text x="32" y="160" class="sec" text-anchor="start">1. The prompt and the threads</text>
+<path d="M32,172 L1168,172" class="rule"/>
+<g class="node"><rect x="400.0" y="192" width="400" height="40" rx="20.0" class="term"/>
+<text x="600" y="217" class="h" text-anchor="middle">The tokens of a session's prompt</text>
+</g>
+<g class="node"><rect x="300.0" y="256" width="600" height="96" rx="8" class="step"/>
+<text x="600" y="283.0" class="h" text-anchor="middle">The prefix already in the KV cache is reused</text>
+<text x="600" y="301.0" class="b" text-anchor="middle">in RAM, or read back from --kv-disk; at least the last</text>
+<text x="600" y="318.0" class="b" text-anchor="middle">prompt token is always processed again</text>
+<text x="600" y="335.0" class="c" text-anchor="middle">Session::generate_with_stop · use_prefix_cache</text>
+</g>
+<path d="M600.0,232 L600.0,256" class="edge" marker-end="url(#a)"/>
+<path d="M600.0,352 L600,384" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="600" data-cy="432" data-w="256" data-h="96"><polygon points="600,384.0 728.0,432 600,480.0 472.0,432" class="dec"/>
+<text x="600" y="428" class="h" text-anchor="middle">A prompt or</text>
+<text x="600" y="446" class="h" text-anchor="middle">a few tokens?</text>
+</g>
+<g class="free">
+<text x="752" y="424" class="note" text-anchor="start">CpuBackend::jobs, matmul</text>
+<text x="752" y="440" class="note" text-anchor="start">crates/inga-cpu/src/backend.rs</text>
+</g>
+<path d="M600,480 L600,496" class="edge"/>
+<path d="M360,496 L840,496" class="edge"/>
+<path d="M360,496 L360,528" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="368" y="518" class="lbl" text-anchor="start">a prompt, in batches of --batch</text>
+</g>
+<path d="M840,496 L840,528" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="848" y="518" class="lbl" text-anchor="start">one token, or a draft's check</text>
+</g>
+<g class="node"><rect x="152.0" y="528" width="416" height="128" rx="8" class="cpu"/>
+<text x="360" y="554.0" class="h" text-anchor="middle">Prefill</text>
+<text x="360" y="572.0" class="b" text-anchor="middle">threads: every logical CPU (prompt_threads)</text>
+<text x="360" y="589.0" class="b" text-anchor="middle">matrix products by tiles (GEMM);</text>
+<text x="360" y="606.0" class="b" text-anchor="middle">attention by tiles of up to 16 tokens</text>
+<text x="360" y="623.0" class="b" text-anchor="middle">when tokens &gt;= 4 x threads</text>
+<text x="360" y="640.0" class="c" text-anchor="middle">Topology · CpuBackend::prefill · attention::prefill</text>
+</g>
+<g class="node"><rect x="632.0" y="528" width="416" height="128" rx="8" class="cpu"/>
+<text x="840" y="554.0" class="h" text-anchor="middle">Decode</text>
+<text x="840" y="572.0" class="b" text-anchor="middle">threads: one per physical P-core (decode_threads,</text>
+<text x="840" y="589.0" class="b" text-anchor="middle">--threads-decode); one encoded activation for</text>
+<text x="840" y="606.0" class="b" text-anchor="middle">every weight of a step (matmuls); attention</text>
+<text x="840" y="623.0" class="b" text-anchor="middle">one token and KV head per task</text>
+<text x="840" y="640.0" class="c" text-anchor="middle">topology.rs · matmuls · attention::per_token</text>
+</g>
+<text x="32" y="712" class="sec" text-anchor="start">2. Every layer</text>
+<path d="M32,724 L1168,724" class="rule"/>
+<path d="M360.0,656 L360.0,688" class="edge"/>
+<path d="M840.0,656 L840.0,688" class="edge"/>
+<path d="M360.0,688 L840.0,688" class="edge"/>
+<path d="M600,688 L600,784" class="edge" marker-end="url(#a)"/>
+<rect x="32" y="744" width="1136" height="840" rx="12" class="box"/>
+<text x="56" y="772" class="h" text-anchor="start">For each layer: Model::run_layers, layer_forward (model.rs)</text>
+<g class="node diamond" data-cx="600" data-cy="832" data-w="256" data-h="96"><polygon points="600,784.0 728.0,832 600,880.0 472.0,832" class="dec"/>
+<text x="600" y="828" class="h" text-anchor="middle">On a GPU</text>
+<text x="600" y="846" class="h" text-anchor="middle">stage?</text>
+</g>
+<g class="node"><rect x="872.0" y="792" width="288" height="96" rx="8" class="gpu"/>
+<text x="1016" y="819.0" class="h" text-anchor="middle">On the GPU</text>
+<text x="1016" y="837.0" class="b" text-anchor="middle">the hidden state copied there, and</text>
+<text x="1016" y="854.0" class="b" text-anchor="middle">back where the device changes</text>
+<text x="1016" y="871.0" class="c" text-anchor="middle">run_layers · RemoteAttention</text>
+</g>
+<path d="M728,832 L872.0,832" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="744" y="824" class="lbl" text-anchor="start">yes</text>
+</g>
+<path d="M600,880 L600,920" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="608" y="904" class="lbl" text-anchor="start">no, on the CPU</text>
+</g>
+<g class="node diamond" data-cx="600" data-cy="968" data-w="256" data-h="96"><polygon points="600,920.0 728.0,968 600,1016.0 472.0,968" class="dec"/>
+<text x="600" y="973" class="h" text-anchor="middle">Which mixer?</text>
+</g>
+<g class="free">
+<text x="752" y="960" class="note" text-anchor="start">Model::layer_forward</text>
+<text x="752" y="976" class="note" text-anchor="start">Layer { ds4, k3, ssm, delta, ... }</text>
+</g>
+<path d="M600,1016 L600,1032" class="edge"/>
+<path d="M152,1032 L1048,1032" class="edge"/>
+<path d="M152,1032 L152,1064" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="160" y="1054" class="lbl" text-anchor="start">own layout</text>
+</g>
+<path d="M376,1032 L376,1064" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="384" y="1054" class="lbl" text-anchor="start">Mamba-2</text>
+</g>
+<path d="M600,1032 L600,1064" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="608" y="1054" class="lbl" text-anchor="start">DeltaNet</text>
+</g>
+<path d="M824,1032 L824,1064" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="832" y="1054" class="lbl" text-anchor="start">short conv</text>
+</g>
+<path d="M1048,1032 L1048,1064" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="1056" y="1054" class="lbl" text-anchor="start">attention</text>
+</g>
+<g class="node"><rect x="48.0" y="1064" width="208" height="112" rx="8" class="cpu"/>
+<text x="152" y="1090.5" class="h" text-anchor="middle">Its own layout</text>
+<text x="152" y="1108.5" class="b" text-anchor="middle">DeepSeek V4, Kimi K3,</text>
+<text x="152" y="1125.5" class="b" text-anchor="middle">Qwen4exp, GLM-5 next,</text>
+<text x="152" y="1142.5" class="b" text-anchor="middle">Gemma 4 and 3n</text>
+<text x="152" y="1159.5" class="c" text-anchor="middle">ds4_layer, k3_layer...</text>
+</g>
+<g class="node"><rect x="272.0" y="1064" width="208" height="112" rx="8" class="cpu"/>
+<text x="376" y="1090.5" class="h" text-anchor="middle">SSM mixer</text>
+<text x="376" y="1108.5" class="b" text-anchor="middle">Mamba-2, Nemotron-H,</text>
+<text x="376" y="1125.5" class="b" text-anchor="middle">Granite 4.0-H,</text>
+<text x="376" y="1142.5" class="b" text-anchor="middle">Falcon-H1</text>
+<text x="376" y="1159.5" class="c" text-anchor="middle">ssm_layer (mamba.rs)</text>
+</g>
+<g class="node"><rect x="496.0" y="1064" width="208" height="112" rx="8" class="cpu"/>
+<text x="600" y="1090.5" class="h" text-anchor="middle">Linear attention</text>
+<text x="600" y="1108.5" class="b" text-anchor="middle">gated DeltaNet (Qwen3.5,</text>
+<text x="600" y="1125.5" class="b" text-anchor="middle">Qwen3-Next); Kimi</text>
+<text x="600" y="1142.5" class="b" text-anchor="middle">delta attention</text>
+<text x="600" y="1159.5" class="c" text-anchor="middle">delta_forward · kda</text>
+</g>
+<g class="node"><rect x="720.0" y="1064" width="208" height="112" rx="8" class="cpu"/>
+<text x="824" y="1107.5" class="h" text-anchor="middle">Short convolution</text>
+<text x="824" y="1125.5" class="b" text-anchor="middle">LFM2, LFM3</text>
+<text x="824" y="1142.5" class="c" text-anchor="middle">shortconv::forward</text>
+</g>
+<g class="node"><rect x="944.0" y="1064" width="208" height="112" rx="8" class="cpu"/>
+<text x="1048" y="1090.5" class="h" text-anchor="middle">Attention</text>
+<text x="1048" y="1108.5" class="b" text-anchor="middle">MLA for DeepSeek, with</text>
+<text x="1048" y="1125.5" class="b" text-anchor="middle">the sparse indexer (DSA);</text>
+<text x="1048" y="1142.5" class="b" text-anchor="middle">else GQA, RoPE, M-RoPE</text>
+<text x="1048" y="1159.5" class="c" text-anchor="middle">attention_block</text>
+</g>
+<path d="M152.0,1176 L152.0,1200" class="edge"/>
+<path d="M376.0,1176 L376.0,1200" class="edge"/>
+<path d="M600.0,1176 L600.0,1200" class="edge"/>
+<path d="M824.0,1176 L824.0,1200" class="edge"/>
+<path d="M1048.0,1176 L1048.0,1200" class="edge"/>
+<path d="M152.0,1200 L1048.0,1200" class="edge"/>
+<path d="M600,1200 L600,1224" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="600" data-cy="1272" data-w="256" data-h="96"><polygon points="600,1224.0 728.0,1272 600,1320.0 472.0,1272" class="dec"/>
+<text x="600" y="1268" class="h" text-anchor="middle">Dense or</text>
+<text x="600" y="1286" class="h" text-anchor="middle">experts?</text>
+</g>
+<g class="free">
+<text x="448" y="1264" class="note" text-anchor="end">Model::ffn_block</text>
+<text x="448" y="1280" class="note" text-anchor="end">moe_forward (model.rs)</text>
+</g>
+<g class="node"><rect x="848.0" y="1240" width="288" height="80" rx="8" class="cpu"/>
+<text x="992" y="1267.5" class="h" text-anchor="middle">Dense FFN</text>
+<text x="992" y="1285.5" class="b" text-anchor="middle">SwiGLU, GeGLU, ReLU², GELU</text>
+<text x="992" y="1302.5" class="c" text-anchor="middle">plain_ffn</text>
+</g>
+<path d="M728,1272 L848.0,1272" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="744" y="1264" class="lbl" text-anchor="start">dense</text>
+</g>
+<path d="M600,1320 L600,1336" class="edge"/>
+<path d="M168,1336 L1008,1336" class="edge"/>
+<path d="M168,1336 L168,1368" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="176" y="1358" class="lbl" text-anchor="start">mapped in RAM</text>
+</g>
+<path d="M448,1336 L448,1368" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="456" y="1358" class="lbl" text-anchor="start">in the expert cache</text>
+</g>
+<path d="M728,1336 L728,1368" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="736" y="1358" class="lbl" text-anchor="start">a prompt, op offload</text>
+</g>
+<path d="M1008,1336 L1008,1368" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="1016" y="1358" class="lbl" text-anchor="start">--expert-nodes</text>
+</g>
+<g class="node"><rect x="40.0" y="1368" width="256" height="112" rx="8" class="cpu"/>
+<text x="168" y="1403.0" class="h" text-anchor="middle">Experts in RAM</text>
+<text x="168" y="1421.0" class="b" text-anchor="middle">the router's top-k (and the</text>
+<text x="168" y="1438.0" class="b" text-anchor="middle">shared expert) read in place</text>
+<text x="168" y="1455.0" class="c" text-anchor="middle">moe_forward</text>
+</g>
+<g class="node"><rect x="320.0" y="1368" width="256" height="112" rx="8" class="disk"/>
+<text x="448" y="1394.5" class="h" text-anchor="middle">Experts from disk</text>
+<text x="448" y="1412.5" class="b" text-anchor="middle">misses read by positioned reads;</text>
+<text x="448" y="1429.5" class="b" text-anchor="middle">the next layer's experts read</text>
+<text x="448" y="1446.5" class="b" text-anchor="middle">ahead (router or prerouter)</text>
+<text x="448" y="1463.5" class="c" text-anchor="middle">experts.rs · NextExperts</text>
+</g>
+<g class="node"><rect x="600.0" y="1368" width="256" height="112" rx="8" class="gpu"/>
+<text x="728" y="1394.5" class="h" text-anchor="middle">Op offload</text>
+<text x="728" y="1412.5" class="b" text-anchor="middle">gpu.op_offload: a prompt's</text>
+<text x="728" y="1429.5" class="b" text-anchor="middle">experts multiplied on a</text>
+<text x="728" y="1446.5" class="b" text-anchor="middle">CUDA GPU when it pays</text>
+<text x="728" y="1463.5" class="c" text-anchor="middle">inga-gpu/src/offload.rs</text>
+</g>
+<g class="node"><rect x="880.0" y="1368" width="256" height="112" rx="8" class="net"/>
+<text x="1008" y="1403.0" class="h" text-anchor="middle">Remote experts</text>
+<text x="1008" y="1421.0" class="b" text-anchor="middle">the machine that holds</text>
+<text x="1008" y="1438.0" class="b" text-anchor="middle">them runs them</text>
+<text x="1008" y="1455.0" class="c" text-anchor="middle">RemoteExperts</text>
+</g>
+<g class="node"><rect x="440.0" y="1528" width="320" height="48" rx="8" class="step"/>
+<text x="600" y="1557.0" class="h" text-anchor="middle">Added to the residual stream</text>
+</g>
+<path d="M168.0,1480 L168.0,1504" class="edge"/>
+<path d="M448.0,1480 L448.0,1504" class="edge"/>
+<path d="M728.0,1480 L728.0,1504" class="edge"/>
+<path d="M1008.0,1480 L1008.0,1504" class="edge"/>
+<path d="M168.0,1504 L1008.0,1504" class="edge"/>
+<path d="M600.0,1504 L600.0,1528" class="edge" marker-end="url(#a)"/>
+<path d="M1136.0,1272 L1152,1272 L1152,1504 L1008,1504" class="edge"/>
+<path d="M440.0,1552.0 L24,1552.0 L24,832 L472,832" class="loop" marker-end="url(#a)"/>
+<g class="free">
+<text x="48" y="824" class="lbl" text-anchor="start">the next layer</text>
+</g>
+<text x="32" y="1632" class="sec" text-anchor="start">3. From the logits to the next token</text>
+<path d="M32,1644 L1168,1644" class="rule"/>
+<g class="node"><rect x="320.0" y="1672" width="560" height="64" rx="8" class="step"/>
+<text x="600" y="1700.5" class="h" text-anchor="middle">Output norm and output layer: the logits</text>
+<text x="600" y="1717.5" class="c" text-anchor="middle">Model::forward_step (model.rs)</text>
+</g>
+<path d="M600.0,1576 L600.0,1672" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="608" y="1608" class="lbl" text-anchor="start">after the last layer</text>
+</g>
+<path d="M600.0,1736 L600,1752" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="600" data-cy="1808" data-w="288" data-h="112"><polygon points="600,1752.0 744.0,1808 600,1864.0 456.0,1808" class="dec"/>
+<text x="600" y="1795" class="h" text-anchor="middle">Output layer on</text>
+<text x="600" y="1813" class="h" text-anchor="middle">a GPU that</text>
+<text x="600" y="1831" class="h" text-anchor="middle">samples?</text>
+</g>
+<g class="node"><rect x="48.0" y="1752" width="352" height="112" rx="8" class="cpu"/>
+<text x="224" y="1778.5" class="h" text-anchor="middle">Sampler on the CPU</text>
+<text x="224" y="1796.5" class="b" text-anchor="middle">repetition penalty, DRY, top-k, temperature,</text>
+<text x="224" y="1813.5" class="b" text-anchor="middle">min-p, top-p, XTC or mirostat; the draw</text>
+<text x="224" y="1830.5" class="b" text-anchor="middle">seeded per position (Philox, Gumbel-max)</text>
+<text x="224" y="1847.5" class="c" text-anchor="middle">Sampler::sample (inga-model/src/sampler.rs)</text>
+</g>
+<g class="node"><rect x="800.0" y="1768" width="352" height="80" rx="8" class="gpu"/>
+<text x="976" y="1795.5" class="h" text-anchor="middle">The GPU draws it</text>
+<text x="976" y="1813.5" class="b" text-anchor="middle">only the token comes back</text>
+<text x="976" y="1830.5" class="c" text-anchor="middle">Step::Token · DeviceDraw</text>
+</g>
+<path d="M456,1808 L400.0,1808" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="440" y="1800" class="lbl" text-anchor="end">no</text>
+</g>
+<path d="M744,1808 L800.0,1808" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="760" y="1800" class="lbl" text-anchor="start">yes</text>
+</g>
+<g class="node"><rect x="320.0" y="1928" width="560" height="80" rx="8" class="step"/>
+<text x="600" y="1955.5" class="h" text-anchor="middle">The token becomes text</text>
+<text x="600" y="1973.5" class="b" text-anchor="middle">stop sequences, grammar, the reasoning budget</text>
+<text x="600" y="1990.5" class="c" text-anchor="middle">StreamDecoder · Session::generate_with_stop</text>
+</g>
+<path d="M224.0,1864 L224.0,1904" class="edge"/>
+<path d="M976.0,1848 L976.0,1904" class="edge"/>
+<path d="M224.0,1904 L976.0,1904" class="edge"/>
+<path d="M600.0,1904 L600.0,1928" class="edge" marker-end="url(#a)"/>
+<path d="M600.0,2008 L600,2032" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="600" data-cy="2080" data-w="256" data-h="96"><polygon points="600,2032.0 728.0,2080 600,2128.0 472.0,2080" class="dec"/>
+<text x="600" y="2085" class="h" text-anchor="middle">Drafts on?</text>
+</g>
+<g class="node"><rect x="800.0" y="2024" width="352" height="112" rx="8" class="step"/>
+<text x="976" y="2050.5" class="h" text-anchor="middle">Speculative decoding</text>
+<text x="976" y="2068.5" class="b" text-anchor="middle">the model's MTP block, else an EAGLE-3 head,</text>
+<text x="976" y="2085.5" class="b" text-anchor="middle">else prompt lookup (3-grams); --draft MODEL;</text>
+<text x="976" y="2102.5" class="b" text-anchor="middle">SpecGate pauses drafts that are not faster</text>
+<text x="976" y="2119.5" class="c" text-anchor="middle">speculate_by_default · SpecGate</text>
+</g>
+<g class="node"><rect x="48.0" y="2048" width="352" height="64" rx="8" class="cpu"/>
+<text x="224" y="2076.0" class="h" text-anchor="middle">One token a pass</text>
+<text x="224" y="2094.0" class="b" text-anchor="middle">run.speculative = false, or the gate</text>
+</g>
+<path d="M728,2080 L800.0,2080" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="744" y="2072" class="lbl" text-anchor="start">yes</text>
+</g>
+<path d="M472,2080 L400.0,2080" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="456" y="2072" class="lbl" text-anchor="end">no</text>
+</g>
+<g class="node"><rect x="280.0" y="2184" width="640" height="40" rx="20.0" class="term"/>
+<text x="600" y="2209" class="h" text-anchor="middle">The next pass: back to 1, with one token or the guesses to check</text>
+</g>
+<path d="M224.0,2112 L224.0,2160" class="edge"/>
+<path d="M976.0,2136 L976.0,2160" class="edge"/>
+<path d="M224.0,2160 L976.0,2160" class="edge"/>
+<path d="M600.0,2160 L600.0,2184" class="edge" marker-end="url(#a)"/>
+<text x="32" y="2280" class="sec" text-anchor="start">4. The kernels under every product</text>
+<path d="M32,2292 L1168,2292" class="rule"/>
+<g class="node"><rect x="48.0" y="2320" width="352" height="112" rx="8" class="cpu"/>
+<text x="224" y="2346.5" class="h" text-anchor="middle">A kernel table per instruction set</text>
+<text x="224" y="2364.5" class="b" text-anchor="middle">chosen once at start, the fastest first: AVX-512,</text>
+<text x="224" y="2381.5" class="b" text-anchor="middle">AVX2, SSE4.1; NEON+i8mm, NEON+dotprod,</text>
+<text x="224" y="2398.5" class="b" text-anchor="middle">NEON; SIMD128; scalar</text>
+<text x="224" y="2415.5" class="c" text-anchor="middle">Isa::best (inga-cpu/src/isa.rs)</text>
+</g>
+<g class="node"><rect x="424.0" y="2320" width="352" height="112" rx="8" class="cpu"/>
+<text x="600" y="2346.5" class="h" text-anchor="middle">Weights repacked at load</text>
+<text x="600" y="2364.5" class="b" text-anchor="middle">Q4_K, Q8_0, Q4_0, Q4_1, Q5_0, Q5_1, IQ4_NL</text>
+<text x="600" y="2381.5" class="b" text-anchor="middle">rows in groups of eight; skipped when a</text>
+<text x="600" y="2398.5" class="b" text-anchor="middle">GPU is used, or with --no-repack</text>
+<text x="600" y="2415.5" class="c" text-anchor="middle">repack.rs · kernels/packed.rs</text>
+</g>
+<g class="node"><rect x="800.0" y="2320" width="352" height="112" rx="8" class="cpu"/>
+<text x="976" y="2346.5" class="h" text-anchor="middle">Attention from the f16 cache</text>
+<text x="976" y="2364.5" class="b" text-anchor="middle">16 positions at a time laid out straight</text>
+<text x="976" y="2381.5" class="b" text-anchor="middle">from their f16 bits (F16C on x86-64);</text>
+<text x="976" y="2398.5" class="b" text-anchor="middle">a quantized cache row by row</text>
+<text x="976" y="2415.5" class="c" text-anchor="middle">keys_f16 · values_f16</text>
+</g>
+<text x="32" y="2472" class="t2" text-anchor="start">The layers a GPU runs follow the GPU backend's own path, not drawn here.</text>
+</svg>

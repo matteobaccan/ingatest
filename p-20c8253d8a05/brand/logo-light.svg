@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 400" width="1180" height="400" role="img" aria-labelledby="logo-light-title">
+  <title id="logo-light-title">Inga - Local LLM inference engine (Light Theme)</title>
+  <!-- Inga Modern Horizontal Logo - Optimized for Light Backgrounds -->
+  <style>
+    .word { fill: #18181B; font-family: Inter, system-ui, -apple-system, sans-serif; font-weight: 600; font-size: 140px; letter-spacing: -3.5px; }
+    .tag { fill: #4F46E5; font-family: Inter, system-ui, -apple-system, sans-serif; font-weight: 600; font-size: 30px; letter-spacing: 0.2px; }
+    .subtag { fill: #64748B; font-family: Inter, system-ui, -apple-system, sans-serif; font-weight: 400; font-size: 22px; letter-spacing: 0px; }
+    .badge-bg { fill: #EEF2FF; stroke: #C7D2FE; stroke-width: 1.5; }
+    .badge-txt { fill: #4338CA; font-family: Inter, system-ui, -apple-system, sans-serif; font-weight: 600; font-size: 17px; }
+
+    .mark-bg { fill: #FFFFFF; stroke: #E2E2E8; stroke-width: 3; }
+    .lobe-top { fill: #6366F1; }
+    .lobe-mid { fill: #4F46E5; }
+    .lobe-bot { fill: #3730A3; }
+  </style>
+
+  <!-- Left: Scaled Modern Mark (320x320 at translate 40, 40) -->
+  <g transform="translate(40, 40) scale(0.625)">
+    <!-- Base squircle with light fill & hairline stroke -->
+    <rect x="16" y="16" width="480" height="480" rx="96" class="mark-bg"/>
+
+    <!-- Left Hemisphere -->
+    <path class="lobe-top" d="M 245,106 C 182,106 130,138 108,190 C 138,193 176,188 245,166 Z"/>
+    <path class="lobe-mid" d="M 103,206 C 88,244 89,280 101,304 C 142,295 186,281 245,250 L 245,182 C 182,204 138,208 103,206 Z"/>
+    <path class="lobe-bot" d="M 108,318 C 128,366 174,406 245,406 L 245,266 C 190,296 145,311 108,318 Z"/>
+
+    <!-- Right Hemisphere -->
+    <path class="lobe-top" d="M 267,106 C 330,106 382,138 404,190 C 374,193 336,188 267,166 Z"/>
+    <path class="lobe-mid" d="M 409,206 C 424,244 423,280 411,304 C 370,295 326,281 267,250 L 267,182 C 330,204 374,208 409,206 Z"/>
+    <path class="lobe-bot" d="M 404,318 C 384,366 338,406 267,406 L 267,266 C 322,296 367,311 404,318 Z"/>
+  </g>
+
+  <!-- Typography on the right (clear descender clearance) -->
+  <g transform="translate(400, 0)">
+    <!-- Wordmark: High-contrast ink text -->
+    <text x="0" y="170" class="word">inga</text>
+
+    <!-- Version / Architecture Badge -->
+    <rect x="312" y="82" width="76" height="30" rx="15" class="badge-bg"/>
+    <text x="350" y="103" text-anchor="middle" class="badge-txt">Rust</text>
+
+    <!-- Payoff: Clean negative space below 'g' -->
+    <text x="4" y="264" class="tag">Local LLM inference, any size</text>
+    <text x="4" y="312" class="subtag">Zero dependencies · One single executable · CPU &amp; GPU</text>
+  </g>
+</svg>

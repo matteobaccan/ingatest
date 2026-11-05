@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1400" viewBox="0 0 1200 1400" role="img" aria-labelledby="title desc">
+<title id="title">A request to inga serve</title>
+<desc id="desc">Flowchart: an HTTP request, the response cache, the model it names (API node or local), the router, a free session or the queue, the worker that runs the job, its events, the relay and the server-sent events.</desc>
+<!-- A diagram of docs/architecture-flow.md, kept by hand: every branch names the file
+     and the function that takes the decision; change them together. -->
+<style>
+  .bg { fill: #f5f5f7; }
+  .t1 { font: 600 22px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #1c1c21; }
+  .t2 { font: 400 14px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #62626d; }
+  .sec { font: 600 16px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #1c1c21; }
+  .rule { stroke: #e3e3e9; stroke-width: 1; }
+  .h { font: 600 14px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #1c1c21; }
+  .b { font: 400 13px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #3a3a44; }
+  .c { font: 400 11.5px ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; fill: #62626d; }
+  .lbl { font: 400 12px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #4f46e5;
+         paint-order: stroke; stroke: #f5f5f7; stroke-width: 4px; stroke-linejoin: round; }
+  .note { font: 400 11.5px ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; fill: #62626d; }
+  .edge { fill: none; stroke: #8a8a96; stroke-width: 1.5; }
+  .loop { fill: none; stroke: #8a8a96; stroke-width: 1.5; stroke-dasharray: 6 4; }
+  .head { fill: #8a8a96; }
+  .step { fill: #ffffff; stroke: #c9c9d3; stroke-width: 1.25; }
+  .dec { fill: #eeedfc; stroke: #4f46e5; stroke-width: 1.25; }
+  .term { fill: #ffffff; stroke: #1c1c21; stroke-width: 1.25; }
+  .cpu { fill: #e7f3f6; stroke: #0e7490; stroke-width: 1.25; }
+  .gpu { fill: #fbefe8; stroke: #c2410c; stroke-width: 1.25; }
+  .disk { fill: #f7f1e4; stroke: #a16207; stroke-width: 1.25; }
+  .net { fill: #eef1f5; stroke: #64748b; stroke-width: 1.25; }
+  .out { fill: #fbeceb; stroke: #c4271b; stroke-width: 1.25; }
+  .box { fill: none; stroke: #c9c9d3; stroke-width: 1; stroke-dasharray: 4 4; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #111114; }
+    .t1, .sec, .h { fill: #ececf1; }
+    .t2, .c, .note { fill: #9d9da9; }
+    .b { fill: #cfcfd8; }
+    .rule { stroke: #2c2c33; }
+    .lbl { fill: #8b8ff9; stroke: #111114; }
+    .edge, .loop { stroke: #7a7a86; }
+    .head { fill: #7a7a86; }
+    .step { fill: #1b1b1f; stroke: #3a3a44; }
+    .dec { fill: #23233a; stroke: #8b8ff9; }
+    .term { fill: #1b1b1f; stroke: #ececf1; }
+    .cpu { fill: #12262b; stroke: #22d3ee; }
+    .gpu { fill: #2b1a12; stroke: #fb923c; }
+    .disk { fill: #29230f; stroke: #facc15; }
+    .net { fill: #1c2129; stroke: #94a3b8; }
+    .out { fill: #2d1515; stroke: #f87171; }
+    .box { stroke: #3a3a44; }
+  }
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker></defs>
+<rect width="1200" height="1400" class="bg"/>
+<text x="32" y="44" class="t1" text-anchor="start">A request to inga serve</text>
+<text x="32" y="70" class="t2" text-anchor="start">From an HTTP request to the server-sent events of its answer, in short: crates/inga-server</text>
+<g class="legend">
+<rect x="32" y="96" width="24" height="16" rx="8" class="term"/>
+<text x="64" y="108" class="b" text-anchor="start">start or end</text>
+<rect x="172" y="96" width="24" height="16" rx="4" class="step"/>
+<text x="204" y="108" class="b" text-anchor="start">step</text>
+<polygon points="268,95 280,104 268,113 256,104" class="dec"/>
+<text x="288" y="108" class="b" text-anchor="start">decision</text>
+<rect x="368" y="96" width="24" height="16" rx="4" class="cpu"/>
+<text x="400" y="108" class="b" text-anchor="start">CPU and RAM</text>
+<rect x="501" y="96" width="24" height="16" rx="4" class="gpu"/>
+<text x="533" y="108" class="b" text-anchor="start">GPU</text>
+<rect x="578" y="96" width="24" height="16" rx="4" class="disk"/>
+<text x="610" y="108" class="b" text-anchor="start">disk</text>
+<rect x="662" y="96" width="24" height="16" rx="4" class="net"/>
+<text x="694" y="108" class="b" text-anchor="start">other machines</text>
+<rect x="816" y="96" width="24" height="16" rx="4" class="out"/>
+<text x="848" y="108" class="b" text-anchor="start">elsewhere or refused</text>
+<text x="1012" y="108" class="c" text-anchor="start">file · function</text>
+</g>
+<g class="node"><rect x="300.0" y="152" width="600" height="40" rx="20.0" class="term"/>
+<text x="600" y="177" class="h" text-anchor="middle">An HTTP request: the OpenAI, Anthropic, Ollama, LM Studio... APIs</text>
+</g>
+<g class="node"><rect x="300.0" y="224" width="600" height="80" rx="8" class="step"/>
+<text x="600" y="251.5" class="h" text-anchor="middle">A thread per connection; the route reads the request</text>
+<text x="600" y="269.5" class="b" text-anchor="middle">/v1/images and /v1/videos go to the image and video slots</text>
+<text x="600" y="286.5" class="c" text-anchor="middle">lib.rs · http.rs · openai.rs · slots.rs</text>
+</g>
+<path d="M600.0,192 L600.0,224" class="edge" marker-end="url(#a)"/>
+<path d="M600.0,304 L600,336" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="600" data-cy="384" data-w="256" data-h="96"><polygon points="600,336.0 728.0,384 600,432.0 472.0,384" class="dec"/>
+<text x="600" y="380" class="h" text-anchor="middle">In the response</text>
+<text x="600" y="398" class="h" text-anchor="middle">cache?</text>
+</g>
+<g class="node"><rect x="856.0" y="344" width="288" height="80" rx="8" class="step"/>
+<text x="1000" y="371.5" class="h" text-anchor="middle">Given again</text>
+<text x="1000" y="389.5" class="b" text-anchor="middle">a stream replayed piece by piece</text>
+<text x="1000" y="406.5" class="c" text-anchor="middle">response_cache.rs</text>
+</g>
+<path d="M728,384 L856.0,384" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="744" y="376" class="lbl" text-anchor="start">yes</text>
+</g>
+<path d="M600,432 L600,472" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="608" y="456" class="lbl" text-anchor="start">no</text>
+</g>
+<g class="node diamond" data-cx="600" data-cy="520" data-w="256" data-h="96"><polygon points="600,472.0 728.0,520 600,568.0 472.0,520" class="dec"/>
+<text x="600" y="525" class="h" text-anchor="middle">Which model?</text>
+</g>
+<g class="free">
+<text x="448" y="512" class="note" text-anchor="end">State::resolve</text>
+<text x="448" y="528" class="note" text-anchor="end">Resolved::{Local, Remote, Route}</text>
+</g>
+<g class="node"><rect x="856.0" y="472" width="288" height="96" rx="8" class="net"/>
+<text x="1000" y="499.0" class="h" text-anchor="middle">Another server answers</text>
+<text x="1000" y="517.0" class="b" text-anchor="middle">the route's targets in turn,</text>
+<text x="1000" y="534.0" class="b" text-anchor="middle">retried with backoff</text>
+<text x="1000" y="551.0" class="c" text-anchor="middle">api_nodes/ · routing.rs</text>
+</g>
+<path d="M728,520 L856.0,520" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="744" y="512" class="lbl" text-anchor="start">an API node</text>
+</g>
+<g class="node"><rect x="300.0" y="608" width="600" height="80" rx="8" class="step"/>
+<text x="600" y="635.5" class="h" text-anchor="middle">The router: the model loaded on its first request</text>
+<text x="600" y="653.5" class="b" text-anchor="middle">the least recently used unloaded past models_max, --vram-evict, idle</text>
+<text x="600" y="670.5" class="c" text-anchor="middle">router.rs · Router::get</text>
+</g>
+<path d="M600,568 L600.0,608" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="608" y="592" class="lbl" text-anchor="start">a local model</text>
+</g>
+<path d="M600.0,688 L600,712" class="edge" marker-end="url(#a)"/>
+<g class="node diamond" data-cx="600" data-cy="760" data-w="256" data-h="96"><polygon points="600,712.0 728.0,760 600,808.0 472.0,760" class="dec"/>
+<text x="600" y="756" class="h" text-anchor="middle">A session</text>
+<text x="600" y="774" class="h" text-anchor="middle">free?</text>
+</g>
+<g class="node"><rect x="856.0" y="712" width="288" height="96" rx="8" class="out"/>
+<text x="1000" y="739.0" class="h" text-anchor="middle">Waits in the queue</text>
+<text x="1000" y="757.0" class="b" text-anchor="middle">past --max-queued-requests or</text>
+<text x="1000" y="774.0" class="b" text-anchor="middle">--max-queued-tokens: a 503</text>
+<text x="1000" y="791.0" class="c" text-anchor="middle">admission.rs · Pool::acquire</text>
+</g>
+<path d="M728,760 L856.0,760" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="744" y="752" class="lbl" text-anchor="start">no</text>
+</g>
+<g class="node"><rect x="300.0" y="848" width="600" height="80" rx="8" class="step"/>
+<text x="600" y="875.5" class="h" text-anchor="middle">The free session holding the longest prefix of the prompt</text>
+<text x="600" y="893.5" class="b" text-anchor="middle">in its KV cache: the same conversation, back</text>
+<text x="600" y="910.5" class="c" text-anchor="middle">Pool::take · next_waiter</text>
+</g>
+<path d="M600,808 L600.0,848" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="608" y="832" class="lbl" text-anchor="start">yes</text>
+</g>
+<path d="M1000,808 L1000,884 L900.0,884" class="edge" marker-end="url(#a)"/>
+<g class="free">
+<text x="1008" y="864" class="lbl" text-anchor="start">a session freed</text>
+</g>
+<g class="node"><rect x="300.0" y="960" width="600" height="96" rx="8" class="cpu"/>
+<text x="600" y="987.0" class="h" text-anchor="middle">The model's worker thread runs the job</text>
+<text x="600" y="1005.0" class="b" text-anchor="middle">the prompt and the tokens as in core-token.svg; the decode steps</text>
+<text x="600" y="1022.0" class="b" text-anchor="middle">of several sessions in one pass (Batcher)</text>
+<text x="600" y="1039.0" class="c" text-anchor="middle">pool::worker · Pool::run_on</text>
+</g>
+<path d="M600.0,928 L600.0,960" class="edge" marker-end="url(#a)"/>
+<g class="node"><rect x="300.0" y="1088" width="600" height="80" rx="8" class="step"/>
+<text x="600" y="1115.5" class="h" text-anchor="middle">Events on a channel</text>
+<text x="600" y="1133.5" class="b" text-anchor="middle">Prefill (the prompt's progress), Text, Done</text>
+<text x="600" y="1150.5" class="c" text-anchor="middle">pool.rs · Event</text>
+</g>
+<path d="M600.0,1056 L600.0,1088" class="edge" marker-end="url(#a)"/>
+<g class="node"><rect x="300.0" y="1192" width="600" height="96" rx="8" class="step"/>
+<text x="600" y="1219.0" class="h" text-anchor="middle">The request's thread relays them</text>
+<text x="600" y="1237.0" class="b" text-anchor="middle">every 250 ms it looks whether the client left: then the</text>
+<text x="600" y="1254.0" class="b" text-anchor="middle">worker stops at its next pass, and the answer is a 499</text>
+<text x="600" y="1271.0" class="c" text-anchor="middle">State::relay (lib.rs) · RELAY_TICK</text>
+</g>
+<path d="M600.0,1168 L600.0,1192" class="edge" marker-end="url(#a)"/>
+<g class="node"><rect x="300.0" y="1312" width="600" height="56" rx="28.0" class="term"/>
+<text x="600" y="1335" class="h" text-anchor="middle">Server-sent events to the client</text>
+<text x="600" y="1354" class="c" text-anchor="middle">a keep-alive after 15 s of silence: keepalive.rs</text>
+</g>
+<path d="M600.0,1288 L600.0,1312" class="edge" marker-end="url(#a)"/>
+</svg>
