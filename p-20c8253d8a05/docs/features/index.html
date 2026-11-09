@@ -1,0 +1,984 @@
+<!DOCTYPE html><html lang="en" dir="ltr" data-theme="dark" data-has-toc data-has-sidebar class="astro-g5ptsecz"><head><meta name="robots" content="noindex, nofollow"><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Everything Inga does | Inga</title><link rel="canonical" href="https://matteobaccan.github.io/ingatest/p-20c8253d8a05/docs/features/"/><link rel="sitemap" href="/ingatest/p-20c8253d8a05/sitemap-index.xml"/><link rel="shortcut icon" href="/ingatest/p-20c8253d8a05/brand/favicon.svg" type="image/svg+xml"/><meta name="generator" content="Astro v7.4.7"/><meta name="generator" content="Starlight v0.42.10"/><meta property="og:title" content="Everything Inga does"/><meta property="og:type" content="article"/><meta property="og:url" content="https://matteobaccan.github.io/ingatest/p-20c8253d8a05/docs/features/"/><meta property="og:locale" content="en"/><meta property="og:description" content="The long tour of Inga, moved here from the main README on 2026-11-06 when the README was cut to the first screen: what Inga replaces, its parts, its highlights, the big models it plans for, what…"/><meta property="og:site_name" content="Inga"/><meta name="twitter:card" content="summary_large_image"/><meta name="description" content="The long tour of Inga, moved here from the main README on 2026-11-06 when the README was cut to the first screen: what Inga replaces, its parts, its highlights, the big models it plans for, what…"/><meta name="theme-color" content="#4f46e5"/><meta property="og:image" content="https://matteobaccan.github.io/ingatest/p-20c8253d8a05/social-preview.png"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta name="twitter:image" content="https://matteobaccan.github.io/ingatest/p-20c8253d8a05/social-preview.png"/><script>
+	window.StarlightThemeProvider = (() => {
+		const storedTheme =
+			typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme');
+		const theme =
+			storedTheme ||
+			(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+		document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+		return {
+			updatePickers(theme = storedTheme || 'auto') {
+				document.querySelectorAll('starlight-theme-select').forEach((picker) => {
+					const select = picker.querySelector('select');
+					if (select) select.value = theme;
+					/** @type {HTMLTemplateElement | null} */
+					const tmpl = document.querySelector(`#theme-icons`);
+					const newIcon = tmpl && tmpl.content.querySelector('.' + theme);
+					if (newIcon) {
+						const oldIcon = picker.querySelector('svg.label-icon');
+						if (oldIcon) {
+							oldIcon.replaceChildren(...newIcon.cloneNode(true).childNodes);
+						}
+					}
+				});
+			},
+		};
+	})();
+</script><template id="theme-icons"><svg aria-hidden="true" class="light astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M5 12a1 1 0 0 0-1-1H3a1 1 0 0 0 0 2h1a1 1 0 0 0 1-1Zm.64 5-.71.71a1 1 0 0 0 0 1.41 1 1 0 0 0 1.41 0l.71-.71A1 1 0 0 0 5.64 17ZM12 5a1 1 0 0 0 1-1V3a1 1 0 0 0-2 0v1a1 1 0 0 0 1 1Zm5.66 2.34a1 1 0 0 0 .7-.29l.71-.71a1 1 0 1 0-1.41-1.41l-.66.71a1 1 0 0 0 0 1.41 1 1 0 0 0 .66.29Zm-12-.29a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.71-.71a1.004 1.004 0 1 0-1.43 1.41l.73.71ZM21 11h-1a1 1 0 0 0 0 2h1a1 1 0 0 0 0-2Zm-2.64 6A1 1 0 0 0 17 18.36l.71.71a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.76-.66ZM12 6.5a5.5 5.5 0 1 0 5.5 5.5A5.51 5.51 0 0 0 12 6.5Zm0 9a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm0 3.5a1 1 0 0 0-1 1v1a1 1 0 0 0 2 0v-1a1 1 0 0 0-1-1Z"/></svg><svg aria-hidden="true" class="dark astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.64 13a1 1 0 0 0-1.05-.14 8.049 8.049 0 0 1-3.37.73 8.15 8.15 0 0 1-8.14-8.1 8.59 8.59 0 0 1 .25-2A1 1 0 0 0 8 2.36a10.14 10.14 0 1 0 14 11.69 1 1 0 0 0-.36-1.05Zm-9.5 6.69A8.14 8.14 0 0 1 7.08 5.22v.27a10.15 10.15 0 0 0 10.14 10.14 9.784 9.784 0 0 0 2.1-.22 8.11 8.11 0 0 1-7.18 4.32v-.04Z"/></svg><svg aria-hidden="true" class="auto astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg></template><link rel="stylesheet" href="/ingatest/p-20c8253d8a05/_astro/print.C9eyqPGL.css" media="print"><link rel="stylesheet" href="/ingatest/p-20c8253d8a05/_astro/common.D46iRUrB.css"><script type="module" src="/ingatest/p-20c8253d8a05/_astro/page.cNngjUgL.js"></script></head><body class="astro-g5ptsecz"><a class="sl-skip-link astro-qb7clj6f" href="#_top">Skip to content</a><div class="page sl-flex astro-yntsjkba"><header class="header astro-yntsjkba"><div class="header astro-by6fddyj"><div class="title-wrapper sl-flex astro-by6fddyj"><a href="/ingatest/p-20c8253d8a05/" class="site-title sl-flex astro-6rvad3va"><img class="astro-6rvad3va" alt="Inga" src="/ingatest/p-20c8253d8a05/_astro/logo-mark.C8E4CH1P.svg" width="512" height="512"><span class="astro-6rvad3va" translate="no">Inga</span></a></div><div class="sl-flex print:hidden astro-by6fddyj"><site-search class="astro-by6fddyj astro-b5kgnn7o" data-translations="{&quot;placeholder&quot;:&quot;Search&quot;}"><button data-open-modal disabled aria-label="Search" aria-keyshortcuts="Control+K" class="astro-b5kgnn7o"><svg aria-hidden="true" class="astro-b5kgnn7o astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.71 20.29 18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.39ZM11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg><span class="sl-hidden md:sl-block astro-b5kgnn7o" aria-hidden="true">Search</span><kbd class="sl-hidden md:sl-flex astro-b5kgnn7o" style="display: none"><kbd class="astro-b5kgnn7o">Ctrl</kbd><kbd class="astro-b5kgnn7o">K</kbd></kbd></button><dialog style="padding: 0" aria-label="Search" class="astro-b5kgnn7o"><div class="dialog-frame sl-flex astro-b5kgnn7o"><button data-close-modal class="sl-flex md:sl-hidden astro-b5kgnn7o">Cancel</button><div class="search-container astro-b5kgnn7o"><div id="starlight__search" class="astro-b5kgnn7o"></div></div></div></dialog></site-search><script>
+	(() => {
+		const openBtn = document.querySelector('button[data-open-modal]');
+		const shortcut = openBtn?.querySelector('kbd');
+		if (!openBtn || !(shortcut instanceof HTMLElement)) return;
+		const platformKey = shortcut.querySelector('kbd');
+		if (platformKey && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)) {
+			platformKey.textContent = '⌘';
+			openBtn.setAttribute('aria-keyshortcuts', 'Meta+K');
+		}
+		shortcut.style.display = '';
+	})();
+</script><script type="module" src="/ingatest/p-20c8253d8a05/_astro/Search.astro_astro_type_script_index_0_lang.CBM5W_Af.js"></script></div><div class="sl-hidden md:sl-flex print:hidden right-group astro-by6fddyj"><div class="sl-flex social-icons astro-by6fddyj"><a href="https://github.com/matteobaccan/inga" rel="me" class="sl-flex astro-n2mnl6yq"><span class="sr-only astro-n2mnl6yq">GitHub</span><svg aria-hidden="true" class="astro-n2mnl6yq astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-2z5xp7gb"><span class="sr-only astro-2z5xp7gb">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-2z5xp7gb"><option value="dark" class="astro-2z5xp7gb">Dark</option><option value="light" class="astro-2z5xp7gb">Light</option><option value="auto" selected class="astro-2z5xp7gb">Auto</option></select><svg aria-hidden="true" class="icon caret astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script><script type="module">var e=`starlight-theme`,t=e=>e===`auto`||e===`dark`||e===`light`?e:`auto`,n=()=>t(typeof localStorage<`u`&&localStorage.getItem(e));function r(t){typeof localStorage<`u`&&localStorage.setItem(e,t===`light`||t===`dark`?t:``)}var i=()=>matchMedia(`(prefers-color-scheme: light)`).matches?`light`:`dark`;function a(e){StarlightThemeProvider.updatePickers(e),document.documentElement.dataset.theme=e===`auto`?i():e,r(e)}matchMedia(`(prefers-color-scheme: light)`).addEventListener(`change`,()=>{n()===`auto`&&a(`auto`)});var o=class extends HTMLElement{constructor(){super(),a(n()),this.querySelector(`select`)?.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&a(t(e.currentTarget.value))})}};customElements.define(`starlight-theme-select`,o);</script><script type="module">var e=class extends HTMLElement{constructor(){super();let e=this.querySelector(`select`);e&&(e.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&(window.location.pathname=e.currentTarget.value)}),window.addEventListener(`pageshow`,t=>{if(!t.persisted)return;let n=e.querySelector(`option[selected]`)?.index;n!==e.selectedIndex&&(e.selectedIndex=n??0)}))}};customElements.define(`starlight-lang-select`,e);</script></div></div></header><nav class="sidebar print:hidden astro-yntsjkba" aria-label="Main"><button popovertarget="starlight__sidebar" class="sl-menu-button sl-flex md:sl-hidden print:hidden astro-r2osgdlg"><svg aria-hidden="true" class="open-menu astro-r2osgdlg astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M3 8h18a1 1 0 1 0 0-2H3a1 1 0 0 0 0 2Zm18 8H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Zm0-5H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Z"/></svg><svg aria-hidden="true" class="close-menu astro-r2osgdlg astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="m13.41 12 6.3-6.29a1.004 1.004 0 1 0-1.42-1.42L12 10.59l-6.29-6.3a1.004 1.004 0 0 0-1.42 1.42l6.3 6.29-6.3 6.29a1 1 0 0 0 0 1.42.998.998 0 0 0 1.42 0l6.29-6.3 6.29 6.3a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.42L13.41 12Z"/></svg><span class="sr-only astro-r2osgdlg">Menu</span></button><script type="module">var e=class extends HTMLElement{constructor(){super();let e=matchMedia(`(min-width: 50em)`),t=()=>{this.popover=e.matches?null:`auto`};t(),e.addEventListener(`change`,()=>t()),this.addEventListener(`toggle`,({newState:e})=>this.trapFocus(e===`open`))}trapFocus(e){document.querySelectorAll(`.main-frame, .sl-skip-link`).forEach(t=>{t.toggleAttribute(`inert`,e)})}};customElements.define(`sl-sidebar-pane`,e);</script><sl-sidebar-pane popover id="starlight__sidebar" class="sidebar-pane astro-yntsjkba"><div class="sidebar-content sl-flex astro-yntsjkba"><sl-sidebar-state-persist data-hash="014pns5" class="astro-ipdry5cl"><script aria-hidden="true">
+		(() => {
+			try {
+				if (!matchMedia('(min-width: 50em)').matches) return;
+				/** @type {HTMLElement | null} */
+				const target = document.querySelector('sl-sidebar-state-persist');
+				const state = JSON.parse(sessionStorage.getItem('sl-sidebar-state') || '0');
+				if (!target || !state || target.dataset.hash !== state.hash) return;
+				window._starlightScrollRestore = state.scroll;
+				customElements.define(
+					'sl-sidebar-restore',
+					class SidebarRestore extends HTMLElement {
+						connectedCallback() {
+							try {
+								const idx = parseInt(this.dataset.index || '');
+								const details = this.closest('details');
+								if (details && typeof state.open[idx] === 'boolean') details.open = state.open[idx];
+							} catch {}
+						}
+					}
+				);
+			} catch {}
+		})();
+	</script><ul class="top-level astro-rmhv4bp6"><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Get started</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="0"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Documentation overview</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/get-started/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Quick start</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/features/" aria-current="page" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Everything Inga does</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/wasm/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Inga in the browser</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/faq/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">FAQ</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/testers/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Testers</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/mac-testers/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Mac testers</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Use cases</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="1"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Overview</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/apply-lora-adapters/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Apply LoRA adapters</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/ask-about-audio/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Ask about a sound recording</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/ask-questions-about-a-code-base/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Ask questions about a code base</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/brand-the-web-ui/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Put your company&#39;s brand on the web UI</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-about-an-image/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Chat about an image</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-in-the-browser/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Chat in the browser and manage models from the web UI</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-with-a-local-gguf-model/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Chat with a model in the terminal</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-with-documents/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Chat with documents: PDF, Word, Markdown and text files</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/compare-models-on-your-questions/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Find which model answers your questions best</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/configure-inga/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Find every option and keep your settings in one file</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/diffusion-language-models/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Chat with a diffusion language model</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/edit-images/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Edit a picture: transform, touch up, extend, upscale</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/embeddings-reranking-and-classification/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Embeddings, reranking and classification for RAG</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/find-models-and-check-support/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Find models and check that Inga runs them</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/find-objects-in-a-picture/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Find objects in a picture</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/fine-tune-a-model/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Fine-tune a small model on your data</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/generate-images/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Generate images from text</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/generate-videos/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Generate video clips from text</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/get-structured-output/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Get answers as JSON or in a grammar</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/host-experts-on-other-machines/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Host MoE experts on other machines</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/integrate-inga-in-javascript/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Integrate Inga in a JavaScript application</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-a-laptop-cool-and-quiet/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Keep a laptop cool and quiet while a model runs</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-long-conversations/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Long conversations: compaction, context shift, rotating cache, saved chats</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/make-decisions/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Ask a model for decisions: typed answers with probabilities</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/make-music/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Make music from a description and lyrics</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/measure-model-quality/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Measure a model&#39;s quality: perplexity and KL divergence</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/measure-speed/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Measure the speed of a model on your machine</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/merge-models/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Merge fine-tunes of one model, or make them a mixture of experts</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/monitor-a-server/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Monitor a server: health, metrics, traces</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/optimize-a-model/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Let Inga propose a smaller variant of a model, and pick which one runs</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/organize-chats-in-projects/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Organize chats in projects, with a memory of your work</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/play-your-songs-offline/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Play your songs offline, on a phone or a computer</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/quantize-a-model/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Quantize a model into a GGUF file</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/read-pages-and-work-on-files/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Let a model read web pages and work on a folder&#39;s files</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/remember-across-chats/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Let the models remember across chats</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/replace-ollama-or-lm-studio/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Use Inga as an Ollama or LM Studio replacement</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-dense-model-larger-than-ram/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a dense model larger than your RAM</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-mixture-of-experts-model/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a mixture-of-experts model, even one larger than your RAM</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-from-hugging-face/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a model straight from Hugging Face</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-inside-the-browser/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a model inside the browser (experiment)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-on-a-mesh/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a model on a mesh of PCs</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-safetensors-model/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a Hugging Face model in its original format</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-inga-as-a-service/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run Inga as a service that starts at boot</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-inga-in-docker/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run Inga in Docker or Podman</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-on-an-nvidia-gpu/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run a model on a GPU: NVIDIA, AMD, Intel or Apple</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-openclaw-on-inga/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run the OpenClaw agent on Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/schedule-prompts/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Run prompts at set times</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/see-model-speeds/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">See which models run fastest on your computer</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-many-users-and-models/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Serve many users and models</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-openai-and-anthropic-apis/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Serve a model to OpenAI and Anthropic clients</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/share-the-memory-with-agents/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Share the memory with Claude Code, Codex and other agents</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/speed-up-with-speculative-decoding/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Faster answers with speculative decoding</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/split-a-model-across-machines/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Split a model across machines</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/steer-a-model-with-control-vectors/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Steer a model with control vectors</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/talk-to-a-model-by-voice/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Speak text aloud and talk to a model by voice</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/transcribe-audio/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Transcribe speech to text</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-external-models/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Use external models through Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-mcp-tools/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Give local models the tools of MCP servers</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-skills/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Give local models skills</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-thinking-models/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Use thinking models</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-with-coding-agents/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Use Inga with coding agents and editors</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/use-cases/watermark-text/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Watermark generated text</span></a></li><li class="astro-rmhv4bp6"><details class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Coding tools</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="2"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Overview</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/aider/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Aider on Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/claude-code/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Claude Code on Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/codex/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Codex on Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/opencode/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">OpenCode on Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/pi/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">pi on Inga</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/integrations/qwen-code/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Qwen Code on Inga</span></a></li></ul></details></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Reference</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="3"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/cli/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Command line (CLI)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/config/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Configuration (inga.toml)</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/api/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">HTTP APIs</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/api-node-presets/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">API node presets</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/branding/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Your own brand</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/legal/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Legal notes</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Models</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="4"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/supported-models/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Supported models</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Performance</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="5"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/performance/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Measured speed</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Comparison</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="6"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/what-inga-replaces/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">What Inga replaces</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Development</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="7"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/development/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Test and build switches</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/releasing/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Releasing</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/gpu-runner/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">GPU runner</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/claude-actions/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Claude in GitHub Actions</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/maintainer-checklist/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Maintainer checklist</span></a></li><li class="astro-rmhv4bp6"><a href="/ingatest/p-20c8253d8a05/docs/website/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">The website</span></a></li></ul></details></li></ul><script aria-hidden="true">
+		(() => {
+			const scroller = document.getElementById('starlight__sidebar');
+			if (!window._starlightScrollRestore || !scroller) return;
+			scroller.scrollTop = window._starlightScrollRestore;
+			delete window._starlightScrollRestore;
+		})();
+	</script></sl-sidebar-state-persist><div class="md:sl-hidden"><div class="mobile-preferences sl-flex astro-p4azlveh"><div class="social-icons astro-p4azlveh"><a href="https://github.com/matteobaccan/inga" rel="me" class="sl-flex astro-n2mnl6yq"><span class="sr-only astro-n2mnl6yq">GitHub</span><svg aria-hidden="true" class="astro-n2mnl6yq astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-2z5xp7gb"><span class="sr-only astro-2z5xp7gb">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-2z5xp7gb"><option value="dark" class="astro-2z5xp7gb">Dark</option><option value="light" class="astro-2z5xp7gb">Light</option><option value="auto" selected class="astro-2z5xp7gb">Auto</option></select><svg aria-hidden="true" class="icon caret astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script></div></div></div></sl-sidebar-pane></nav><div class="main-frame astro-yntsjkba"><script type="module">var e=document.getElementById(`starlight__sidebar`),t=e?.querySelector(`sl-sidebar-state-persist`),n=`sl-sidebar-state`,r=()=>{let r=[],i=t?.dataset.hash||``;try{let e=sessionStorage.getItem(n),t=JSON.parse(e||`{}`);Array.isArray(t.open)&&t.hash===i&&(r=t.open)}catch{}return{hash:i,open:r,scroll:e?.scrollTop||0}},i=e=>{try{sessionStorage.setItem(n,JSON.stringify(e))}catch{}},a=()=>i(r()),o=(e,t)=>{let n=r();n.open[t]=e,i(n)};t?.addEventListener(`click`,e=>{if(!(e.target instanceof Element))return;let t=e.target.closest(`summary`)?.closest(`details`);if(!t)return;let n=t.querySelector(`sl-sidebar-restore`),r=parseInt(n?.dataset.index||``);isNaN(r)||o(!t.open,r)}),addEventListener(`visibilitychange`,()=>{document.visibilityState===`hidden`&&a()});</script><div class="lg:sl-flex astro-lrzkfocr"><aside class="right-sidebar-container print:hidden astro-lrzkfocr"><div class="right-sidebar astro-lrzkfocr"><div class="lg:sl-hidden astro-qok35upx"><mobile-starlight-toc data-min-h="2" data-max-h="3" class="astro-66cqc7ze"><nav aria-labelledby="starlight__on-this-page--mobile" class="astro-66cqc7ze"><details id="starlight__mobile-toc" class="astro-66cqc7ze"><summary id="starlight__on-this-page--mobile" class="sl-flex astro-66cqc7ze"><span class="toggle sl-flex astro-66cqc7ze">On this page<svg aria-hidden="true" class="caret astro-66cqc7ze astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></span><span class="display-current astro-66cqc7ze"></span></summary><div class="dropdown astro-66cqc7ze"><ul class="isMobile astro-jugkfwgx" style="--depth: 0;"><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#_top" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Overview</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#one-executable-replaces-" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">One executable replaces …</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#five-parts-together-or-on-their-own" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Five parts, together or on their own</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#highlights" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Highlights</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#frontier-models-on-any-hardware" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Frontier models on any hardware</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#what-it-does-for-you" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">What it does for you</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#transparent-by-design" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Transparent by design</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#status-what-works-today" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Status: what works today</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#drop-in-for-other-servers" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Drop-in for other servers</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#screenshots" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Screenshots</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#goals" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Goals</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#further-reading" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Further reading</span></a></li></ul></div></details></nav></mobile-starlight-toc><script type="module" src="/ingatest/p-20c8253d8a05/_astro/MobileTableOfContents.astro_astro_type_script_index_0_lang.C3fM4Kra.js"></script></div><div class="right-sidebar-panel sl-hidden lg:sl-block astro-qok35upx"><div class="sl-container astro-qok35upx"><starlight-toc data-min-h="2" data-max-h="3"><nav aria-labelledby="starlight__on-this-page"><h2 id="starlight__on-this-page">On this page</h2><ul class="astro-jugkfwgx" style="--depth: 0;"><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#_top" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Overview</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#one-executable-replaces-" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">One executable replaces …</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#five-parts-together-or-on-their-own" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Five parts, together or on their own</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#highlights" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Highlights</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#frontier-models-on-any-hardware" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Frontier models on any hardware</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#what-it-does-for-you" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">What it does for you</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#transparent-by-design" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Transparent by design</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#status-what-works-today" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Status: what works today</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#drop-in-for-other-servers" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Drop-in for other servers</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#screenshots" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Screenshots</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#goals" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Goals</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#further-reading" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Further reading</span></a></li></ul></nav></starlight-toc><script type="module" src="/ingatest/p-20c8253d8a05/_astro/TableOfContents.astro_astro_type_script_index_0_lang.BpJaGz7G.js"></script></div></div></div></aside><div class="main-pane astro-lrzkfocr"><main data-pagefind-body class="astro-g5ptsecz" lang="en" dir="ltr"><div class="content-panel astro-a7po4psb"><div class="sl-container astro-a7po4psb"><h1 id="_top" class="astro-bebwqqxs">Everything Inga does</h1></div></div><div class="content-panel astro-a7po4psb"><div class="sl-container astro-a7po4psb"><div class="sl-markdown-content"><p>The long tour of Inga, moved here from the main <a href="https://github.com/matteobaccan/inga#readme">README</a> on 2026-11-06 when the
+README was cut to the first screen: what Inga replaces, its parts, its highlights, the big
+models it plans for, what it tells you, what works today, the drop-in servers, the web UI’s
+pages and the project’s goals. The guides by use case are in <a href="/ingatest/p-20c8253d8a05/docs/use-cases/"><code dir="auto">use-cases/</code></a>,
+every command in <a href="/ingatest/p-20c8253d8a05/docs/cli/"><code dir="auto">cli.md</code></a>, the questions people ask in <a href="/ingatest/p-20c8253d8a05/docs/faq/"><code dir="auto">faq.md</code></a>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="one-executable-replaces-">One executable replaces …</h2><a class="sl-anchor-link" href="#one-executable-replaces-"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “One executable replaces …”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Instead of</th>
+<th>Inga gives you</th>
+<th>Try it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>An inference engine</strong> (llama.cpp, whisper.cpp, stable-diffusion.cpp)</td>
+<td>its own engine, every llama.cpp quantization, output checked against those projects</td>
+<td><code dir="auto">inga run</code>, <code dir="auto">inga image</code></td>
+</tr>
+<tr>
+<td><strong>A model runner</strong> (Ollama, LM Studio)</td>
+<td>models from Hugging Face, or the ones Ollama and LM Studio downloaded, loaded on demand and unloaded when idle</td>
+<td><code dir="auto">inga pull</code>, <code dir="auto">inga list --ollama</code></td>
+</tr>
+<tr>
+<td><strong>GPU builds</strong> (llama.cpp’s CUDA, ROCm and multi-GPU builds)</td>
+<td>CUDA, Vulkan, Metal and ROCm / HIP in one file with only the driver, several GPUs of one PC splitting a dense model</td>
+<td><code dir="auto">--device cuda:0,vulkan:1</code></td>
+</tr>
+<tr>
+<td><strong>An API server</strong></td>
+<td>the OpenAI, Anthropic, Ollama, LM Studio and KoboldAI APIs, streaming and tool calls, several models and users</td>
+<td><code dir="auto">inga serve --no-webui</code></td>
+</tr>
+<tr>
+<td><strong>A router or gateway</strong> (LiteLLM, llama-swap)</td>
+<td>other servers and providers as API nodes, routes with fallback, named keys with budgets, a cascade from a small model to a larger one</td>
+<td><code dir="auto">inga node add</code>, <code dir="auto">inga route</code></td>
+</tr>
+<tr>
+<td><strong>A chat web app</strong> (Open WebUI)</td>
+<td>chat with a model hub, the models’ speeds on this computer, web search, documents, a memory, image generation</td>
+<td><code dir="auto">inga serve</code></td>
+</tr>
+<tr>
+<td><strong>Speech tools</strong> (faster-whisper, a TTS server)</td>
+<td>transcription, streamed live, and text to speech; a hands-free voice chat</td>
+<td><code dir="auto">inga transcribe --stream</code>, <code dir="auto">inga speak</code></td>
+</tr>
+<tr>
+<td><strong>An agent host</strong> (an MCP client, a scheduler)</td>
+<td>MCP servers’ tools, Agent Skills and scheduled prompts, each tool call approved</td>
+<td><code dir="auto">inga mcp</code>, <code dir="auto">inga skill</code>, <code dir="auto">inga schedule</code></td>
+</tr>
+<tr>
+<td><strong>A quantizer</strong> (llama-quantize)</td>
+<td>the same GGUF file, byte for byte</td>
+<td><code dir="auto">inga quantize</code></td>
+</tr>
+<tr>
+<td><strong>A LoRA trainer</strong> (Python, PyTorch)</td>
+<td>LoRA fine-tuning of small models on the CPU, adapters for <code dir="auto">--lora</code></td>
+<td><code dir="auto">inga finetune</code></td>
+</tr>
+<tr>
+<td><strong>A cluster</strong></td>
+<td>one model over the PCs of a LAN: layers, experts or slices; a mesh with no copy of the model on the others</td>
+<td><code dir="auto">inga satellite</code>, <code dir="auto">--mesh</code></td>
+</tr>
+</tbody>
+</table>
+<p>The full list — which programs you can uninstall, which dependencies (Python, PyTorch,
+the CUDA Toolkit, Node.js, ffmpeg…) you no longer need, and what to keep:
+<a href="/ingatest/p-20c8253d8a05/docs/what-inga-replaces/">what Inga replaces</a>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="five-parts-together-or-on-their-own">Five parts, together or on their own</h2><a class="sl-anchor-link" href="#five-parts-together-or-on-their-own"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Five parts, together or on their own”</span></a></div>
+<p>Inga is one file, but its parts are separable: use only the one you need.</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>What it is</th>
+<th>Use it alone</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Engine</strong></td>
+<td>local inference in the terminal: chat, single prompts, speed and quality measurements, speech to text, image generation</td>
+<td><code dir="auto">inga run MODEL -p "..."</code>, <code dir="auto">inga bench</code>, <code dir="auto">inga transcribe</code>, <code dir="auto">inga image</code>: no server, no browser (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-with-a-local-gguf-model/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>API server</strong></td>
+<td>the OpenAI, Anthropic, Ollama, LM Studio and KoboldAI APIs for apps, agents and editors, headless</td>
+<td><code dir="auto">inga serve MODEL --no-webui</code> (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-openai-and-anthropic-apis/">guide</a>, <a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-with-coding-agents/">coding agents</a>, <a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-openclaw-on-inga/">OpenClaw</a>)</td>
+</tr>
+<tr>
+<td><strong>Web app</strong></td>
+<td>the chat page and model hub served by <code dir="auto">inga serve</code>: search, download, load, compare, chat</td>
+<td><code dir="auto">inga serve</code> with no model, then pick one in the browser (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-in-the-browser/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>Inga mesh</strong> (part 1, LAN)</td>
+<td><code dir="auto">inga satellite</code> on other PCs, found by mDNS (or <code dir="auto">--peers</code>); the elected master measures them, places layer ranges where a token is fastest and sends each only its layers (cached by hash); a satellite that leaves is replaced and the answer goes on; the web UI’s Mesh page and <code dir="auto">inga mesh show</code> draw who runs what and why</td>
+<td><code dir="auto">inga serve MODEL --mesh home</code> on one PC, <code dir="auto">inga satellite --mesh home</code> on the others (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-on-a-mesh/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>Network of nodes</strong></td>
+<td><code dir="auto">inga worker</code> on other PCs runs layers, experts or tensor slices of a model the main PC loads; API nodes bring whole models of other servers and providers</td>
+<td><code dir="auto">inga worker</code> on each PC, <code dir="auto">--nodes</code>, <code dir="auto">--expert-nodes</code> or <code dir="auto">--tp-nodes</code> on the main one (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/split-a-model-across-machines/">guide</a>); <code dir="auto">inga node add</code> or <code dir="auto">--api-node</code> (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-external-models/">guide</a>)</td>
+</tr>
+</tbody>
+</table>
+<div class="sl-heading-wrapper level-h2"><h2 id="highlights">Highlights</h2><a class="sl-anchor-link" href="#highlights"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Highlights”</span></a></div>
+<ul>
+<li>🧠 <strong>Any model.</strong> Llama, Qwen 2–3.8, Gemma 1–4, DeepSeek V2–V4, Kimi K2 / K3, gpt-oss,
+GLM 4–5.3, Phi, Mistral, Nemotron, Mamba-2 and more, in GGUF (every llama.cpp quantization)
+or Hugging Face safetensors. <a href="/ingatest/p-20c8253d8a05/docs/supported-models/">Supported models</a></li>
+<li>⚡ <strong>The GPU by default.</strong> NVIDIA through CUDA, AMD / Intel / NVIDIA through Vulkan,
+Apple Silicon through Metal, AMD through ROCm / HIP (experimental), with only the
+driver installed: as many layers as fit, the rest on the CPU; several GPUs of one PC
+split a dense model’s layers (<code dir="auto">--device cuda:0,vulkan:1</code>; a mixture of experts or a
+hybrid model runs on one GPU). <a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-on-an-nvidia-gpu/">GPU guide</a></li>
+<li>💾 <strong>Models larger than the RAM.</strong> Dense layers and MoE experts streamed from disk,
+converted experts kept for next time, hot / warm / cold experts at different
+precisions sized to the free RAM. Qwen3-30B-A3B (a 17 GB file) answers in 2 GB of RAM
+on the CPU with the same text as with all of it in RAM (1.7 tok/s with the OS file
+cache; measured on one machine, see <a href="/ingatest/p-20c8253d8a05/docs/performance/#a-big-mixture-of-experts-in-little-ram">performance</a>).
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-mixture-of-experts-model/">MoE guide</a> ·
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-dense-model-larger-than-ram/">dense guide</a></li>
+<li>🖼️ <strong>More than text.</strong> Images in (Gemma, Qwen-VL, LLaVA, Pixtral…) and out
+(Stable Diffusion, SDXL, SD 3, Flux, Qwen-Image, Z-Image, Chroma, Lumina, Sana; extend
+and upscale), video clips (Wan 2.1), audio in (Ultravox, Qwen2-Audio, Voxtral, Gemma 3n / 4…),
+speech to text (Whisper, Parakeet, streamed live), text to speech (Piper, OuteTTS), a
+hands-free voice chat and Deep focus (an avatar that says the answers), diffusion
+language models. <a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-about-an-image/">Images</a> ·
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/ask-about-audio/">audio</a> · <a href="/ingatest/p-20c8253d8a05/docs/use-cases/transcribe-audio/">speech</a> ·
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/talk-to-a-model-by-voice/">voice</a> ·
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/generate-images/">image generation</a> ·
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/diffusion-language-models/">diffusion LMs</a></li>
+<li>🌐 <strong>External models too.</strong> Another Inga, Ollama, LM Studio, vLLM, OpenAI, Anthropic,
+OpenRouter, Groq… (113 presets) as API nodes: their models next to the local ones in every API and
+the web UI, the protocol translated, keys kept encrypted on the server, and coding
+agents’ model names mapped to any of them; routes send each request to the best
+eligible model by latency, cost, load, class or your eval scores, with fallback and a
+<code dir="auto">local-only</code> that never leaves the machine. <a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-external-models/">Guide</a></li>
+<li>🛠️ <strong>Tool calls and web search</strong>, with the sources under the answer.
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-openai-and-anthropic-apis/">Server guide</a></li>
+<li>🧠 <strong>A persistent memory</strong>: facts recalled in new chats, saved by the models
+themselves, kept on your computer. <a href="/ingatest/p-20c8253d8a05/docs/use-cases/remember-across-chats/">Guide</a></li>
+<li>🗂️ <strong>Projects with a memory of your work</strong>: chats grouped by project, each with a diary,
+project rules and your style that Inga writes by itself after a chat, as Markdown in a
+git repository per project, every change one click from Undo (a preview).
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/organize-chats-in-projects/">Guide</a></li>
+<li>🔧 <strong>Agents</strong>: the tools of your <code dir="auto">mcp.json</code>’s MCP servers (as Claude Desktop and LM
+Studio write it), Agent Skills, and prompts run at set times; every tool call shown
+and approved first. <a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-mcp-tools/">MCP</a> ·
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-skills/">skills</a> · <a href="/ingatest/p-20c8253d8a05/docs/use-cases/schedule-prompts/">scheduled tasks</a></li>
+<li>🎛️ <strong>Fine-tuning and steering</strong>: LoRA adapters trained on the CPU from your JSONL
+(<code dir="auto">inga finetune</code>), control vectors, typed decisions read from the logits.
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/fine-tune-a-model/">Fine-tuning</a> ·
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/steer-a-model-with-control-vectors/">control vectors</a> ·
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/make-decisions/">decisions</a></li>
+<li>📐 <strong>Structured output</strong>: JSON schemas and GBNF grammars.
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/get-structured-output/">Guide</a></li>
+<li>🚀 <strong>Speculative decoding</strong>, on by default where it pays: the model’s MTP block,
+prompt lookup, a draft model or an EAGLE-3 draft head.
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/speed-up-with-speculative-decoding/">Guide</a></li>
+<li>📦 <strong>No runtime dependencies.</strong> No Python, no DLLs, no CUDA Toolkit: the GPU kernels
+are inside the binary. <a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-inga-in-docker/">Docker image</a> too.</li>
+<li>🖥️ <strong>Windows, Linux and macOS</strong>, x86-64 (SSE4.1, AVX2, AVX-512) and ARM64 (NEON), the
+same single file. <a href="/ingatest/p-20c8253d8a05/docs/performance/#where-inga-stands">Speed against llama.cpp</a></li>
+</ul>
+<div class="sl-heading-wrapper level-h2"><h2 id="frontier-models-on-any-hardware">Frontier models on any hardware</h2><a class="sl-anchor-link" href="#frontier-models-on-any-hardware"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Frontier models on any hardware”</span></a></div>
+<p><strong>Inga has no fixed limit on a model’s size.</strong> What a model needs is a disk that holds
+its file; how fast it runs comes from everything Inga uses together: the VRAM, the RAM,
+the disks’ bandwidth and the other machines of the LAN. The largest open models are
+mixtures of experts, and each token uses only a few of their experts, so they run on the
+machine you have, not on the one they were trained for.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Parameters (active per token)</th>
+<th>Q4 file, about</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://huggingface.co/moonshotai/Kimi-K3">Kimi K3</a></td>
+<td>2.8T (104B)</td>
+<td>1.5 TB</td>
+</tr>
+<tr>
+<td><a href="https://simonwillison.net/2026/apr/24/deepseek-v4">DeepSeek V4-Pro</a> ¹</td>
+<td>1.6T (49B)</td>
+<td>960 GB</td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/moonshotai/Kimi-K2-Instruct">Kimi K2</a></td>
+<td>1T (32B)</td>
+<td>620 GB</td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/zai-org/GLM-5.2">GLM-5.2</a></td>
+<td>744B (40B)</td>
+<td>450 GB</td>
+</tr>
+<tr>
+<td><a href="https://simonwillison.net/2026/apr/24/deepseek-v4">DeepSeek V4-Flash</a></td>
+<td>284B (13B)</td>
+<td>170 GB</td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/Qwen/Qwen3-235B-A22B">Qwen3-235B-A22B</a></td>
+<td>235B (22B)</td>
+<td>140 GB</td>
+</tr>
+<tr>
+<td><a href="https://pasqualepillitteri.it/en/news/14642/qwen3-8-flash-next-local-qwen4-preview">Qwen3.8-Flash-Next</a></td>
+<td>176B (6B)</td>
+<td>105 GB</td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/openai/gpt-oss-120b">gpt-oss-120b</a></td>
+<td>117B (5.1B)</td>
+<td>62 GB</td>
+</tr>
+</tbody>
+</table>
+<p>¹ Of DeepSeek V4’s layout, which Inga runs (checked on V4-Flash’s). File sizes at
+about 4.8 bits per weight (Q4_K_M; MXFP4 for Kimi K3’s and gpt-oss’s experts).</p>
+<p><strong>Speed to expect: estimates, not measurements.</strong> Per token, Inga’s planner counts the
+bytes read from each place divided by its bandwidth: the attention and shared weights
+from VRAM or RAM, the routed experts from the RAM cache, the experts the cache misses
+from the disk (<code dir="auto">inga info</code> assumes 80 GB/s for VRAM, 20 GB/s for RAM; even routing, so
+the cache’s hit rate is its share of the experts). Real routing favours some experts,
+which the cache keeps: these figures are the floor.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>32 GB RAM, one NVMe (3.5–7 GB/s)</th>
+<th>128 GB RAM, a 24 GB GPU, 3 NVMe striped</th>
+<th>4 PCs of 64 GB, <code dir="auto">--expert-nodes</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kimi K3</td>
+<td>0.1–0.2</td>
+<td>0.3</td>
+<td>0.4</td>
+</tr>
+<tr>
+<td>DeepSeek V4-Pro</td>
+<td>0.2–0.35</td>
+<td>0.6</td>
+<td>0.7</td>
+</tr>
+<tr>
+<td>Kimi K2</td>
+<td>0.25–0.5</td>
+<td>0.9</td>
+<td>1.2</td>
+</tr>
+<tr>
+<td>GLM-5.2</td>
+<td>0.2–0.4</td>
+<td>0.7</td>
+<td>1</td>
+</tr>
+<tr>
+<td>DeepSeek V4-Flash</td>
+<td>0.8–1.4</td>
+<td>2.5</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Qwen3-235B-A22B</td>
+<td>0.4–0.75</td>
+<td>2</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Qwen3.8-Flash-Next</td>
+<td>2.5–3.7</td>
+<td>5.5</td>
+<td>8</td>
+</tr>
+<tr>
+<td>gpt-oss-120b</td>
+<td>2.5–4</td>
+<td>9.5</td>
+<td>16</td>
+</tr>
+</tbody>
+</table>
+<p>Tokens per second. The GPU column helps only the models whose layers a GPU runs today
+(Qwen3-235B, gpt-oss): DeepSeek’s, Kimi’s, GLM 5’s and Qwen3.8-Flash-Next’s layers run
+on the CPU (<a href="/ingatest/p-20c8253d8a05/docs/supported-models/">supported models</a>). For reference, <strong>measured</strong> on
+the maintainer’s PC with a 4 GB Quadro P1000: Qwen3.6-35B-A3B (Q4_K_M), its experts
+partly read from disk, generates about 3.9 tokens/s. <code dir="auto">inga info MODEL</code> prints the plan
+and the speed for your machine before anything is downloaded.</p>
+<p>How Inga gets there, and what turns each part on:</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Each part where it fits: attention, KV cache and shared experts on the GPU or in RAM, routed experts in a RAM cache, the rest on disk; the RAM plan made again once the GPU took its share</td>
+<td>by default (<code dir="auto">--experts-on</code>, <code dir="auto">--cpu-moe</code>, <code dir="auto">--mem-limit</code>)</td>
+</tr>
+<tr>
+<td>An expert cache by recency weighted by uses (LFRU); a long prompt reads its missing experts through two buffers</td>
+<td>by default</td>
+</tr>
+<tr>
+<td>The next layer’s experts predicted from the router and read ahead</td>
+<td>by default</td>
+</tr>
+<tr>
+<td>Hot experts pinned in RAM from the use profile</td>
+<td><code dir="auto">--pin-experts N</code>, <code dir="auto">inga profile</code></td>
+</tr>
+<tr>
+<td>Experts at fewer bits: hot / warm / cold sized to the RAM, or all converted once</td>
+<td><code dir="auto">--experts-precision auto</code>, <code dir="auto">--quantize-experts TYPE</code></td>
+</tr>
+<tr>
+<td>Experts striped over several NVMe drives, each expert read from its own</td>
+<td><code dir="auto">--experts-dir DIR</code> (repeated)</td>
+</tr>
+<tr>
+<td>Reads past the page cache, no second copy in RAM</td>
+<td><code dir="auto">debug.direct_reads = true</code></td>
+</tr>
+<tr>
+<td>Several GPUs of one PC (dense models’ layers)</td>
+<td><code dir="auto">--device cuda:0,vulkan:1</code></td>
+</tr>
+<tr>
+<td>A trained prerouter predicting the next experts</td>
+<td><code dir="auto">inga profile --prerouter</code>, then <code dir="auto">--prerouter</code></td>
+</tr>
+<tr>
+<td>Experts, layers or slices of every layer on other PCs</td>
+<td><code dir="auto">--expert-nodes</code>, <code dir="auto">--nodes</code> or the <a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-on-a-mesh/">mesh</a>, <code dir="auto">--tp-nodes</code></td>
+</tr>
+<tr>
+<td>A model no machine of yours holds, from a provider or another server</td>
+<td>an <a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-external-models/">API node</a></td>
+</tr>
+</tbody>
+</table>
+<p>Honestly: DeepSeek V4, Kimi K3 and GLM 5 match llama.cpp on synthetic files of their
+layout; these real files are unverified on a real machine
+(<a href="https://github.com/matteobaccan/inga/blob/main/docs/todo/real-world-checks.md">real-world checks</a>). <a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-mixture-of-experts-model/">MoE guide</a></p>
+<div class="sl-heading-wrapper level-h2"><h2 id="what-it-does-for-you">What it does for you</h2><a class="sl-anchor-link" href="#what-it-does-for-you"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “What it does for you”</span></a></div>
+<p>What you can do with Inga, whatever you used before. What it can replace on your machine,
+and when to keep another program: <a href="/ingatest/p-20c8253d8a05/docs/what-inga-replaces/"><code dir="auto">docs/what-inga-replaces.md</code></a>.</p>
+<table>
+<thead>
+<tr>
+<th>When you want to…</th>
+<th>Inga</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Run a model larger than your memory</strong></td>
+<td>Experts of a mixture, or a dense model’s layers, read from the SSD with a cache in RAM, planned for you: Qwen3-30B-A3B (a 17 GB file) answers in 2 GB of RAM with the same text (<a href="/ingatest/p-20c8253d8a05/docs/performance/">performance</a>)</td>
+</tr>
+<tr>
+<td><strong>Use your GPU without installing anything</strong></td>
+<td>CUDA, Vulkan and ROCm / HIP inside the executable, only the driver needed; Metal on Apple Silicon; several GPUs of one PC; when a GPU is not used, one line says why</td>
+</tr>
+<tr>
+<td><strong>Know before you download</strong></td>
+<td><code dir="auto">inga info</code> prints where each part of the model will go and the speed to expect</td>
+</tr>
+<tr>
+<td><strong>Use the PCs you have together</strong></td>
+<td>One model split by layers, experts or slices of the layers over your network; each PC receives only its part</td>
+</tr>
+<tr>
+<td><strong>Keep the models you already have</strong></td>
+<td>Your Hugging Face cache, GGUF folders and the model stores of the apps you use, read in place, no second copy</td>
+</tr>
+<tr>
+<td><strong>Keep your tools</strong></td>
+<td>The OpenAI, Anthropic, Ollama, LM Studio and KoboldAI APIs; coding agents such as Claude Code and Codex on a local model, providers as API nodes with <code dir="auto">model_map</code>, routes and fallback</td>
+</tr>
+<tr>
+<td><strong>Have everything around the model</strong></td>
+<td>A chat page, documents, memory, transcription, voice and images in the same program</td>
+</tr>
+<tr>
+<td><strong>Use any computer</strong></td>
+<td>Windows, Linux and macOS, one file, MIT</td>
+</tr>
+</tbody>
+</table>
+<p>Unverified: the Metal backend’s speed on a real Mac, the expert streaming on real
+frontier files and SSDs, and the mesh on a real network
+(<a href="https://github.com/matteobaccan/inga/blob/main/docs/todo/real-world-checks.md">real-world checks</a>).</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="transparent-by-design">Transparent by design</h2><a class="sl-anchor-link" href="#transparent-by-design"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Transparent by design”</span></a></div>
+<p>Inga tells you what it does and why, with the technical detail, in the terminal, the
+APIs and the web UI alike:</p>
+<ul>
+<li><strong>Which device runs which layers</strong>, and why a GPU was not used: the placement line
+printed when <code dir="auto">inga run</code> / <code dir="auto">inga serve</code> load a model, <code dir="auto">/api/inga/status</code>, the web UI’s
+badges and Server tab; <code dir="auto">inga devices --test</code> checks every GPU against the CPU.
+<a href="/ingatest/p-20c8253d8a05/docs/faq/#does-inga-use-the-cpu-the-gpu-the-npu-vram-ram-or-the-disk">What runs where</a></li>
+<li><strong>What sits in VRAM, RAM or on disk</strong>, and the expected speed, before loading:
+<code dir="auto">inga info MODEL</code> prints the memory plan.</li>
+<li><strong>Which kernels run</strong>: <code dir="auto">inga bench</code> names the instruction set (<code dir="auto">CPU (avx512)</code>),
+<code dir="auto">--profile</code> the time per operation kind; <code dir="auto">--set cpu.isa=NAME</code> forces another one.</li>
+<li><strong>What a conversion costs in quality</strong>: <code dir="auto">inga perplexity --kl-base</code> measures the KL
+divergence against the original, and lower-precision experts keep theirs next to
+the suggestion line.</li>
+<li><strong>What is on your disk</strong>: <code dir="auto">inga data</code> lists every cache and store with its size and
+deletes them one by one.</li>
+<li><strong>What a model can do</strong>: the web UI’s model cards (text, vision, audio, tools,
+reasoning, context, recommended sampling, where it runs).</li>
+</ul>
+<p>Which programs Inga replaces, and when to keep them:
+<a href="/ingatest/p-20c8253d8a05/docs/what-inga-replaces/"><code dir="auto">docs/what-inga-replaces.md</code></a>; its
+<a href="/ingatest/p-20c8253d8a05/docs/performance/#where-inga-stands">speed</a> against llama.cpp.</p>
+<blockquote>
+<p><strong>💡 Inga needs ideas more than code.</strong> Have an idea, a use case, a model you would
+like to run, something another tool does better? <a href="https://github.com/matteobaccan/inga/issues/new?template=idea.yml">Open an issue and tell
+us</a>: we take care of
+implementing it. Nothing is too small or too wild. Write in your language: we answer in
+it. When Inga stops with an error, its last line (and the web UI’s <strong>Report</strong>) opens the
+<a href="https://github.com/matteobaccan/inga/issues/new?template=error-report.yml">Error report form</a>
+with the details already filled in, without your folders, user or host names, shown to
+you before anything is sent.</p>
+</blockquote>
+<blockquote>
+<p><strong>🧪 Test Inga on your machine:</strong> <a href="/ingatest/p-20c8253d8a05/docs/testers/"><code dir="auto">docs/testers.md</code></a> says what is most
+useful for each kind of machine (Macs, AMD / Intel / NVIDIA cards, small PCs, several PCs,
+the tools you already use) and how to send a <strong>Test report</strong>. The quickest test: run
+<a href="https://github.com/matteobaccan/inga/raw/main/tools/bench/bench.bat"><code dir="auto">bench.bat</code></a> (Windows, downloaded next to <code dir="auto">inga.exe</code>) or <code dir="auto">sh bench.sh</code> (from the
+Linux and macOS archives), which measures Inga against llama.cpp on your machine and
+writes one file to send back.</p>
+</blockquote>
+<blockquote>
+<p><strong>🕸️ Inga in the browser:</strong> <a href="https://matteobaccan.github.io/ingatest/">https://matteobaccan.github.io/ingatest/</a> runs a GGUF
+model in a browser tab, on the CPU (WebAssembly) or the GPU (WebGPU), nothing installed;
+<strong>Browse models</strong> picks one of about fifty from Hugging Face, each marked by whether it
+fits the device; its <strong>Report on GitHub</strong> button fills an issue (on the public
+<a href="https://github.com/matteobaccan/ingatest/issues">matteobaccan/ingatest</a>) with the
+browser, GPU and speeds.
+What works and what does not: <a href="/ingatest/p-20c8253d8a05/docs/wasm/"><code dir="auto">docs/wasm.md</code></a>; to embed it in your own
+JavaScript application, <a href="/ingatest/p-20c8253d8a05/docs/use-cases/integrate-inga-in-javascript/">Integrate Inga in a JavaScript application</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>🍏 Wanted: Apple Silicon Macs (M3, M4 or later) for testing.</strong> Inga runs on a Mac’s
+GPU through Metal, checked for correctness on GitHub’s virtual Mac; its speed work
+(prefill tiles on <code dir="auto">simdgroup_matrix</code>, every GGUF weight type on the GPU, generation
+driven by the GPU) is written, unmeasured on real hardware. If you have an M3 or M4 Mac
+and can run a few tests and benchmarks, <a href="/ingatest/p-20c8253d8a05/docs/mac-testers/"><code dir="auto">docs/mac-testers.md</code></a>
+explains the 30-minute test kit and how to send its report; or
+<a href="https://github.com/matteobaccan/inga/issues/new?title=Mac%20tester%3A%20M3%2FM4&amp;body=Mac%20model%2C%20chip%2C%20memory%3A%0A">get in touch</a>
+with the maintainer.</p>
+</blockquote>
+<div class="sl-heading-wrapper level-h2"><h2 id="status-what-works-today">Status: what works today</h2><a class="sl-anchor-link" href="#status-what-works-today"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Status: what works today”</span></a></div>
+<p>Inga runs on the CPU (x86-64 with SSE4.1 / AVX2 / AVX-512, ARM64 with NEON) on Windows, Linux and macOS, and
+on the GPU by default (CUDA, Vulkan, Metal, ROCm / HIP), saying which device runs what.
+Output is checked against llama.cpp.</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>What works today</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Models</strong></td>
+<td>Llama 2 / 3.x, Mistral, Ministral 3, Mixtral, Qwen 2 / 2.5 / 3, Qwen3 MoE, Qwen3.5 / 3.6, Qwen3-Next and Qwen3.8-Flash-Next, Gemma 1 / 2 / 3 / 4, Gemma 3n, Phi-2 / Phi-3 / Phi-4, GLM-4, GLM 5, LFM2 / LFM2.5, LFM3, Mamba-2, Nemotron-H and Nemotron 3 (Nano, Super), the diffusion language models Dream, LLaDA, LLaDA-MoE, RND1 and DiffusionGemma, DeepSeek V2 / V3 / R1 / V3.2 / V4 / V4.1-Flash, Kimi K2, Kimi Linear, Kimi K3, GLM-5.3-Flash, gpt-oss, OLMoE, SmolLM / SmolLM3, GLM-4.5 / 4.6, Ling / Ring 1.x and 2.0, Granite 3.x and Granite 4.0-H, Falcon-H1, Cohere Command R7B, StarCoder2, OLMo 2 / 3, EXAONE 3.5 / 4, ERNIE 4.5, Hunyuan, Seed-OSS, MiniCPM, InternLM2, Arcee; 1-bit Q1_0 files (Bonsai): <a href="/ingatest/p-20c8253d8a05/docs/supported-models/">full list</a></td>
+</tr>
+<tr>
+<td><strong>Files</strong></td>
+<td>GGUF with every llama.cpp quantization (Q2_K … Q8_0, IQ1 … IQ4, MXFP4, NVFP4) and ggml’s Q1_0 / Q2_0, Hugging Face safetensors directories (F16, BF16, GPTQ, AWQ, FP8) and Apple MLX ones (mlx-community, LM Studio’s MLX folders: 2–8-bit weights read as stored by MLX kernels on the CPU and Metal, converted at load for the other GPUs; mxfp4 as MXFP4), whisper.cpp’s <code dir="auto">ggml-*.bin</code> Whisper files and its Silero VAD files, Hugging Face Whisper directories, transcribe.cpp’s Whisper, Parakeet and Cohere Transcribe GGUF files (and Cohere Transcribe’s Hugging Face directory), Sortformer GGUF files (<code dir="auto">tools/convert-sortformer.py</code> from NVIDIA’s <code dir="auto">.nemo</code>), Stable Diffusion checkpoints (<code dir="auto">.safetensors</code> or GGUF, in one file or in parts: ComfyUI-GGUF UNets, VAE and CLIP files, diffusers folders)</td>
+</tr>
+<tr>
+<td><strong>Getting models</strong></td>
+<td><code dir="auto">hf://org/repo</code> downloads into the standard Hugging Face cache; <code dir="auto">ms://org/model</code> from ModelScope into its SDK’s cache (<code dir="auto">inga search --hub modelscope</code>, the web UI’s choice of hub); <code dir="auto">ollama://name:tag</code> runs a model Ollama downloaded, and <code dir="auto">inga pull ollama://name:tag</code> downloads one from Ollama’s library; <code dir="auto">inga search</code>, <code dir="auto">pull</code>, <code dir="auto">list</code> and <code dir="auto">scan</code> say which models Inga runs; <code dir="auto">inga search</code> also finds single files inside repositories (an image model’s VAE or text encoder) and <code dir="auto">inga pull kit://qwen-image</code> downloads an image model’s files together; <code dir="auto">inga download-dir</code> puts that cache on another disk and moves the models there; <code dir="auto">inga quantize</code> writes the GGUF file <code dir="auto">llama-quantize</code> writes (the output layer in a type of its own with <code dir="auto">--token-embedding-type</code> / <code dir="auto">--output-tensor-type</code>); <code dir="auto">inga optimize</code> proposes and makes a smaller variant for this machine (VRAM, RAM, disk), kept beside the original, and <code dir="auto">--variant</code> picks which one runs; proposals learnt from use (<code dir="auto">--pin-experts</code> from an MoE’s profile, proposed again after a hardware change, unused variants pointed out by <code dir="auto">inga data</code>)</td>
+</tr>
+<tr>
+<td><strong>Interfaces</strong></td>
+<td>Terminal chat (<code dir="auto">inga run</code>); a chat page with a model hub and an API tester in the browser, started with or without a model, its chats (and the page’s data but its own settings) kept on the server under the user’s profile, branched on edits and regenerations, exported as Markdown, HTML or JSON and shared as read-only links of the server, installable as an app (PWA) and usable on a phone; OpenAI, Anthropic, Ollama, LM Studio and KoboldAI APIs (<code dir="auto">inga serve</code>), models unloaded when idle, named API keys with limits and usage per key, <code dir="auto">inga serve</code> as a service started at boot (<code dir="auto">inga service</code>: systemd, launchd, Windows services)</td>
+</tr>
+<tr>
+<td><strong>Images, video and audio</strong></td>
+<td>Gemma 3, 3n and 4, LLaVA, Pixtral, SmolVLM, Qwen2-VL / Qwen2.5-VL / Qwen3-VL / Qwen3.5 / Qwen3.6, GLM-4.1V / 4.5V / 4.6V, Phi-4-multimodal (from its Hugging Face directory) read images; LocateAnything-3B (Qwen2.5-3B with Kimi-VL’s MoonViT, locate-anything.cpp’s GGUF or the Hugging Face directory) finds objects in them as boxes (<code dir="auto">inga locate</code>, <code dir="auto">/api/inga/locate</code>, drawn in the web UI); Qwen2-VL / Qwen2.5-VL / Qwen3-VL and SmolVLM2 watch videos (animated GIF, MJPEG, a directory of frames; sampled as transformers samples them, with their time positions or timestamps); Ultravox, Qwen2-Audio, Voxtral, Gemma 3n, Gemma 4, Phi-4-multimodal listen to WAV, MP3 and FLAC</td>
+</tr>
+<tr>
+<td><strong>Speech to text</strong></td>
+<td>Whisper (tiny … large-v3-turbo, whisper.cpp’s <code dir="auto">ggml-*.bin</code> files, GGUF files, Hugging Face safetensors directories), decoded as whisper.cpp’s <code dir="auto">whisper-cli</code> (beam search of 5, 5 candidates on fallback); NVIDIA Parakeet TDT / RNN-T / CTC and Nemotron Speech Streaming (transcribe.cpp’s <code dir="auto">parakeet</code> GGUF files: the FastConformer encoder, greedy decoding, words timed by frame); Cohere Transcribe 03-2026 (<code dir="auto">cohere_asr</code> GGUF files and the Hugging Face directory: Parakeet’s encoder, a Transformer decoder, 14 languages given, not detected): <code dir="auto">inga transcribe</code> to text, SRT / VTT subtitles or JSON, word timestamps, the language detected, translation to English (Whisper), voice activity detection with Silero as whisper.cpp’s <code dir="auto">--vad</code> (only the speech transcribed, the times mapped back), who speaks when with NVIDIA’s Sortformer for every model (<code dir="auto">--diarizer</code>: <code dir="auto">speaker</code> S1–S4 in <code dir="auto">verbose_json</code>, <code dir="auto">[S1]</code> in SRT / VTT and the text), <code dir="auto">/v1/audio/transcriptions</code> and <code dir="auto">/v1/audio/translations</code> (OpenAI); streamed transcription (<code dir="auto">--stream</code>, a microphone’s PCM on the standard input, <code dir="auto">stream=true</code>, a live WebSocket), chunk by chunk for Nemotron Speech Streaming</td>
+</tr>
+<tr>
+<td><strong>Text to speech and voice chat</strong></td>
+<td>OuteTTS 0.3 (suggested) / 0.2 with the WavTokenizer vocoder (the GGUF files of llama.cpp’s <code dir="auto">llama-tts</code>), numbers read in English or Italian words; Piper’s Italian voices (<code dir="auto">.onnx</code> with their JSON, such as Giorgio) on Inga’s own VITS: <code dir="auto">inga speak</code> to WAV or PCM, voices kept or given as OuteTTS speaker files, <code dir="auto">/v1/audio/speech</code> (OpenAI); the web UI’s hands-free Voice mode (the browser hears when you stop, the answer is spoken sentence by sentence while it streams, talking over it stops it), Read aloud and Deep focus (the maintainer’s avatar saying the answers), with the voice models chosen or downloaded in Models → Voice</td>
+</tr>
+<tr>
+<td><strong>Image generation</strong></td>
+<td>Stable Diffusion 1.x / 2.x, SDXL, SD-Turbo, SDXL-Turbo, SD 3.x, Flux.1 dev / schnell, Qwen-Image, Z-Image Turbo, Lumina-Image 2.0, Chroma and Sana (unverified on their real files) (<code dir="auto">.safetensors</code> or GGUF checkpoints, diffusers folders, or a UNet with <code dir="auto">--vae</code>, <code dir="auto">--clip-l</code>, <code dir="auto">--clip-g</code>; the language model of Qwen-Image, Z-Image, Lumina-Image 2.0 and Sana with <code dir="auto">--llm</code>): <code dir="auto">inga image</code>, <code dir="auto">/v1/images/generations</code> and the web UI’s image mode, the same image as stable-diffusion.cpp for a seed; the UNet and the VAE of SD 1.x / 2.x and SDXL, and the transformer of Flux, SD 3 / SD 3.5 and Qwen-Image, on a CUDA GPU behind <code dir="auto">--set debug.image_gpu=true</code> (experimental, off until measured), the VAE by tiles when the picture does not fit; pictures edited (Transform, image to image, and inpainting with a mask or an inpainting checkpoint: <code dir="auto">--init-image</code>, <code dir="auto">/v1/images/edits</code>, the web UI’s brush), extended past their borders (<code dir="auto">--extend</code>) and upscaled ×2 / ×4 with Real-ESRGAN by tiles (<code dir="auto">--upscale</code>, <code dir="auto">POST /v1/images/upscale</code>); LoRAs for SD 1.x / 2.x, SDXL and Qwen-Image (<code dir="auto">--lora FILE[:WEIGHT]</code>, Qwen-Image Lightning in 8 steps, the images API’s <code dir="auto">loras</code>, Hugging Face’s LoRAs searched for the model’s base); a catalogue of image kits classified by what they do, speed, memory, strengths with their source, licence and gated access (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/generate-images/#choosing-one">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>Video generation</strong></td>
+<td>Wan 2.1 text to video (the transformer with <code dir="auto">--vae</code> and <code dir="auto">--t5xxl</code>, GGUF or <code dir="auto">.safetensors</code>, or a diffusers folder): <code dir="auto">inga video</code> into GIF, APNG or Y4M, OpenAI’s <code dir="auto">/v1/videos</code> (a running clip stopped by <code dir="auto">DELETE</code>), the web UI’s Videos page, the Wan 2.1 T2V 1.3B and 14B kits; CPU only, impractical beyond tiny clips</td>
+</tr>
+<tr>
+<td><strong>Music generation</strong></td>
+<td>ACE-Step 1.5 turbo (MIT): a 48 kHz stereo song from a description and lyrics, sung or instrumental, on the CPU; <code dir="auto">inga music</code> into WAV or FLAC (FLAC by Inga’s own encoder), the length estimated from the lyrics; the web UI’s Music page (Describe it with the chat model, Full control, presets, the voice, a library on the server, a game while it waits); a cover for every song (drawn by the image model, else a pattern from its seed) and its lyrics in time for karaoke (aligned with the speech-to-text model, else estimated), both in the FLAC; <strong>Redo this part</strong> (a part chosen on the waveform made again with a new seed, the rest kept: ACE-Step’s repaint); the player at <code dir="auto">/player/</code> keeps the songs on a phone and plays them offline (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/play-your-songs-offline/">guide</a>); every song labelled with the model and its licence in the file and its parameters; <code dir="auto">inga pull kit://ace-step</code> (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/make-music/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>GPU</strong></td>
+<td>Used by default, as many layers as fit, the rest on the CPU, the reason printed when no GPU is used (<code dir="auto">--device cpu</code>, <code dir="auto">--gpu-layers 0</code> or <code dir="auto">device = "cpu"</code> in <code dir="auto">inga.toml</code> opt out): NVIDIA (Pascal or newer) through CUDA (from compute capability 8.0, Ampere and newer, llama.cpp’s kernels for generation, the prompt’s attention and a decode step’s small kernels by default), any vendor’s through Vulkan (<code dir="auto">--device vulkan</code>), Apple Silicon through Metal (<code dir="auto">--device metal</code>, every GGUF block type read as stored; checked for correctness, its speed unmeasured on a real Mac: <a href="/ingatest/p-20c8253d8a05/docs/mac-testers/">test kit</a>), AMD through ROCm / HIP (<code dir="auto">--device hip</code>, experimental, unverified on an AMD card); only the driver needed. Dense, MoE (attention, shared and routed experts: <code dir="auto">--experts-on</code>, <code dir="auto">--cpu-moe</code>; Gemma 4 26B-A4B’s too, on Vulkan and Metal), hybrid (DeltaNet; a dense hybrid too large for the card runs its last layers whole there) and Mamba-2 / Nemotron layers; several GPUs of one PC splitting a dense model’s layers (<code dir="auto">--device cuda:0,vulkan:1</code>, <code dir="auto">--gpu-split</code>); <code dir="auto">inga devices</code> lists the GPUs with their memory, <code dir="auto">--test</code> checks each against the CPU; a Device selector in the web UI (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-on-an-nvidia-gpu/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>Big models, small machines</strong></td>
+<td>Models larger than the RAM run from disk (experts in an LFRU cache, striped over several disks with <code dir="auto">--experts-dir</code>); KV cache in 8 bits, or partly on disk (<code dir="auto">--kv-ram</code>, <code dir="auto">--kv-disk</code>); a memory plan with a speed estimate before loading, then the speed measured here (<code dir="auto">inga list</code>’s <code dir="auto">here:</code> line, the Models page’s <strong>Fits here</strong>)</td>
+</tr>
+<tr>
+<td><strong>Several machines</strong></td>
+<td>Pipeline (<code dir="auto">--nodes</code>), experts on other machines (<code dir="auto">--expert-nodes</code>), tensor parallelism (<code dir="auto">--tp-nodes</code>); the Inga mesh on a LAN (<code dir="auto">inga satellite</code>, <code dir="auto">inga serve --mesh</code>: found by mDNS, an elected master, layers placed where a token is fastest and sent to the satellites, a satellite replaced mid-answer, each layer it receives kept in a file of its own, its GPU used, the master Inga suggests, prompts read by the fastest node; <code dir="auto">inga mesh show</code>, the Mesh page; protocol 10, speaking 9 still: nodes of 0.28.0 and later work together, an older node says so with the command that updates it by hand for its system, a node with no protocol in common is left out and told how to update; a node’s log read from the master; encrypted, a mesh key so only your PCs join); disaggregated prefill (<code dir="auto">--prefill-node</code>) (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-on-a-mesh/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>Documents</strong></td>
+<td>PDF (text layer), DOCX, HTML, Markdown and text files in the chat and every API (OpenAI <code dir="auto">file</code> parts, Anthropic <code dir="auto">document</code> blocks, <code dir="auto">inga_documents</code>), read in pure Rust: whole when they fit in a third of the context, else chunked, embedded by the chosen embedding model and the closest excerpts given with their page (<code dir="auto">inga_documents</code> in the answer says which); collections kept on the server (a Documents page, a chat’s Collections, <code dir="auto">/api/inga/documents</code>, <code dir="auto">inga_documents: [{"collection"}]</code>), folders kept in sync with them at low OS priority (<code dir="auto">inga docs</code>, <strong>Map a server folder…</strong>), each file’s state and how it was indexed on the Documents page, every column sorted; a folder’s Rust, Python, Java, TypeScript, JavaScript, C#, Go and PHP files parsed with tree-sitter in a child process, cut at functions and classes, with the code tools <code dir="auto">find_definition</code>, <code dir="auto">find_references</code>, <code dir="auto">callers</code>, <code dir="auto">callees</code> and <code dir="auto">outline</code> (experimental, <a href="/ingatest/p-20c8253d8a05/docs/use-cases/ask-questions-about-a-code-base/">guide</a>); hybrid search (words and vectors fused, <code dir="auto">inga docs search</code> with <code dir="auto">--where</code> filters on the front matter, the path and the dates), the closest chunks reordered by a loaded reranker, citations with their heading, page or lines; collections named in the prompt (<code dir="auto">#name</code> in <code dir="auto">inga run</code> and scheduled tasks, <code dir="auto">--docs</code>) and the document tools (<code dir="auto">documents_search</code>, <code dir="auto">document_read</code>, <code dir="auto">documents_grep</code>) for tool-calling models (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-with-documents/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>Scheduled tasks</strong></td>
+<td>Prompts <code dir="auto">inga serve</code> runs by itself at set times (cron or once, in UTC or a task’s time zone from a bundled table), with a model and the tools allowed (web search, the memory, skills, the MCP host’s tools): each run kept on the server, shown in the web UI’s Schedules page and opened as a chat, optionally sent to webhooks (tried again when they fail) and written as Markdown; <code dir="auto">inga schedule</code>, <code dir="auto">/api/inga/schedules</code> (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/schedule-prompts/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>Skills</strong></td>
+<td>Agent Skills (<code dir="auto">SKILL.md</code> folders, as Claude Code, Codex and ClawHub’s) installed from a folder, a <code dir="auto">.zip</code>, a git repository or the store (Anthropic’s repository, ClawHub, your own <code dir="auto">skills-index.json</code>, searched in the Skills page’s Browse tab and with <code dir="auto">inga skill search</code>) after a review of every file, pinned to the commit or checksum: <code dir="auto">inga skill add|search|sources|list|show|remove</code>, the Skills page; offered to tool-calling models as <code dir="auto">load_skill</code> / <code dir="auto">read_skill_file</code> per chat, request (<code dir="auto">inga_skills</code>) and scheduled task; their scripts only with <code dir="auto">--allow-skill-scripts</code>, each run approved in the web UI (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-skills/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>Memory</strong></td>
+<td>Short facts kept in <code dir="auto">~/.cache/inga/store</code> with their embeddings (Inga’s own encoders): the closest ones added to each chat’s prompt, <code dir="auto">remember</code> / <code dir="auto">recall</code> / <code dir="auto">forget</code> as server tools for models that call tools, a Memory page in the web UI to search, edit, delete and export them, a switch per chat and per request (<code dir="auto">inga_memory</code>), <code dir="auto">inga data … memory</code>; shared with other agents as an MCP server (<code dir="auto">/mcp</code>, <code dir="auto">inga mcp serve</code> for Claude Code, Codex, Cursor) and recalled into requests forwarded to API nodes (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/share-the-memory-with-agents/">guide</a>); nothing leaves the machine unless a node’s request asks for it</td>
+</tr>
+<tr>
+<td><strong>External models</strong></td>
+<td>API nodes: another <code dir="auto">inga serve</code>, Ollama, LM Studio, vLLM, llama-server or a provider (<a href="/ingatest/p-20c8253d8a05/docs/api-node-presets/">113 presets</a>: 75 cloud providers such as OpenAI, Anthropic, Gemini, Mistral, DeepSeek, Moonshot, Z.ai, Qwen, MiniMax, Groq, Cerebras, Together, Fireworks, Azure, Bedrock and Cloudflare, with the Anthropic-compatible endpoints of DeepSeek, Moonshot, Z.ai and MiniMax; 12 gateways such as OpenRouter and Vercel AI Gateway; 26 local servers such as SGLang, LocalAI, Jan and Docker Model Runner), added with <code dir="auto">inga node add</code>, <code dir="auto">--api-node</code> or the web UI’s Mesh page (one list with the mesh’s machines); their models in <code dir="auto">/v1/models</code>, <code dir="auto">/api/tags</code>, <code dir="auto">/api/v0/models</code> and the model menu as <code dir="auto">node/model</code> with capabilities and prices; requests passed through in the node’s own API or translated (OpenAI ⇄ Anthropic, tools, images, reasoning); keys from environment variables or an encrypted store, never logged or returned; <code dir="auto">model_map</code> for coding agents’ model names and <code dir="auto">inga connect claude-code|codex|…</code>; <code dir="auto">inga serve</code> with no model of its own works as a front end for them; clients use the named API keys (<code dir="auto">--api-keys</code>: admin routes for the nodes, <code dir="auto">NODE/MODEL</code> in a key’s models, limits and usage counted alike); routes (<code dir="auto">routes.json</code>, <code dir="auto">inga route</code>, the Mesh page’s Routes): aliases with fallback chains and the global fallback list, eligibility by privacy (<code dir="auto">X-Inga-Privacy: local-only</code>), policies, capabilities, context and cost ceilings, strategies <code dir="auto">order</code>, <code dir="auto">least-busy</code>, <code dir="auto">latency</code>, <code dir="auto">cost</code>, <code dir="auto">weighted</code>, <code dir="auto">affinity</code>, <code dir="auto">classify</code> (rules, then a local classifier model), <code dir="auto">best-by-eval</code> (your eval scores), <code dir="auto">cascade</code> (the small model first, the next one when its answer looks weak: a low mean log-probability, a refusal, a judge’s grade; <code dir="auto">inga route calibrate</code>) and <code dir="auto">ensemble</code> (several targets at once, a judge picks the best answer or writes one from them), retries, <code dir="auto">Retry-After</code>, breakers, failover before the first token or <code dir="auto">continue</code> after it</td>
+</tr>
+<tr>
+<td><strong>Web pages and files</strong></td>
+<td><code dir="auto">fetch_url</code> beside <code dir="auto">web_search</code>: the model reads a page it is given (HTML as clean text from its <code dir="auto">main</code> or <code dir="auto">article</code>, light Markdown kept, at most 2 MiB read and 8,000 characters given, a search’s result page cut to the 1,500 characters nearest the question by BM25, 15 s, each limit a setting of <code dir="auto">inga.toml</code>’s <code dir="auto">[search]</code> and the web UI’s Settings; a URL written in the message read at once; loopback, private, link-local and other non-public addresses refused, after DNS and on every redirect); a workspace folder (<code dir="auto">--workspace DIR</code>, or chosen in the web UI’s Server tab) whose files the model lists, reads, searches and writes (<code dir="auto">list_files</code>, <code dir="auto">read_file</code>, <code dir="auto">search_files</code>, <code dir="auto">write_file</code>; paths confined to the folder, symbolic links out refused, every write approved by a person; no shell), the web UI’s Files toggle, <code dir="auto">"inga_workspace": true</code> (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/read-pages-and-work-on-files/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>MCP tools</strong></td>
+<td>An MCP host: the servers of <code dir="auto">mcp.json</code> (Claude Desktop’s and LM Studio’s format) over Streamable HTTP, HTTP+SSE or stdio (programs started only with <code dir="auto">--allow-mcp-commands</code> and once their command is approved), their tools offered to tool-calling models in <code dir="auto">inga run --mcp-tools</code>, the APIs (<code dir="auto">inga_mcp</code>, <code dir="auto">--mcp-auto-approve</code>), each call with a time limit and a bounded result; resources and prompts offered as tools; sampling answered by the chat’s model once approved; OAuth sign-in (<code dir="auto">inga mcp login</code>); MCP tools named by skills; <code dir="auto">inga mcp list|test|tools|approve|revoke|login|logout</code></td>
+</tr>
+<tr>
+<td><strong>Fine-tuning</strong></td>
+<td><code dir="auto">inga finetune</code>: LoRA adapters of small dense models (Llama, Mistral, Qwen2 / 3, SmolLM, Phi-3) trained on the CPU from JSONL, checkpoints and <code dir="auto">--resume</code>, Recover-LoRA from the full-precision model (<code dir="auto">--teacher</code>) (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/fine-tune-a-model/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>Speed history</strong></td>
+<td>The prompt and generation speed of every answer, <code dir="auto">inga run</code> and <code dir="auto">inga bench</code>, kept per model, device and version of Inga on this computer (<code dir="auto">~/.cache/inga/measured.json</code>): the web UI’s Speed page ranks the models measured here, the fastest first, with the change since the previous version and each model’s history as a chart; <code dir="auto">inga bench --history</code> prints the same (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/see-model-speeds/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>Decisions</strong></td>
+<td>Typed answers (a choice, a score, a yes / no) with their probabilities, read from the logits: <code dir="auto">inga decide</code>, <code dir="auto">POST /v1/systemone</code> (Jev-compatible), calibration (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/make-decisions/">guide</a>)</td>
+</tr>
+<tr>
+<td><strong>Generation</strong></td>
+<td>Tool calling, web search as a built-in tool with the sources in the answer (DuckDuckGo, Wikipedia, SearXNG, Brave Search, Tavily, Firecrawl, tried in order; Wikipedia’s introductions added for encyclopaedic questions; the tokens of each part shown), JSON schema and grammars, speculative decoding (on by default where it pays), reasoning split, every common sampler, control vectors, watermarking</td>
+</tr>
+<tr>
+<td><strong>Your own brand</strong></td>
+<td><code dir="auto">inga serve --branding DIR</code>: the web UI under a company’s name, logo, favicon, app icons, colours (over Inga’s themes, or a theme of its own), default theme, extra stylesheet, strings in every language, About text and help / support links; <code dir="auto">owned_by</code> in the model lists, the <code dir="auto">Server</code> header and the <code dir="auto">User-Agent</code> of the requests Inga sends; read at start, never rebuilt; “Powered by Inga” removable, the licences always in About (<code dir="auto">inga licenses</code>, <code dir="auto">GET /api/inga/licenses</code>) (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/brand-the-web-ui/">guide</a>, <a href="/ingatest/p-20c8253d8a05/docs/branding/">reference</a>)</td>
+</tr>
+<tr>
+<td><strong>Version information</strong></td>
+<td><code dir="auto">inga version</code> (<code dir="auto">--json</code>): the version, git commit, build date, target and profile, the CPU instruction set in use, the GPU backends built in and found, the mesh protocol and API spec versions, for issue reports; <code dir="auto">GET /api/inga/version</code>, the <code dir="auto">Server: Inga/X.Y.Z</code> header (<code dir="auto">--hide-version</code>), the web UI’s About with a copy button (<a href="/ingatest/p-20c8253d8a05/docs/faq/#which-inga-am-i-running">FAQ</a>)</td>
+</tr>
+</tbody>
+</table>
+<p>The tables describe the <code dir="auto">main</code> branch: what is there and unreleased is in
+<a href="https://github.com/matteobaccan/inga/blob/main/changelog.d/README.md"><code dir="auto">changelog.d/</code></a>, one fragment per pull request, and the
+<a href="https://github.com/matteobaccan/inga/blob/main/CHANGELOG.md">changelog</a> lists what changed in each release from 0.46.0, the first
+public one (the private betas before it are in git and its tags).</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="drop-in-for-other-servers">Drop-in for other servers</h2><a class="sl-anchor-link" href="#drop-in-for-other-servers"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Drop-in for other servers”</span></a></div>
+<p>Switch the other server off, start Inga on its port: its clients do not change.</p>
+<table>
+<thead>
+<tr>
+<th>Server</th>
+<th>Inga</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OpenAI-compatible servers (vLLM, LocalAI…), Anthropic’s API, Ollama, LM Studio, llama.cpp’s <code dir="auto">llama-server</code>, KoboldCpp, an MCP server</td>
+<td>✅ their main routes, llama-server’s <code dir="auto">/completion</code>, <code dir="auto">/props</code>, <code dir="auto">/slots</code>, <code dir="auto">/apply-template</code>, <code dir="auto">/embedding</code>, Ollama’s <code dir="auto">create</code> / <code dir="auto">copy</code> / <code dir="auto">delete</code> and Modelfile templates; Ollama’s <code dir="auto">push</code> is refused (Inga does not publish models)</td>
+</tr>
+<tr>
+<td>Mistral FIM, Azure OpenAI (deployments mapped by <code dir="auto">[api.azure] deployments</code>, the <code dir="auto">api-key</code> header), OpenAI Moderations (on a guard model, <code dir="auto">[api.moderations] model</code>)</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p>Every API is on by default on one port; <code dir="auto">[api] disabled</code> / <code dir="auto">enabled</code> in <code dir="auto">inga.toml</code>,
+<code dir="auto">--api-disable kobold,azure</code> and <code dir="auto">--api-only openai,inga,webui</code> switch families off (a
+route of a family off answers 404 naming the setting and where it was set; the list is
+printed at start), and <code dir="auto">--like ollama</code> (or <code dir="auto">lmstudio</code>, <code dir="auto">kobold</code>, <code dir="auto">vllm</code>, <code dir="auto">tgi</code>, <code dir="auto">tei</code>,
+<code dir="auto">llamacpp</code>; <code dir="auto">--like ollama:PORT</code> for another port) takes that server’s port beside
+Inga’s, answering there the APIs that server has (a <code dir="auto">[[api.listen]]</code> table in
+<code dir="auto">inga.toml</code> gives a listener its own port, address and APIs; the web UI’s switches save
+into <code dir="auto">inga.toml</code>):</p>
+<div class="expressive-code"><link rel="stylesheet" href="/ingatest/p-20c8253d8a05/_astro/ec.9bcow.css"><script type="module" src="/ingatest/p-20c8253d8a05/_astro/ec.0vx5m.js"></script><figure class="frame is-terminal not-content"><figcaption class="header"><span class="title"></span><span class="sr-only">Terminal window</span></figcaption><pre data-language="sh"><code><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">systemctl</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">stop</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">ollama</span><span style="--0:#D6DEEB;--1:#403F53">                      </span><span style="--0:#919F9F;--1:#5F636F"># or quit the Ollama app</span></div></div><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">inga</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">serve</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">qwen3-8b</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#82AAFF;--1:#3B61B0">--like</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">ollama,lmstudio</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#919F9F;--1:#5F636F"># 8080: every API; 11434: Ollama's; 1234: LM Studio's</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="systemctl stop ollama                      # or quit the Ollama appinga serve qwen3-8b --like ollama,lmstudio # 8080: every API; 11434: Ollama&#x27;s; 1234: LM Studio&#x27;s"><div></div></button></div></figure></div>
+<p>Which routes, ports and clients, server by server:
+<a href="/ingatest/p-20c8253d8a05/docs/what-inga-replaces/#drop-in-for-other-servers">Drop-in for other servers</a>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="screenshots">Screenshots</h2><a class="sl-anchor-link" href="#screenshots"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Screenshots”</span></a></div>
+<p><code dir="auto">inga serve</code> opens a chat page at <code dir="auto">http://127.0.0.1:8080/</code>. The pictures are made from the
+web UI’s code by <code dir="auto">node tools/screenshots/stubbed.cjs --docs</code>, on a staged machine.</p>
+<table>
+<thead>
+<tr>
+<th>Chat</th>
+<th>Chat settings</th>
+<th>Voice mode</th>
+<th>Deep focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-chat.png"><img src="/ingatest/p-20c8253d8a05/images/webui-chat.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-chat-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-chat.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Chat" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-chat-settings.png"><img src="/ingatest/p-20c8253d8a05/images/webui-chat-settings.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-chat-settings-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-chat-settings.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Chat settings" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-voice.png"><img src="/ingatest/p-20c8253d8a05/images/webui-voice.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-voice-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-voice.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Voice mode" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-focus.png"><img src="/ingatest/p-20c8253d8a05/images/webui-focus.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-focus-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-focus.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Deep focus" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+</tr>
+<tr>
+<td>Markdown answers, reasoning, attached files, where the model runs (GPU and CPU layers) and the speed</td>
+<td>System prompt, the model’s recommended sampling, every sampler</td>
+<td>Hands-free: the microphone listens, the answer is spoken sentence by sentence</td>
+<td>An avatar that says the answers, its mouth following the speech</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>First run</th>
+<th>Models: on this machine</th>
+<th>Models: Discover</th>
+<th>A model card</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-first-run.png"><img src="/ingatest/p-20c8253d8a05/images/webui-first-run.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-first-run-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-first-run.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="First run" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-models.png"><img src="/ingatest/p-20c8253d8a05/images/webui-models.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-models-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-models.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Models: on this machine" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-models-search.png"><img src="/ingatest/p-20c8253d8a05/images/webui-models-search.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-models-search-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-models-search.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Models: Discover" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-model-card.png"><img src="/ingatest/p-20c8253d8a05/images/webui-model-card.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-model-card-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-model-card.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="A model card" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+</tr>
+<tr>
+<td>No model yet: one that fits this machine, downloaded, loaded and asked a first question</td>
+<td>The models here, where each fits and how fast it ran, Load / Unload / Optimize / Delete</td>
+<td>Hugging Face search, with whether each model fits this machine and how fast it runs</td>
+<td>The repository’s card, its files and the file proposed for this machine</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Models: Embedding</th>
+<th>Models: Voice</th>
+<th>Models: Images</th>
+<th>Images</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-models-embedding.png"><img src="/ingatest/p-20c8253d8a05/images/webui-models-embedding.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-models-embedding-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-models-embedding.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Models: Embedding" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-models-voice.png"><img src="/ingatest/p-20c8253d8a05/images/webui-models-voice.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-models-voice-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-models-voice.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Models: Voice" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-models-images.png"><img src="/ingatest/p-20c8253d8a05/images/webui-models-images.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-models-images-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-models-images.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Models: Images" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-images.png"><img src="/ingatest/p-20c8253d8a05/images/webui-images.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-images-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-images.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Images" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+</tr>
+<tr>
+<td>The model that turns documents and memories into vectors</td>
+<td>The transcription model, the speech model and its vocoder</td>
+<td>Image and video kits, each with its speed, memory, strengths and licence</td>
+<td>Create, Transform, Inpaint, Extend and Upscale, the model loaded beside the chat model</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Videos</th>
+<th>Music</th>
+<th>While a song is made</th>
+<th>Projects</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-videos.png"><img src="/ingatest/p-20c8253d8a05/images/webui-videos.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-videos-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-videos.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Videos" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-music.png"><img src="/ingatest/p-20c8253d8a05/images/webui-music.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-music-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-music.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Music" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-music-game.png"><img src="/ingatest/p-20c8253d8a05/images/webui-music-game.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-music-game-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-music-game.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="While a song is made" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-projects.png"><img src="/ingatest/p-20c8253d8a05/images/webui-projects.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-projects-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-projects.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Projects" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+</tr>
+<tr>
+<td>Short clips from a prompt (Wan 2.1), the recent ones kept</td>
+<td>Songs from a description and lyrics (ACE-Step 1.5), the library on the server</td>
+<td>The phases, the time left, and falling notes to catch</td>
+<td>Chats by project, with the diary Inga writes after each chat</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>A project’s history</th>
+<th>Documents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-projects-history.png"><img src="/ingatest/p-20c8253d8a05/images/webui-projects-history.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-projects-history-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-projects-history.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="A project's history" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-documents.png"><img src="/ingatest/p-20c8253d8a05/images/webui-documents.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-documents-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-documents.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Documents" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+</tr>
+<tr>
+<td>Every change to the memory, with its diff and Undo</td>
+<td>Collections of documents (PDF, Word, HTML, Markdown, text) for the chats</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Memory</th>
+<th>Decide</th>
+<th>Schedules</th>
+<th>Skills</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-memory.png"><img src="/ingatest/p-20c8253d8a05/images/webui-memory.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-memory-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-memory.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Memory" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-decide.png"><img src="/ingatest/p-20c8253d8a05/images/webui-decide.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-decide-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-decide.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Decide" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-schedules.png"><img src="/ingatest/p-20c8253d8a05/images/webui-schedules.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-schedules-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-schedules.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Schedules" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-skills.png"><img src="/ingatest/p-20c8253d8a05/images/webui-skills.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-skills-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-skills.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Skills" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+</tr>
+<tr>
+<td>The facts the models remember across chats</td>
+<td>Typed answers with their probabilities, read from the logits</td>
+<td>Prompts run at set times, and their results</td>
+<td>Agent Skills, reviewed and pinned before they install</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Speed</th>
+<th>CLI</th>
+<th>Mesh: Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-speed.png"><img src="/ingatest/p-20c8253d8a05/images/webui-speed.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-speed-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-speed.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Speed" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-cli.png"><img src="/ingatest/p-20c8253d8a05/images/webui-cli.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-cli-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-cli.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="CLI" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-mesh.png"><img src="/ingatest/p-20c8253d8a05/images/webui-mesh.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-mesh-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-mesh.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Mesh: Flow" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+</tr>
+<tr>
+<td>How fast each model ran here, per version of Inga</td>
+<td>Coding agents and SDKs connected to this server, the lines to copy</td>
+<td>The Inga mesh: a token’s path through the PCs, who runs which layers</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Mesh: Network</th>
+<th>Mesh: a node’s log</th>
+<th>Server: this machine (the logo)</th>
+<th>System</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-mesh-network.png"><img src="/ingatest/p-20c8253d8a05/images/webui-mesh-network.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-mesh-network-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-mesh-network.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Mesh: Network" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-mesh-log.png"><img src="/ingatest/p-20c8253d8a05/images/webui-mesh-log.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-mesh-log-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-mesh-log.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Mesh: a node's log" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-server.png"><img src="/ingatest/p-20c8253d8a05/images/webui-server.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-server-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-server.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Server: this machine (the logo)" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-system.png"><img src="/ingatest/p-20c8253d8a05/images/webui-system.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-system-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-system.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="System" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+</tr>
+<tr>
+<td>The map of the nodes and their links</td>
+<td>A node’s log, read through the master</td>
+<td>Tokens in and out, live tokens per second</td>
+<td>The system monitor: CPU, RAM, GPU, temperatures, the mesh’s nodes</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Developer: Server</th>
+<th>Developer: Logs</th>
+<th>Developer: API docs</th>
+<th>Storage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-developer.png"><img src="/ingatest/p-20c8253d8a05/images/webui-developer.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-developer-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-developer.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Developer: Server" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-logs.png"><img src="/ingatest/p-20c8253d8a05/images/webui-logs.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-logs-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-logs.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Developer: Logs" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-api.png"><img src="/ingatest/p-20c8253d8a05/images/webui-api.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-api-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-api.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Developer: API docs" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-storage.png"><img src="/ingatest/p-20c8253d8a05/images/webui-storage.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-storage-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-storage.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Storage" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+</tr>
+<tr>
+<td>Where the API server answers, its settings and statistics</td>
+<td>What <code dir="auto">inga serve</code> prints, by level and source, live</td>
+<td>Every endpoint, its fields and an example to copy, from the OpenAPI files</td>
+<td>What Inga keeps on disk, by kind, and what can be deleted</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Settings</th>
+<th>On a phone</th>
+<th>On a phone: Recents</th>
+<th>In the browser (WebAssembly)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-settings.png"><img src="/ingatest/p-20c8253d8a05/images/webui-settings.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-settings-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-settings.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Settings" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-phone.png"><img src="/ingatest/p-20c8253d8a05/images/webui-phone.webp" alt="On a phone" width="390" height="844" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-phone-chats.png"><img src="/ingatest/p-20c8253d8a05/images/webui-phone-chats.webp" alt="On a phone: Recents" width="390" height="844" loading="lazy" decoding="async" /></a></td>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-browser.png"><img src="/ingatest/p-20c8253d8a05/images/webui-browser.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-browser-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-browser.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="In the browser (WebAssembly)" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+</tr>
+<tr>
+<td>General, Appearance, Models, GPU, Chat, Tools, Voice, Server, Web search, Mesh, Storage, About</td>
+<td>The chat at 390 pixels, the pages in the bottom bar</td>
+<td>The chats, searched and opened from the side</td>
+<td>The browser page: a model runs in the tab, nothing installed</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>In the browser: models</th>
+<th></th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/ingatest/p-20c8253d8a05/images/webui-browser-models.png"><img src="/ingatest/p-20c8253d8a05/images/webui-browser-models.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-browser-models-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-browser-models.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="In the browser: models" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>The catalogue, each file marked by whether it fits this browser</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Developer → <strong>Logs</strong> shows the server’s own log, what <code dir="auto">inga serve</code> prints on its
+terminal, live: filtered by level, source, text (<code dir="auto">/regex/</code> too) or request, copied or
+downloaded (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-in-the-browser/#logs">the guide</a>).</p>
+<p>The page installs as an app (the browser’s <strong>Install</strong> or <strong>Add to Home screen</strong>, from
+<code dir="auto">https://</code> or <code dir="auto">localhost</code>), fits a phone’s screen, and <strong>Share</strong> turns a chat into a
+read-only link of the server (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-in-the-browser/#on-a-phone-and-as-an-installed-app">guide</a>).</p>
+<p>The page follows the computer’s light or dark theme, or the one picked in its menu (Light,
+Dark, Matrix, Blade Runner, Tron, Commander), and speaks the browser’s language when it is English,
+Italian, French, German, Spanish, Simplified Chinese, Portuguese, Russian, Japanese or Hindi
+(the globe button picks another).</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="goals">Goals</h2><a class="sl-anchor-link" href="#goals"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Goals”</span></a></div>
+<ul>
+<li><strong>One executable, no runtime dependencies.</strong> No DLLs, no Python, no CUDA Toolkit.
+On NVIDIA GPUs only the driver is needed: kernels ship inside the binary.</li>
+<li><strong>Models straight from Hugging Face</strong>, in the cache other tools already use.</li>
+<li><strong>Any model size on any amount of RAM</strong>: weights placed on a memory hierarchy,
+<code dir="auto">VRAM → RAM → disk → remote machines</code>; slower when resources are short, never a
+failure, with the expected speed shown before starting.</li>
+<li><strong>A model split across machines</strong> on a LAN.</li>
+<li><strong>Standard formats and drop-in APIs</strong>: GGUF and safetensors; OpenAI, Anthropic and
+Ollama compatible.</li>
+<li><strong>Windows, Linux and macOS.</strong></li>
+</ul>
+<div class="sl-heading-wrapper level-h2"><h2 id="further-reading">Further reading</h2><a class="sl-anchor-link" href="#further-reading"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Further reading”</span></a></div>
+<p>Every page of the docs is in <a href="/ingatest/p-20c8253d8a05/docs/">the map of the <code dir="auto">docs</code> folder</a>; the programs Inga
+replaces, and when to keep each one, in <a href="/ingatest/p-20c8253d8a05/docs/what-inga-replaces/">what Inga replaces</a>; the
+measured speed against llama.cpp in <a href="/ingatest/p-20c8253d8a05/docs/performance/">performance</a>, and
+<a href="/ingatest/p-20c8253d8a05/docs/performance/#inga-against-ollama-as-a-user-sees-it">Inga against Ollama</a> as a user
+sees it.</p>
+</div><footer class="sl-flex astro-ddtxxk7k"><div class="meta sl-flex astro-ddtxxk7k"><a href="https://github.com/matteobaccan/inga/edit/main/docs/features.md" class="sl-flex print:hidden astro-qlekgd3o"><svg aria-hidden="true" class="astro-qlekgd3o astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.2em;"><path d="M22 7.24a1 1 0 0 0-.29-.71l-4.24-4.24a1 1 0 0 0-1.1-.22 1 1 0 0 0-.32.22l-2.83 2.83L2.29 16.05a1 1 0 0 0-.29.71V21a1 1 0 0 0 1 1h4.24a1 1 0 0 0 .76-.29l10.87-10.93L21.71 8c.1-.1.17-.2.22-.33a1 1 0 0 0 0-.24v-.14l.07-.05ZM6.83 20H4v-2.83l9.93-9.93 2.83 2.83L6.83 20ZM18.17 8.66l-2.83-2.83 1.42-1.41 2.82 2.82-1.41 1.42Z"/></svg>Edit page</a></div><div class="pagination-links print:hidden astro-b5raizh3" dir="ltr"><a href="/ingatest/p-20c8253d8a05/docs/get-started/" rel="prev" class="astro-b5raizh3"><svg aria-hidden="true" class="astro-b5raizh3 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17 11H9.41l3.3-3.29a1.004 1.004 0 1 0-1.42-1.42l-5 5a1 1 0 0 0-.21.33 1 1 0 0 0 0 .76 1 1 0 0 0 .21.33l5 5a1.002 1.002 0 0 0 1.639-.325 1 1 0 0 0-.219-1.095L9.41 13H17a1 1 0 0 0 0-2Z"/></svg><span class="astro-b5raizh3">Previous<br class="astro-b5raizh3"><span class="link-title astro-b5raizh3">Quick start</span></span></a><a href="/ingatest/p-20c8253d8a05/docs/wasm/" rel="next" class="astro-b5raizh3"><svg aria-hidden="true" class="astro-b5raizh3 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17.92 11.62a1.001 1.001 0 0 0-.21-.33l-5-5a1.003 1.003 0 1 0-1.42 1.42l3.3 3.29H7a1 1 0 0 0 0 2h7.59l-3.3 3.29a1.002 1.002 0 0 0 .325 1.639 1 1 0 0 0 1.095-.219l5-5a1 1 0 0 0 .21-.33 1 1 0 0 0 0-.76Z"/></svg><span class="astro-b5raizh3">Next<br class="astro-b5raizh3"><span class="link-title astro-b5raizh3">Inga in the browser</span></span></a></div></footer></div></div></main></div></div></div></div></body></html>
