@@ -242,7 +242,28 @@ layers are sent is left out, and the model is placed again without it:</p>
 as the model file’s (<code dir="auto">invalid file</code> is kept for a GGUF that cannot be read). It is not
 asked again for that model for 10 minutes, or until it restarts. The load
 fails only when no node can run the model. A satellite that announced too little room
-gets fewer layers from the start, and the plan says so: <code dir="auto">pc3: 2.10 GiB free in its cache, 4.50 GiB needed for layers 31-39: given layers 36-39 (2.00 GiB); --cache on a bigger drive for more</code>.</p>
+gets fewer layers from the start, and the plan says so: <code dir="auto">pc3: 2.10 GiB free in its cache, 4.50 GiB needed for layers 31-39: given layers 36-39 (2.00 GiB); --cache on a bigger drive, or a larger --cache-max, for more</code>. Its card on the Mesh page says it too: <code dir="auto">Layers 36–39: limited by its cache (2.10 GiB free, 4.50 GiB needed for layers 31–39)</code>.</p>
+<p>The satellite says why it cannot take its layers, and the master repeats it with what to
+do: no room in its cache, a write its drive refused (<code dir="auto">cannot write D:\inga-cache\…\blk.031.bin.part: …</code>, with the file), no memory for a message, a chunk
+changed on the way, or an internal error. Each is also a line in the satellite’s own
+terminal and log, with the bytes received:</p>
+<div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">receiving Qwen3.6-35B-A3B-Q4_K_M.gguf from the master at 192.168.1.10 failed at chunk 212 (2.80 GiB of 4.50 GiB received): cannot write …</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="receiving Qwen3.6-35B-A3B-Q4_K_M.gguf from the master at 192.168.1.10 failed at chunk 212 (2.80 GiB of 4.50 GiB received): cannot write …"><div></div></button></div></figure></div>
+<p>A send that fails is tried once more while the satellite still announces itself,
+resuming from the chunks it kept (a layer half received is not sent again); a second
+failure leaves it out, with the reason:</p>
+<div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">mesh home: satellite pc3 (192.168.1.30:9090) failed while receiving layers 31-39 of Qwen3.6-35B-A3B-Q4_K_M.gguf: pc3 closed the connection after 2.80 GiB of the 4.50 GiB it lacked (62 %), 26 s into the send, without saying why: its process ended (closed, stopped or crashed) or the network dropped; check on pc3 its terminal or its log (the Log button of its card on the Mesh page), that `inga satellite` still runs there, and that its firewall lets TCP port 9090 through; retrying once, resuming at 2.80 GiB of 4.50 GiB (the chunks it kept)</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="mesh home: satellite pc3 (192.168.1.30:9090) failed while receiving layers 31-39 of Qwen3.6-35B-A3B-Q4_K_M.gguf: pc3 closed the connection after 2.80 GiB of the 4.50 GiB it lacked (62 %), 26 s into the send, without saying why: its process ended (closed, stopped or crashed) or the network dropped; check on pc3 its terminal or its log (the Log button of its card on the Mesh page), that &#x60;inga satellite&#x60; still runs there, and that its firewall lets TCP port 9090 through; retrying once, resuming at 2.80 GiB of 4.50 GiB (the chunks it kept)"><div></div></button></div></figure></div>
+<p>A satellite closes without saying why only when it could not: its process ended, its
+PC slept, or the network dropped. Check, in this order: its terminal, or
+<code dir="auto">~/.cache/inga/logs/satellite.log</code> on it (the satellite writes its lines there, with a
+crash’s), or the Log button of its card while it runs; that <code dir="auto">inga satellite</code> still runs;
+the firewall on its TCP port. A satellite of Inga 0.46.0 or older (mesh protocol 10 or
+less) closes without a reason also when it hit an error: the master says so (<code dir="auto">the reason is unknown: it runs Inga 0.46.0 (mesh protocol 10), which closes without saying why</code>), and
+the reason is in its terminal; updating it makes the master say it. A connection that
+breaks (<code dir="auto">the connection to pc3 broke …</code>) or stops answering is the network, or the
+satellite stopped. A cache without room, or a drive that refuses writes, is not tried
+again: the remedy is on the satellite (<code dir="auto">--cache</code> on another drive, a larger
+<code dir="auto">--cache-max</code>). The card of a satellite that failed shows the reason and what to do, in
+the page’s language.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="gpus-in-the-mesh">GPUs in the mesh</h3><a class="sl-anchor-link" href="#gpus-in-the-mesh"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “GPUs in the mesh”</span></a></div>
 <p>Every node uses its GPU for the layers it runs, as <code dir="auto">inga serve</code> does on one
 machine:</p>
@@ -329,8 +350,8 @@ for weights, speed); on the Mesh page’s map a box shows them beside the CPU, w
 memory bar per GPU next to the RAM bar.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="nodes-of-another-version">Nodes of another version</h3><a class="sl-anchor-link" href="#nodes-of-another-version"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Nodes of another version”</span></a></div>
 <p>A node of another Inga version is shown with both versions. Each Inga speaks
-a range of mesh protocols (0.41.0: protocol 10, and 9 still, the protocol of 0.28.0 to
-0.40.x), and two nodes work together when their ranges overlap: a connection runs at the
+a range of mesh protocols (0.46.5: protocol 11, and 10 and 9 still: 10 is the protocol
+of 0.41.0 to 0.46.0, 9 of 0.28.0 to 0.40.x), and two nodes work together when their ranges overlap: a connection runs at the
 lower one, and the newer node sends an older one nothing it does not know (its log, an
 update: said as not available on that node). So a 0.40 satellite is still used by a 0.41
 master. A node with no protocol in common is not used, and the Mesh page shows a banner
@@ -525,6 +546,11 @@ version, not reachable, or not worth its round trip), and the load’s last line
 every satellite’s outcome. Check <code dir="auto">inga mesh show</code>.</li>
 <li><strong><code dir="auto">the master has not sent every part</code></strong>: the transfer was cut; load the model again,
 only the missing chunks travel.</li>
+<li><strong><code dir="auto">… closed the connection after … without saying why</code></strong>: the satellite’s process
+ended or the network dropped while its layers were sent; the master tried once more.
+Read the satellite’s terminal or <code dir="auto">~/.cache/inga/logs/satellite.log</code> on it, check that
+<code dir="auto">inga satellite</code> runs, and its firewall’s TCP port (see “A satellite that fails while
+it receives its layers”).</li>
 <li><strong><code dir="auto">no room in …</code></strong>: the satellite’s cache is on a drive too small for its layers, or
 at its <code dir="auto">--cache-max</code> with the layers of a loaded model. Start it with <code dir="auto">--cache DIR</code> on
 a drive with room, or a larger <code dir="auto">--cache-max</code>. The master leaves it out and goes on
