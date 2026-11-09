@@ -1461,17 +1461,17 @@ async function probeAdapter() {
 function autoGpu(f = adapterFacts) {
   const dm = Number(navigator.deviceMemory) || 0;
   const buf = f?.maxBufferSize || 0;
-  const gb = (b) => `${Math.round(b / GIB * 10) / 10} GB`;
+  const gib = (b) => `${Math.round(b / GIB * 10) / 10} GiB`;
   if (f && /apple/i.test(f.vendor)) {
     const fromMem = Math.max(dm, 8) * 0.75 * GIB;
     const bytes = Math.min(AUTO_GPU_MAX, Math.max(fromMem, buf > 4 * GIB ? buf : 0));
     const src = bytes > fromMem
-      ? `the adapter's maxBufferSize ${gb(buf)}`
+      ? `the adapter's maxBufferSize ${gib(buf)}`
       : `3/4 of navigator.deviceMemory ${dm ? dm + " GB" : "unknown, taken as 8 GB"}${dm === 8 ? " (Chrome tells at most 8)" : ""}`;
     return { bytes, why: `an Apple GPU, which shares the Mac's memory: ${src}` };
   }
   if (buf >= 4 * GIB && dm >= 8) {
-    return { bytes: 4 * GIB, why: `the adapter's maxBufferSize ${gb(buf)} and navigator.deviceMemory ${dm} GB` };
+    return { bytes: 4 * GIB, why: `the adapter's maxBufferSize ${gib(buf)} and navigator.deviceMemory ${dm} GB` };
   }
   return { bytes: AUTO_GPU_OTHER, why: "a guess, WebGPU does not tell the GPU's memory" };
 }
