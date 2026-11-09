@@ -673,6 +673,7 @@ function handleMessage(m) {
       }
       $("stop").disabled = true;
       setBusy(false);
+      if (m.noSpace) offerMemory(m.noSpace);
       break;
   }
 }
@@ -1020,13 +1021,88 @@ function showStored(models) {
   setBusy(busy);
 }
 
+// What the page last tried to store (a link or a file), for "Load without storing".
+let lastStore = null;
+// A write was refused for lack of space this visit: the window is treated as private.
+let noSpaceSeen = false;
+
+// Whether this looks like a private window, where the browser keeps nothing and its
+// estimate is optimistic: the conversations' IndexedDB refused (chats.js), a refused
+// write this visit, or storage that is neither persistent nor more than 2 GiB. A guess:
+// Chrome's incognito window reports a large quota (seen: 10 GiB) and refuses the writes.
+let storageGuess = false;
+const looksPrivate = () => !chats.persistent || noSpaceSeen || storageGuess;
+
 async function showStorage() {
   if (!navigator.storage?.estimate) return;
   const e = await navigator.storage.estimate();
   const persisted = navigator.storage.persisted ? await navigator.storage.persisted() : false;
-  $("storage").textContent = `This site uses ${fmt(e.usage || 0)} of ${fmt(e.quota || 0)} available` +
+  storageGuess = !persisted && !!e.quota && e.quota < 2 * 1024 ** 3;
+  const priv = looksPrivate();
+  $("private-note").hidden = !priv;
+  $("private-note").textContent = priv ? t("nospace.private") : "";
+  $("storage").textContent = (priv ? t("nospace.estimate", fmt(e.usage || 0), fmt(e.quota || 0)) : `This site uses ${fmt(e.usage || 0)} of ${fmt(e.quota || 0)} available`) +
     ` · ${persisted ? "kept by the browser (persistent)" : "may be cleared by the browser when space runs low"}` +
     ` · ${navigator.deviceMemory ? "device memory about " + navigator.deviceMemory + " GB" : ""}`;
+}
+
+// Whether a model of `bytes` fits in memory for this visit: the file is held whole and
+// copied into WebAssembly memory (about twice its size at the peak, 4 GiB at most), against
+// half the device memory the browser tells (rounded, 8 GB at most), or 1 GiB when it says nothing.
+function fitsInMemory(bytes) {
+  const have = navigator.deviceMemory ? navigator.deviceMemory * 1024 ** 3 / 2 : 2 * 1024 ** 3;
+  return bytes != null && bytes * 2 <= have && bytes < 3 * 1024 ** 3;
+}
+
+// The browser refused the space to store a model: the plain message (what, why, what to do)
+// in the status line, and "Load without storing" beside it when the model fits in memory.
+function offerMemory(ns) {
+  noSpaceSeen = true;
+  showStorage();
+  const bytes = ns.size || lastStore?.file?.size || null;
+  const name = ns.name || lastStore?.name || lastStore?.file?.name || "";
+  const el = $("status");
+  status(t("nospace.msg", name, bytes ? size(bytes) : "?"), true);
+  if (!lastStore || !fitsInMemory(bytes)) return;
+  const store = lastStore;
+  const go = Object.assign(document.createElement("button"), { textContent: t("nospace.mem"), id: "nospace-mem" });
+  go.onclick = () => loadInMemory(store);
+  el.append(" ", go, Object.assign(document.createElement("span"), { className: "note", textContent: " " + t("nospace.mem.note") }));
+}
+
+// Loads what could not be stored, for this visit only: a picked file goes through the
+// memory path of loadFile; a link is downloaded into memory and loaded as a picked file.
+async function loadInMemory(store) {
+  if (store.file) return loadFile(store.file, true);
+  setBusy(true);
+  // Said at once, in place of the refusal (the first bytes may take a while to come).
+  status(t("nospace.fetching", store.name, size(0), "?"));
+  try {
+    const resp = await fetch(store.url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${store.url}`);
+    const total = Number(resp.headers.get("Content-Length")) || 0;
+    const parts = [];
+    let done = 0;
+    let shown = 0;
+    const reader = resp.body.getReader();
+    for (;;) {
+      const { done: end, value } = await reader.read();
+      if (end) break;
+      parts.push(value);
+      done += value.byteLength;
+      if (performance.now() - shown > 250) {
+        shown = performance.now();
+        status(t("nospace.fetching", store.name, size(done), total ? size(total) : "?"));
+        progress(done, total);
+      }
+    }
+    progress(0, 0);
+    await loadFile(new File(parts, store.name), true);
+  } catch (e) {
+    progress(0, 0);
+    status(String(e?.message ?? e), true);
+    setBusy(false);
+  }
 }
 
 // Asks the browser to keep the stored models (once, before the first download).
@@ -1069,6 +1145,7 @@ async function fromUrl(url, from = null) {
     };
   });
   dlRate = null;
+  lastStore = { url, name };
   worker.postMessage({ type: "download", url, name });
   const ok = await done;
   // The speed measured, for the picker's estimate of the next download.
@@ -1128,15 +1205,16 @@ async function loadStored(name, force = null) {
   worker.postMessage(lastLoad);
 }
 
-async function loadFile(file) {
+async function loadFile(file, memoryOnly = false) {
   // Larger than the memory limit, or for the GPU: copied into OPFS first, whence Inga
   // reads it at offsets (what does not fit is read while it runs; the GPU's layers go
   // from there to its buffers). A smaller file for the CPU loads from memory, whole.
   const { budget } = memoryLimit();
-  const gpu = (await chooseDevice()).device === "gpu";
+  // `memoryOnly` ("Load without storing"): the storage refused it, so it stays in memory.
+  const gpu = !memoryOnly && (await chooseDevice()).device === "gpu";
   // A draft model runs beside a stored model only: the file is stored first.
-  const drafting = !!draftFor(file.name);
-  if ((drafting || gpu || (budget != null && file.size > budget)) && navigator.storage?.getDirectory) {
+  const drafting = !memoryOnly && !!draftFor(file.name);
+  if (!memoryOnly && (drafting || gpu || (budget != null && file.size > budget)) && navigator.storage?.getDirectory) {
     importFile(file);
     return;
   }
@@ -1147,7 +1225,7 @@ async function loadFile(file) {
   freshWorker();
   used = true;
   deviceUsed = { device: "cpu", label: gpu ? "device CPU: the GPU reads a model from this site's storage, which this browser lacks" : (await chooseDevice()).label };
-  limitUsed = budget == null ? "everything in memory (All in memory)" : "everything in memory (a file of this device smaller than the limit)";
+  limitUsed = memoryOnly ? "everything in memory, not stored (the browser refused the storage)" : budget == null ? "everything in memory (All in memory)" : "everything in memory (a file of this device smaller than the limit)";
   lastLoad = null;
   startLoading();
   worker.postMessage({ type: "load", file, ctx: ctx(), kv: $("kv").value, device: "cpu" });
@@ -1654,6 +1732,7 @@ function draftStats(s) {
 }
 
 function importFile(file) {
+  lastStore = { file, name: file.name };
   setBusy(true);
   status(t("st.copying", file.name));
   const prev = worker.onmessage;

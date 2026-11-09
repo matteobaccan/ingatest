@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 <!-- The commit and UTC date of a published build ("abc1234 2026-10-16") and Inga's version
 (Cargo.toml), which the Pages workflow writes: the side bar, About and the report show them;
 "dev" here. -->
-<meta name="inga-build" content="024bced 2026-11-09">
+<meta name="inga-build" content="5db1c30 2026-11-09">
 <meta name="inga-version" content="0.46.0">
 <!-- The theme chosen in the Settings, before the page paints (no flash of the other one). -->
 <script>try { const t = JSON.parse(localStorage.getItem("inga.settings") || "{}"); if (t.theme === "light" || t.theme === "dark") document.documentElement.dataset.theme = t.theme; if (t.fontsize) document.documentElement.dataset.fs = t.fontsize; } catch {}</script>
@@ -77,6 +77,13 @@ input[type=number] { width: 6.5em; }
 textarea { width: 100%; resize: vertical; }
 button { display: inline-flex; gap: 6px; align-items: center; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font: inherit; cursor: pointer; }
 button.ghost { background: transparent; color: var(--accent); }
+/* A file input's label in the page's button style (the input itself stays, hidden, for the keyboard and the pickers). */
+.vh { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+label.btn { display: inline-flex; gap: 6px; align-items: center; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font: inherit; cursor: pointer; }
+label.btn.ghost { background: transparent; color: var(--accent); }
+label.btn.ghost:hover { background: var(--hover); }
+.vh:focus-visible + label.btn { outline: 2px solid var(--accent); outline-offset: 2px; }
+#status button { margin-left: 8px; }
 button.icon { padding: 6px; border: 1px solid transparent; background: transparent; color: var(--muted); border-radius: 8px; }
 button.icon:hover, button.ghost:hover, .navb:hover { background: var(--hover); }
 button:disabled { opacity: .45; cursor: default; }
@@ -535,6 +542,7 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
     </details></section>
     <section class="card">
       <h2 data-i18n="models.load">Load a model</h2>
+      <p class="meta" id="private-note" hidden></p>
       <div class="row" style="margin-bottom:10px">
         <label for="url" class="meta" style="flex-basis:100%">1. From a link to a GGUF file (it must allow cross-origin downloads, as Hugging Face does)</label>
         <input type="url" id="url" placeholder="https://huggingface.co/…/resolve/main/model-Q8_0.gguf">
@@ -542,7 +550,8 @@ dialog#picker::backdrop { background: rgb(0 0 0 / .45); }
       </div>
       <div class="row" style="margin-bottom:10px">
         <label for="file" class="meta" style="flex-basis:100%">2. From a file on this device (on an iPhone or iPad it opens the Files app)</label>
-        <input type="file" id="file" accept=".gguf,application/octet-stream">
+        <input type="file" id="file" class="vh" accept=".gguf,application/octet-stream">
+        <label for="file" class="btn ghost" id="file-pick"><span data-i18n="models.choose">Choose file</span></label>
       </div>
       <div class="row">
         <span class="meta" style="flex-basis:100%">3. From an <code>inga serve</code> on your network: not available yet. The server

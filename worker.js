@@ -49,7 +49,8 @@
 // again with `device` in a fresh worker, `note` saying why) |
 // {type: "piece", text, reasoning} (reasoning: a thinking model's, apart from its answer) |
 // {type: "done", stats, memory, gpu} (stats.ttft_ms: the time to first token, from the
-// request to its first piece, the prompt's processing included) | {type: "error", message} |
+// request to its first piece, the prompt's processing included) | {type: "error", message, noSpace?: {name, size}} |
+// (noSpace: the browser refused the space to store a model; the partial file is removed) |
 // {type: "count", id, tokens, parts} (tokens null: no model, or a module without countChat) |
 // {type: "trimmed", dropped, tokens} (a chat's oldest messages left out to fit `fit`) |
 // {type: "disktest", bytes, write_mbs, read_mbs} |
@@ -284,12 +285,39 @@ async function wipe() {
   if (failed.length) throw new Error("Some stored data could not be deleted (close the other tabs of this page and try again): " + failed.join("; "));
 }
 
+// The browser refused the space to store a model: a QuotaExceededError ("No space available
+// for this operation" in Chrome), or a write that took fewer bytes than it was given. The
+// page turns `noSpace` ({name, size}) into its plain message and the "Load without
+// storing" offer. A private window grants far less than navigator.storage.estimate() says
+// (unverified: seen in a Chrome incognito window with an estimate of 10 GiB).
+function isNoSpace(e) {
+  return e?.noSpace != null || e?.name === "QuotaExceededError" || /no space available|quota|storage is full/i.test(String(e?.message ?? ""));
+}
+
+function noSpaceError(name, size) {
+  const e = new Error(`The browser refused the space to store ${name}. This site's storage is full or this is a private window.`);
+  e.noSpace = { name, size: size || null };
+  return e;
+}
+
+// Writes `bytes` at `at`, or throws what isNoSpace tells (a short write is no space).
+function put(handle, bytes, at) {
+  if (handle.write(bytes, { at }) !== bytes.byteLength) throw noSpaceError("", null);
+}
+
+// A file the storage had no room for is removed with its sidecar: no partial file stays.
+async function dropPartial(dir, name) {
+  await dir.removeEntry(name).catch(() => {});
+  await dir.removeEntry(name + ".json").catch(() => {});
+}
+
 // Downloads `url` into OPFS as `name`, resuming what an earlier download left.
 async function download(url, name) {
   const dir = await modelsDir();
   const meta = (await readMeta(dir, name)) ?? { url, size: null, complete: false };
   if (meta.complete) return;
   const handle = await syncHandle(await dir.getFileHandle(name, { create: true }));
+  let refused = null;
   try {
     let at = meta.url === url ? handle.getSize() : 0;
     let resp;
@@ -322,7 +350,7 @@ async function download(url, name) {
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
-        if (handle.write(value, { at }) !== value.byteLength) throw new Error("the site's storage is full: delete a stored model");
+        put(handle, value, at);
         at += value.byteLength;
         if (at - last > 4 << 20) {
           last = at;
@@ -339,10 +367,23 @@ async function download(url, name) {
       meta.size = at;
     }
     meta.complete = true;
+  } catch (e) {
+    if (!isNoSpace(e)) throw e;
+    refused = e;
   } finally {
     handle.close();
   }
-  await writeMeta(dir, name, meta);
+  if (refused) {
+    await dropPartial(dir, name);
+    throw noSpaceError(name, meta.size);
+  }
+  try {
+    await writeMeta(dir, name, meta);
+  } catch (e) {
+    if (!isNoSpace(e)) throw e;
+    await dropPartial(dir, name);
+    throw noSpaceError(name, meta.size);
+  }
 }
 
 // ./pkg's module (the one with WebGPU), loaded once; no GPU device made.
@@ -1140,18 +1181,31 @@ async function importFile(file) {
     throw new Error(`This site's storage has ${mib(free)} free; ${file.name} needs ${mib(file.size)}. Delete a stored model, or choose "All in memory".`);
   }
   const h = await syncHandle(await dir.getFileHandle(file.name, { create: true }));
+  let refused = false;
   try {
     h.truncate(0);
     for (let at = 0; at < file.size; at += CHUNK) {
       const chunk = new Uint8Array(await file.slice(at, at + CHUNK).arrayBuffer());
-      if (h.write(chunk, { at }) !== chunk.byteLength) throw new Error("the site's storage is full");
+      put(h, chunk, at);
       post({ type: "progress", what: "copy", done: Math.min(at + CHUNK, file.size), total: file.size });
     }
     h.flush();
+  } catch (e) {
+    if (!isNoSpace(e)) throw e;
+    refused = true;
   } finally {
     h.close();
   }
-  await writeMeta(dir, file.name, { url: null, size: file.size, complete: true });
+  try {
+    if (!refused) await writeMeta(dir, file.name, { url: null, size: file.size, complete: true });
+  } catch (e) {
+    if (!isNoSpace(e)) throw e;
+    refused = true;
+  }
+  if (refused) {
+    await dropPartial(dir, file.name);
+    throw noSpaceError(file.name, file.size);
+  }
 }
 
 // Writes 256 MiB to OPFS, reads it back through a sync access handle in 8 MiB chunks,
@@ -1204,7 +1258,7 @@ self.onmessage = async ({ data }) => {
       post({ type: "error", message: `Inga stopped: ${why.replace(/\s*\n\s*/g, " ")}. Load the model again.`, panic: true });
       return;
     }
-    post({ type: "error", message: String(e?.message ?? e) });
+    post({ type: "error", message: String(e?.message ?? e), ...(e?.noSpace ? { noSpace: e.noSpace } : {}) });
   }
 };
 
