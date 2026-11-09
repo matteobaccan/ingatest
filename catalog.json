@@ -6,73 +6,73 @@
   {
    "id": "llama",
    "label": "Llama",
-   "icon": "🦙",
+   "icon": "i-mountain",
    "about": "Meta's Llama 3.2 and 3.1"
   },
   {
    "id": "deepseek",
    "label": "DeepSeek",
-   "icon": "🐋",
+   "icon": "i-waves",
    "about": "DeepSeek R1's distilled reasoning models"
   },
   {
    "id": "qwen",
    "label": "Qwen",
-   "icon": "🐉",
+   "icon": "i-cloud",
    "about": "Alibaba's Qwen3.5, Qwen3 and Qwen2.5 (Coder)"
   },
   {
    "id": "gemma",
    "label": "Gemma",
-   "icon": "💎",
+   "icon": "i-gem",
    "about": "Google's Gemma 2, 3 and 4"
   },
   {
    "id": "phi",
    "label": "Phi",
-   "icon": "Φ",
+   "icon": "i-phi",
    "about": "Microsoft's Phi-3, Phi-3.5 and Phi-4 mini"
   },
   {
    "id": "mistral",
    "label": "Mistral",
-   "icon": "🌬️",
+   "icon": "i-wind",
    "about": "Mistral 7B Instruct and Ministral 3"
   },
   {
    "id": "hermes",
    "label": "Hermes",
-   "icon": "🪽",
+   "icon": "i-feather",
    "about": "Nous Research's Hermes 3 (Llama fine-tunes)"
   },
   {
    "id": "smollm",
    "label": "SmolLM",
-   "icon": "🤏",
+   "icon": "i-shrink",
    "about": "Hugging Face's small models"
   },
   {
    "id": "tinyllama",
    "label": "TinyLlama",
-   "icon": "🐣",
+   "icon": "i-sprout",
    "about": "TinyLlama 1.1B"
   },
   {
    "id": "lfm",
    "label": "LFM",
-   "icon": "💧",
+   "icon": "i-drop",
    "about": "Liquid AI's LFM2.5 and LFM2"
   },
   {
    "id": "granite",
    "label": "Granite",
-   "icon": "🪨",
+   "icon": "i-strata",
    "about": "IBM's Granite 4.1"
   },
   {
    "id": "emma",
    "label": "Emma",
-   "icon": "👧",
+   "icon": "i-package",
    "logo": "icons/emma.svg",
    "about": "Emma, the Italian model by Egomnia (emma.egomnia.com); GGUF by PaoloneSborracchione"
   }

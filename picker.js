@@ -27,8 +27,21 @@ export function variantUrl(m, v) {
 
 export const fileOf = (v) => v.file.split("/").pop();
 
+// A line icon of the page's sprite (`#icons` of index.html): `name` is a symbol id ("i-gem");
+// anything else is the neutral generic one. Never an emoji (the maintainer's rule).
+const SVG_NS = "http://www.w3.org/2000/svg";
+export function iconEl(name) {
+  const s = document.createElementNS(SVG_NS, "svg");
+  s.setAttribute("class", "ic");
+  s.setAttribute("aria-hidden", "true");
+  const u = document.createElementNS(SVG_NS, "use");
+  u.setAttribute("href", "#" + (/^i-[a-z-]{1,24}$/.test(name) ? name : "i-package"));
+  s.append(u);
+  return s;
+}
+
 // A family's mark: its `logo` (an image of the page's folder, e.g. icons/emma.svg) when
-// it has one, else its `icon` (an emoji); null for neither.
+// it has one, else its `icon` (a symbol of the sprite); null for neither.
 export function familyMark(f) {
   if (f?.logo) {
     const img = document.createElement("img");
@@ -37,7 +50,7 @@ export function familyMark(f) {
     img.alt = "";
     return img;
   }
-  return f?.icon ? document.createTextNode(f.icon) : null;
+  return f?.icon ? iconEl(f.icon) : null;
 }
 
 function size(b) {
@@ -61,7 +74,7 @@ function size(b) {
 export function fitOf(bytes, approx, env) {
   const need = bytes * (approx ? 1.08 : 1) + OVERHEAD;
   if (env.free != null && bytes > env.free) {
-    return { mark: "big", icon: "❌", why: `larger than the storage this browser still gives the site (${size(env.free)} free)` };
+    return { mark: "big", icon: "i-close", why: `larger than the storage this browser still gives the site (${size(env.free)} free)` };
   }
   // The tab's memory: the limit, under the 4 GiB a wasm32 module addresses, and at most
   // half of the device's memory where the browser tells it.
@@ -77,26 +90,26 @@ export function fitOf(bytes, approx, env) {
   if (env.gpu) {
     const g = env.gpu.budget;
     const of = `${size(g)} of GPU memory (${env.gpu.measured ? "measured" : env.gpu.guess ? "a guess" : "the Settings'"})`;
-    if (need <= 0.85 * g) return { mark: "fits", icon: "✅", why: `about ${size(need)} with its cache, within ${of}` };
+    if (need <= 0.85 * g) return { mark: "fits", icon: "i-check", why: `about ${size(need)} with its cache, within ${of}` };
     // The rest on the CPU: within WebAssembly memory beside the GPU's (counted apart on a
     // desktop), or read from storage at every token.
     const room = env.gpu.separate ? cpu + g : Math.max(cpu, g);
     const onCpu = `about ${size(need)}, more than ${of}: the rest on the CPU (${size(cpu)}, ${by})`;
-    if (need <= room) return { mark: "tight", icon: "⚠️", why: `${onCpu}, slow` };
-    if (env.memory == null) return { mark: "big", icon: "❌", why: `${onCpu}: more than that (All in memory)` };
-    if (need <= 2 * room) return { mark: "tight", icon: "⚠️", why: `${onCpu}; ${size(need - room)} read from storage at every token (very slow)` };
-    return { mark: "big", icon: "❌", why: `too big for this browser: about ${size(need)}, more than twice ${size(room)} (GPU and CPU)` };
+    if (need <= room) return { mark: "tight", icon: "i-warning", why: `${onCpu}, slow` };
+    if (env.memory == null) return { mark: "big", icon: "i-close", why: `${onCpu}: more than that (All in memory)` };
+    if (need <= 2 * room) return { mark: "tight", icon: "i-warning", why: `${onCpu}; ${size(need - room)} read from storage at every token (very slow)` };
+    return { mark: "big", icon: "i-close", why: `too big for this browser: about ${size(need)}, more than twice ${size(room)} (GPU and CPU)` };
   }
   const cap = cpu;
   const where = `${size(cpu)} (${by})`;
-  if (need <= 0.85 * cap) return { mark: "fits", icon: "✅", why: `about ${size(need)} with its cache, of ${where}` };
-  if (need <= cap) return { mark: "tight", icon: "⚠️", why: `tight: about ${size(need)} with its cache, of ${where}` };
+  if (need <= 0.85 * cap) return { mark: "fits", icon: "i-check", why: `about ${size(need)} with its cache, of ${where}` };
+  if (need <= cap) return { mark: "tight", icon: "i-warning", why: `tight: about ${size(need)} with its cache, of ${where}` };
   // All in memory: nothing is read from storage, so what does not fit cannot load.
-  if (env.memory == null) return { mark: "big", icon: "❌", why: `about ${size(need)}, more than ${where} (All in memory)` };
+  if (env.memory == null) return { mark: "big", icon: "i-close", why: `about ${size(need)}, more than ${where} (All in memory)` };
   // Larger: what does not fit is read from storage at every token. Up to twice the
   // room, slow but usable; beyond, too slow to be of use.
-  if (need <= 2 * cap) return { mark: "tight", icon: "⚠️", why: `about ${size(need)}, more than ${where}: ${size(need - cap)} read from storage at every token (slow)` };
-  return { mark: "big", icon: "❌", why: `too big for this browser: about ${size(need)}, more than twice ${where}` };
+  if (need <= 2 * cap) return { mark: "tight", icon: "i-warning", why: `about ${size(need)}, more than ${where}: ${size(need - cap)} read from storage at every token (slow)` };
+  return { mark: "big", icon: "i-close", why: `too big for this browser: about ${size(need)}, more than twice ${where}` };
 }
 
 // Where a variant would run, when the Device setting may use the GPU (`env.gpu`): its
@@ -106,6 +119,8 @@ export function fitOf(bytes, approx, env) {
 // browser at all ("big", fitOf's verdict). Null without a GPU to judge against (fitOf's
 // mark is then the one that counts). {mark, label, why}, the label and why in the
 // page's language.
+// The icon of each gpuFit verdict.
+const GPU_ICON = { gpu: "i-check", part: "i-warning", big: "i-close" };
 export function gpuFit(bytes, approx, env) {
   const f = fitOf(bytes, approx, env);
   if (f.mark === "big") return { mark: "big", label: t("fit.big"), why: f.why };
@@ -261,7 +276,7 @@ export function createPicker(opts) {
         b.className = "vchip " + (g?.mark ?? f.mark);
         b.dataset.quant = v.quant;
         b.setAttribute("role", "radio");
-        b.textContent = `${v.quant} · ${v.approx ? "~" : ""}${size(v.size)} ${g ? { gpu: "✅", part: "🐢", big: "❌" }[g.mark] : f.icon}${stored[fileOf(v)] != null ? " ✓" : ""}`;
+        b.append(`${v.quant} · ${v.approx ? "~" : ""}${size(v.size)} `, iconEl(g ? GPU_ICON[g.mark] : f.icon), stored[fileOf(v)] != null ? " ✓" : "");
         b.title = g ? `${g.label}: ${g.why}` : f.why;
         b.onclick = () => {
           pickedVariant = chosen[m.id] = i;
@@ -298,12 +313,12 @@ export function createPicker(opts) {
         info.textContent = "";
         const mark = document.createElement("span");
         mark.className = "fit " + f.mark;
-        mark.textContent = `${f.icon} ${{ fits: "fits", tight: "tight", big: "too big" }[f.mark]}`;
+        mark.replaceChildren(iconEl(f.icon), ` ${{ fits: "fits", tight: "tight", big: "too big" }[f.mark]}`);
         mark.title = f.why;
         // With a GPU: where it would run (gpuFit), the badge the card shows first.
         if (g) {
           mark.className = "fit gpu-fit " + g.mark;
-          mark.textContent = `${{ gpu: "✅", part: "🐢", big: "❌" }[g.mark]} ${g.label}`;
+          mark.replaceChildren(iconEl(GPU_ICON[g.mark]), ` ${g.label}`);
           mark.title = g.why;
         }
         const sz = document.createElement("span");
@@ -321,10 +336,10 @@ export function createPicker(opts) {
         if (have) {
           const dl = document.createElement("span");
           dl.className = "downloaded";
-          dl.textContent = " · 💾 downloaded";
+          dl.append(" · ", iconEl("i-database"), " downloaded");
           info.append(dl);
         }
-        if (v.missing) info.append(" · ⚠️ not found on Hugging Face when last checked");
+        if (v.missing) info.append(" · ", iconEl("i-warning"), " not found on Hugging Face when last checked");
         const why = document.createElement("div");
         why.textContent = f.why + (m.note ? `. ${m.note}` : "");
         info.append(why);
@@ -354,7 +369,7 @@ export function createPicker(opts) {
         `maxStorageBufferBindingSize ${size(env.gpu.maxStorageBufferBindingSize)}`);
     } else parts.push("CPU only (Device setting, or no WebGPU)");
     if (env.free != null) parts.push(`storage free ${size(env.free)}`);
-    $("#picker-env").textContent = "Judged on: " + parts.join(" · ") + ". ✅ fits in memory · ⚠️ tight, or part read from storage at every token · ❌ too big for this browser.";
+    $("#picker-env").replaceChildren("Judged on: " + parts.join(" · ") + ". ", iconEl("i-check"), " fits in memory · ", iconEl("i-warning"), " tight, or part read from storage at every token · ", iconEl("i-close"), " too big for this browser.");
     const when = catalog?.checked ? `sizes and files checked on Hugging Face on ${catalog.checked}` : "sizes estimated, files not yet checked on Hugging Face (tools/wasm-catalog.py)";
     $("#picker-source").textContent = `${catalog.models.length} models, ${catalog.models.reduce((a, m) => a + m.variants.length, 0)} variants; ${when}.`;
   }

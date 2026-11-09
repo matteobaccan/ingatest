@@ -8,7 +8,7 @@
 // anywhere (HTTPS needed for OPFS and workers off localhost).
 
 import { markdown } from "./md.js";
-import { createPicker, fitOf, gpuFit, smallerPick, variantUrl, fileOf } from "./picker.js";
+import { createPicker, iconEl, fitOf, gpuFit, smallerPick, variantUrl, fileOf } from "./picker.js";
 import { infoSections, infoText, renderInfo } from "./info.js";
 import * as chats from "./chats.js";
 import { t, setLang, num, size } from "./i18n.js";
@@ -2178,7 +2178,7 @@ function reloadLater() {
 }
 
 // The avatar of an answer: its model's mark (`mark`: its catalog family's logo, else its
-// emoji, on a round tile), or Inga's logo for a model the catalog did not give.
+// icon, on a round tile), or Inga's logo for a model the catalog did not give.
 function avatar(mark) {
   if (!mark?.logo && !mark?.icon) {
     const img = document.createElement("img");
@@ -2195,14 +2195,14 @@ function avatar(mark) {
     el.src = mark.logo;
     el.alt = "";
   } else {
-    el.textContent = mark.icon;
+    el.append(iconEl(mark.icon));
     el.setAttribute("aria-hidden", "true");
   }
   return el;
 }
 
 // ---- The model's mark: a file downloaded through the model catalog keeps its family
-// (by file name, in this browser), so the answers it writes carry its logo or emoji; a
+// (by file name, in this browser), so the answers it writes carry its logo or icon; a
 // model loaded by link or from a file of this device has none (Inga's logo) ----
 const MARKS_KEY = "inga.marks";
 let markOf = {};
@@ -2224,11 +2224,11 @@ function showMark() {
   chip.dataset.family = modelMark?.family ?? "";
   const box = $("model-mark");
   box.textContent = "";
-  if (modelMark?.logo || modelMark?.icon) {
+  if (modelMark?.logo) {
     const a = avatar(modelMark);
     a.className = "fam-logo";
     box.append(a);
-  }
+  } else if (modelMark?.icon) box.append(iconEl(modelMark.icon));
   box.hidden = !box.firstChild;
   chip.querySelector("svg.ic").style.display = box.hidden ? "" : "none";
 }

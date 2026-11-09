@@ -112,10 +112,10 @@ function chatOf(x) {
     if (num(m.at)) o.at = m.at;
     // The seed it drew with: the same seed, settings and conversation give it again.
     if (Number.isSafeInteger(m.seed) && m.seed >= 0) o.seed = m.seed;
-    // Its model's mark (the avatar): an emoji, or a logo of the page's own icons/ only.
+    // Its model's mark (the avatar): a symbol of the page's sprite (an emoji kept by an older version becomes the generic one), or a logo of the page's own icons/ only.
     const k = m.mark;
     if (k && typeof k === "object" && typeof k.icon === "string") {
-      o.mark = { family: String(k.family ?? ""), label: String(k.label ?? ""), icon: k.icon.slice(0, 8) };
+      o.mark = { family: String(k.family ?? ""), label: String(k.label ?? ""), icon: /^i-[a-z-]{1,24}$/.test(k.icon) ? k.icon : k.icon ? "i-package" : "" };
       if (typeof k.logo === "string" && /^icons\/[\w.-]+\.(svg|png|webp)$/.test(k.logo)) o.mark.logo = k.logo;
     }
     return o;
