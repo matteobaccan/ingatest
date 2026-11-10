@@ -74,10 +74,16 @@
 <p>A <strong>persistent memory</strong>: short facts (your name, your preferences, a decision taken in
 an earlier chat) kept on your computer and given back to the model in <strong>new</strong> chats.
 Before each answer, the memories closest to your message (at most five, a few hundred
-tokens) are added to the system prompt, marked as memories. Models that call tools
-(Qwen3, Llama 3.1+, Mistral, gpt-oss…) also get three tools the server runs itself:
-<code dir="auto">remember(text)</code> saves a fact, <code dir="auto">recall(query)</code> searches the memories, <code dir="auto">forget(id)</code>
-deletes one, so “remember that I prefer short answers” just works.</p>
+tokens) are put before your message, marked as memories; your earlier messages keep the
+memories they were sent with, so the system prompt and the conversation stay the same
+from turn to turn and the next answer starts from the cache of the previous one. Models
+that call tools (Qwen3, Llama 3.1+, Mistral, gpt-oss…) also get three tools the server
+runs itself: <code dir="auto">remember(text)</code> saves a fact, <code dir="auto">recall(query)</code> searches the memories,
+<code dir="auto">forget(id)</code> deletes one, so “remember that I prefer short answers” just works
+(<code dir="auto">recall</code> and <code dir="auto">forget</code> are offered once a memory is saved).</p>
+<p>The embedding model you choose loads beside the chat model and does not count against
+<code dir="auto">server.models_max</code>: the recall never unloads the chat model, and the log says where
+the embedding model went (<code dir="auto">embedding model ... loaded beside ... on the CPU, 0.60 GiB: it does not count against server.models_max and unloads no chat model</code>).</p>
 <p>Everything stays on the machine: the memories and their embeddings are in
 <code dir="auto">~/.cache/inga/store/entries.jsonl</code> (readable by its owner only), embedded by Inga’s own
 encoders. The web UI’s <strong>Memory</strong> page lists them, searches them by meaning, edits,

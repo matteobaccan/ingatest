@@ -654,8 +654,8 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <tr>
 <td><code dir="auto">chat.warm</code></td>
 <td></td>
-<td>false</td>
-<td>process a chat’s system prompt and tools while the model is idle, before its first message is sent (POST /api/inga/warm): auto for the models on the CPU (measured there: the first answer starts much earlier, a request that comes meanwhile waits for one pass), true on a GPU too (not measured), false never</td>
+<td>auto</td>
+<td>process a chat’s system prompt and tools while the model is idle, before its first message is sent (POST /api/inga/warm): auto (the default) for the models on the CPU (measured there: the first answer starts much earlier, a request that comes meanwhile waits for one pass), true on a GPU too (not measured), false never</td>
 </tr>
 </tbody>
 </table>
