@@ -152,11 +152,26 @@ one test file), <code dir="auto">model</code> (<code dir="auto">hf://REPO:QUANT<
 (the <code dir="auto">inga bench</code> arguments; several runs separated by <code dir="auto">;</code>). The runner is switched on
 by the maintainer: ask before relying on it, and keep each dispatch short.</p>
 <ul>
-<li>To compare settings, run the variants <strong>one after the other in one run</strong>, the
-baseline first and last (<code dir="auto">-p 0 -n 128 -r 5 --device vulkan; ... --set KEY=true; ...</code>).</li>
-<li><strong><code dir="auto">--ab KEY=V</code> drops a <code dir="auto">--set</code> of the same key</strong> from its default side: <code dir="auto">--set K=true --ab K=false</code> compares off with off. Use <code dir="auto">--ab K=true</code> alone, or separate runs.</li>
-<li>Two runs on different hours are not comparable (the same bench gave 47 and 62 tokens/s
-on two evenings): never compare across runs.</li>
+<li>
+<p>To compare settings, run the variants <strong>one after the other in one run</strong>, the
+baseline first and last (<code dir="auto">-p 0 -n 128 -r 5 --device vulkan; ... --set KEY=true; ...</code>).</p>
+</li>
+<li>
+<p><strong><code dir="auto">--ab KEY=V</code> drops a <code dir="auto">--set</code> of the same key</strong> from its default side: <code dir="auto">--set K=true --ab K=false</code> compares off with off. Use <code dir="auto">--ab K=true</code> alone, or separate runs.</p>
+</li>
+<li>
+<p>Two runs on different hours are not comparable (the same bench gave 47 and 62 tokens/s
+on two evenings): never compare across runs.</p>
+</li>
+<li>
+<p><strong>The runner’s disk and load.</strong> The models were on a USB 2.0 disk until 2026-11-10; the
+maintainer then changed the runner’s <code dir="auto">.env</code> (likely to an internal disk: the env print
+of each job shows where the models are). The machine may run other processes. So every
+measure that reads the disk or runs long is repeated in ABBA order (main, branch,
+branch, main); the job prints the processes using CPU and GPU and the disk’s read
+speed. A negative result there does not discard an idea without a second measure
+elsewhere (the Colab T4 or an internal disk).</p>
+</li>
 </ul>
 <div class="sl-heading-wrapper level-h3"><h3 id="what-is-not-measured">What is not measured</h3><a class="sl-anchor-link" href="#what-is-not-measured"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “What is not measured”</span></a></div>
 <p>Goes into <code dir="auto">docs/todo/real-world-checks.md</code> (the group that fits) and is said in the pull

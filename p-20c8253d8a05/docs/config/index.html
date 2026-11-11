@@ -1255,6 +1255,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>CUDA: a prompt’s chunks take every token left up to the prompt chunk (a prompt of 511 tokens in one chunk, as llama.cpp takes a whole batch) instead of the largest power of two that fits (256 + 128 + 64 + 32 + 16 + 8 + 7), the scratch of the odd size made when first needed (off until measured: false keeps the powers of two)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.prompt_overlap</code></td>
+<td></td>
+<td>auto</td>
+<td>a prompt of a model split between a GPU and the CPU: its chunks pipelined through the two (the GPU’s layers on one chunk while the CPU’s run on the one before, two hand-off buffers between them; auto: from 256 tokens; on: from 32; off: one device after the other on the whole pass, as before 0.46.5)</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.spec_gate</code></td>
 <td></td>
 <td>true</td>
