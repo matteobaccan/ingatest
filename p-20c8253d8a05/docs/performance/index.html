@@ -1373,7 +1373,8 @@ driver 580.82.07), Inga main at de9d9485, llama.cpp b11489: <code dir="auto">ing
 every layer on the GPU, the means of the three repetitions in tokens/s. Every GPU suite
 passed on the card first. <code dir="auto">debug.cuda_mmvq</code>, <code dir="auto">debug.cuda_fattn</code> and
 <code dir="auto">debug.cuda_short_conv</code> are on by default on CUDA GPUs of compute capability 8.0 and
-newer since the first run of 2026-10-22 (main 3daf4880), <code dir="auto">debug.cuda_ggml_small</code> and
+newer since the first run of 2026-10-22 (main 3daf4880; <code dir="auto">debug.cuda_short_conv</code> on every
+CUDA GPU from 0.46.5, see the Tesla T4 rows of <code dir="auto">docs/experiments.md</code>), <code dir="auto">debug.cuda_ggml_small</code> and
 <code dir="auto">debug.cuda_batch_attention</code> since this one (off below: not measured there yet);
 <code dir="auto">debug.cuda_moe_router</code> stays off. The rows of <code dir="auto">debug.cuda_ggml_small</code> and
 <code dir="auto">debug.cuda_moe_router</code> ran with the other settings at their defaults (<code dir="auto">debug.cuda_mmvq</code>

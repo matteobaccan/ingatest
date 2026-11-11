@@ -547,10 +547,10 @@ feed-forward layers (or shared experts) of Mamba-2, Nemotron-H and Nemotron 3, w
 latent routed experts stay on the CPU; LFM2’s and LFM2.5’s
 layers (dense and LFM2-MoE): the gated short convolutions with their state, the
 attention layers, the dense networks and the routed experts, on Vulkan (checked
-against the CPU on lavapipe); on CUDA GPUs of compute capability 8.0 and newer too
-(measured on an A100); below 8.0 and on HIP the convolutions are opt-in until measured
-there (<code dir="auto">debug.cuda_short_conv = true</code>; without it they stay on the CPU and the attention
-layers go to the GPU), as on Metal and WebGPU, which lack that kernel. Gemma 4 runs on Vulkan and Metal: the layers of
+against the CPU on lavapipe); on every CUDA GPU too (measured on an A100 and a Tesla T4); on HIP the convolutions are
+opt-in until measured there (<code dir="auto">debug.cuda_short_conv = true</code>; without it they stay on the
+CPU and the attention layers go to the GPU), as on Metal and WebGPU, which lack that
+kernel. Gemma 4 runs on Vulkan and Metal: the layers of
 the 12B and the 31B, and the 26B-A4B’s attention, dense networks and routed experts
 (as the other mixtures’: checked against the CPU on lavapipe, the Metal
 code compile-checked only); on CUDA and HIP too, whose attention now takes

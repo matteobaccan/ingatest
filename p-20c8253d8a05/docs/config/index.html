@@ -1191,8 +1191,8 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <tr>
 <td><code dir="auto">debug.cuda_short_conv</code></td>
 <td></td>
-<td>auto: on for compute capability 8.0+</td>
-<td>CUDA and HIP: LFM2’s short convolutions on the GPU (unset: on for CUDA GPUs of compute capability 8.0 and newer, as measured on an A100; off below and on HIP: those layers on the CPU, their attention layers on the GPU; Vulkan runs them)</td>
+<td>auto: on for CUDA, off on HIP</td>
+<td>CUDA and HIP: LFM2’s short convolutions on the GPU (unset: on for every CUDA GPU, as measured on a T4 (7.5) and an A100; off on HIP, not measured: those layers on the CPU, their attention layers on the GPU; Vulkan runs them); read at load, when the layers are placed: not inga bench –ab</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.cuda_mmvq</code></td>
@@ -1209,8 +1209,8 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <tr>
 <td><code dir="auto">debug.cuda_fattn</code></td>
 <td></td>
-<td>auto: on for compute capability 8.0+</td>
-<td>CUDA: prompts’ attention through llama.cpp’s flash attention (unset: on for compute capability 8.0 and newer, as measured on an A100; below, or false: Inga’s own kernel)</td>
+<td>auto: on for compute capability 6.1+</td>
+<td>CUDA: prompts’ attention through llama.cpp’s flash attention (unset: on for compute capability 6.1 and newer, as llama.cpp runs it: measured on an A100, not yet on Turing and Pascal; false: Inga’s own kernel; read at each prompt, so inga bench –ab compares the two)</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.image_gpu</code></td>

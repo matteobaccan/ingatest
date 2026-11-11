@@ -235,14 +235,17 @@ field choose per model (see <a href="/ingatest/p-20c8253d8a05/docs/use-cases/cha
 replaying the recorded CUDA graph (same output, a little slower; for comparisons).</li>
 <li>llama.cpp’s kernels: on a GPU of compute capability 8.0 or newer
 (Ampere: A100, RTX 30xx and later), generation goes through llama.cpp’s
-matrix-vector products (<code dir="auto">debug.cuda_mmvq</code>), a prompt’s attention through its flash
-attention (<code dir="auto">debug.cuda_fattn</code>), a decode step’s RMS norms and RoPE through its small
-kernels (<code dir="auto">debug.cuda_ggml_small</code>), LFM2’s short convolutions run on the GPU
-(<code dir="auto">debug.cuda_short_conv</code>) and several sessions decoding together share one attention
-launch per operation (<code dir="auto">debug.cuda_batch_attention</code>). Below 8.0 (Pascal, Turing) and on
-HIP they are off: unmeasured there. A value you set wins either way:
-<code dir="auto">--set debug.cuda_fattn=false</code> goes back to Inga’s own kernel, <code dir="auto">=true</code> tries it on an
-older card. <code dir="auto">debug.cuda_ggml_new_types</code> and <code dir="auto">debug.cuda_moe_router</code> stay off. The
+matrix-vector products (<code dir="auto">debug.cuda_mmvq</code>), a decode step’s RMS norms and RoPE through
+its small kernels (<code dir="auto">debug.cuda_ggml_small</code>) and several sessions decoding together share
+one attention launch per operation (<code dir="auto">debug.cuda_batch_attention</code>). Below 8.0 (Pascal,
+Turing) and on HIP they are off: unmeasured there. A prompt’s attention goes through
+llama.cpp’s flash attention (<code dir="auto">debug.cuda_fattn</code>) on every NVIDIA GPU Inga runs on
+(compute capability 6.1 and newer), as llama.cpp does. LFM2’s short convolutions
+(<code dir="auto">debug.cuda_short_conv</code>) run on the GPU on every CUDA card (a Tesla T4: prompt 21.7
+times and generation 11 times faster than with those layers on the CPU), and are off
+on HIP. A value you set wins either way:
+<code dir="auto">--set debug.cuda_fattn=false</code> goes back to Inga’s own kernel, <code dir="auto">--set debug.cuda_mmvq=true</code> tries the matrix-vector products on an older card.
+<code dir="auto">debug.cuda_ggml_new_types</code> and <code dir="auto">debug.cuda_moe_router</code> stay off. The
 speed on an A100, off against on, is in <a href="/ingatest/p-20c8253d8a05/docs/performance/">performance</a> (for example
 Qwen3-8B Q4_K_M, pp512 1869.3 → 4111.0 tokens/s with <code dir="auto">debug.cuda_fattn</code>).</li>
 <li>A mixture of experts whole on the GPU (<code dir="auto">debug.cuda_moe_ids</code>): on a GPU of
