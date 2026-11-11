@@ -130,6 +130,14 @@ puts as many as fit in the free memory and says so:</p>
 <p>On Windows the driver would otherwise move what does not fit to system memory, much
 slower than leaving those layers on the CPU. Closing programs that use the GPU (a
 browser with hardware acceleration) frees memory for more layers.</p>
+<p>On Windows the free memory NVML reports counts every program’s memory on the card (the
+desktop’s, a browser’s). When other programs hold little of it (at most 512 MiB or 10 %
+of the card, the larger), Inga plans the card on Windows’ budget for it, the figure its
+Vulkan driver reports for the same card, and says so:</p>
+<div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">gpu: CUDA 0 Quadro P1000 planned on 3840 MiB free, Windows' budget for Inga on this card (Vulkan 0 Quadro P1000's), not the 3686 MiB NVML reports: ...</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="gpu: CUDA 0 Quadro P1000 planned on 3840 MiB free, Windows&#x27; budget for Inga on this card (Vulkan 0 Quadro P1000&#x27;s), not the 3686 MiB NVML reports: ..."><div></div></button></div></figure></div>
+<p>When they hold more, it keeps NVML’s figure, since Windows would move the card’s memory
+to the RAM while they use it, and the line says how much they hold. <code dir="auto">--set debug.cuda_windows_budget=false</code> always keeps NVML’s figure, <code dir="auto">--gpu-layers N</code> places
+fewer layers.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="5-see-where-each-part-runs-and-what-would-help">5. See where each part runs, and what would help</h2><a class="sl-anchor-link" href="#5-see-where-each-part-runs-and-what-would-help"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “5. See where each part runs, and what would help”</span></a></div>
 <p>When a model loads, Inga shows where every part of it runs and how much memory it
 takes, then tips when something would make it faster:</p>
@@ -223,8 +231,10 @@ HIP), with as many layers as fit (or the last N
 of <code dir="auto">--gpu-layers N</code>); otherwise the CPU, with the reason on standard error. A GPU
 that cannot run the model (a weight type its kernels lack) is passed over for the
 next one, and the line <code dir="auto">gpu: passed over: ...</code> says so.</li>
-<li><code dir="auto">--device cuda</code> (or <code dir="auto">cuda:N</code> for GPU N): that GPU or an error (every layer unless
-<code dir="auto">--gpu-layers</code> says otherwise); use it in scripts that must not fall back silently.</li>
+<li><code dir="auto">--device cuda</code> (or <code dir="auto">cuda:N</code> for GPU N): that GPU or an error, with the layers that
+fit (a <code dir="auto">gpu:</code> line says how many of them when not all do); with <code dir="auto">--gpu-layers all</code> or
+<code dir="auto">N</code> every layer asked for, or an error that says how many fit. Use it in scripts that
+must not fall back to another device silently.</li>
 <li><code dir="auto">--device vulkan</code> (or <code dir="auto">vulkan:N</code>, the number <code dir="auto">inga devices</code> shows): a Vulkan device,
 see step 8.</li>
 <li><code dir="auto">--device metal</code> (or <code dir="auto">metal:N</code>): a Mac’s GPU, see step 10; <code dir="auto">--device auto</code> picks it on
@@ -243,16 +253,30 @@ replaying the recorded CUDA graph (same output, a little slower; for comparisons
 matrix-vector products (<code dir="auto">debug.cuda_mmvq</code>), a decode step’s RMS norms and RoPE through
 its small kernels (<code dir="auto">debug.cuda_ggml_small</code>) and several sessions decoding together share
 one attention launch per operation (<code dir="auto">debug.cuda_batch_attention</code>). Below 8.0 (Pascal,
-Turing) and on HIP they are off: unmeasured there. A prompt’s attention goes through
-llama.cpp’s flash attention (<code dir="auto">debug.cuda_fattn</code>) on every NVIDIA GPU Inga runs on
+Turing) and on HIP they are off: unmeasured there. A prompt is read in as few chunks
+as fit on a GPU of compute capability 7.5 or newer (Turing: T4, RTX 20xx, and later;
+<code dir="auto">debug.cuda_exact_chunks</code>: 1466 tokens in one chunk, not seven; on an L4 the prompt is
+1.44 to 1.83 times faster); Pascal cards (compute capability 6.1) and HIP keep chunks of
+powers of two, <code dir="auto">--set debug.cuda_exact_chunks=true</code> reads them in as few chunks there
+too, and <code dir="auto">--set debug.cuda_exact_chunks=false</code> goes back to powers of two anywhere. A prompt’s
+attention goes through llama.cpp’s flash attention (<code dir="auto">debug.cuda_fattn</code>) on every NVIDIA GPU Inga runs on
 (compute capability 6.1 and newer), as llama.cpp does. LFM2’s short convolutions
 (<code dir="auto">debug.cuda_short_conv</code>) run on the GPU on every CUDA card (a Tesla T4: prompt 21.7
 times and generation 11 times faster than with those layers on the CPU), and are off
 on HIP. A value you set wins either way:
 <code dir="auto">--set debug.cuda_fattn=false</code> goes back to Inga’s own kernel, <code dir="auto">--set debug.cuda_mmvq=true</code> tries the matrix-vector products on an older card.
-<code dir="auto">debug.cuda_ggml_new_types</code> and <code dir="auto">debug.cuda_moe_router</code> stay off. The
+<code dir="auto">debug.cuda_moe_router</code> stays off. The
 speed on an A100, off against on, is in <a href="/ingatest/p-20c8253d8a05/docs/performance/">performance</a> (for example
 Qwen3-8B Q4_K_M, pp512 1869.3 → 4111.0 tokens/s with <code dir="auto">debug.cuda_fattn</code>).</li>
+<li>Q3_K, Q2_K, IQ4_XS, IQ4_NL, Q4_1, Q5_0 and Q5_1 files take llama.cpp’s integer
+products for prompts (and, from 8.0, for generation) as Q4_0, Q8_0 and the Q4_K to Q6_K
+files do, on every GPU of compute capability 6.1 or newer (<code dir="auto">debug.cuda_ggml_new_types</code>,
+on by default; <code dir="auto">--set debug.cuda_ggml_new_types=false</code> returns them to Inga’s own
+kernels, read when the model loads). Their products match the dequantized weights on an
+A100. On an L4, a Qwen3-4B Q3_K_M reads a 512-token prompt 3.9 times as fast (4742 / 4629
+against 1191 / 1165 tokens/s) and generates 1.5 times as fast (98.7 / 97.8 against
+68.6 / 66.4), llama.cpp b11489 reaching 4579 and 82.5 (<a href="/ingatest/p-20c8253d8a05/docs/performance/">performance</a>).
+The other six types’ speed is not measured.</li>
 <li>A mixture of experts whole on the GPU (<code dir="auto">debug.cuda_moe_ids</code>): on a GPU of
 compute capability 8.0 or newer each MoE layer of Qwen3-MoE, OLMoE, Mixtral, Qwen2-MoE
 and Qwen3.5-MoE stays on the GPU, the experts’ products reading the router’s choices
@@ -444,7 +468,8 @@ by memory, a GPU four times slower takes a fifth of what its memory would hold.
 <code dir="auto">--gpu-split 3,1</code> (or <code dir="auto">0.75,0.25</code>) sets them instead, one number per GPU of
 <code dir="auto">--device</code>, as llama.cpp’s <code dir="auto">--tensor-split</code>.</li>
 <li>What a GPU cannot hold goes to the others; what none holds stays on the CPU (the first
-layers). With <code dir="auto">--device</code> naming the GPUs, every layer asked for must fit (<code dir="auto">--gpu-layers N</code> asks for fewer), as with one GPU; <code dir="auto">inga info --device cuda:0,cuda:1</code> shows the plan
+layers). With <code dir="auto">--device</code> naming the GPUs and <code dir="auto">--gpu-layers</code> given, every layer asked
+for must fit, as with one GPU; <code dir="auto">inga info --device cuda:0,cuda:1</code> shows the plan
 without loading.</li>
 <li>The output is the one of a single GPU: the same layers run with the same kernels, only
 the hidden state crosses from one device to the next.</li>

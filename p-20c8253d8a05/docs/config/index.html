@@ -1069,6 +1069,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>list each NVIDIA GPU as N logical devices (2 to 8), to try a layer split on one card</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.cuda_windows_budget</code></td>
+<td></td>
+<td>true</td>
+<td>Windows: plan a CUDA card on Windows’ budget for Inga (the same card’s Vulkan budget) when it is larger than NVML’s free memory (false: NVML’s figure)</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.cuda_graphs</code></td>
 <td></td>
 <td>true</td>
@@ -1203,8 +1209,8 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <tr>
 <td><code dir="auto">debug.cuda_ggml_new_types</code></td>
 <td></td>
-<td>false</td>
-<td>CUDA: llama.cpp’s products for Q4_1, Q5_0, Q5_1, Q2_K, Q3_K, IQ4_NL, IQ4_XS too (off until measured on a GPU)</td>
+<td>true</td>
+<td>CUDA: llama.cpp’s products (prompts and generation) for Q4_1, Q5_0, Q5_1, Q2_K, Q3_K, IQ4_NL, IQ4_XS too, as for Q4_0, Q8_0, Q4_K, Q5_K, Q6_K (on: these types match the dequantized weights on an A100; Q3_K measured on an L4: prompts 3.9x and generation 1.5x faster, the other six types’ speed not measured; false: Inga’s own kernels for them); read when a device opens, so a change applies to the next load: compare it with two runs and –set, not inga bench –ab</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.cuda_fattn</code></td>
@@ -1251,8 +1257,8 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <tr>
 <td><code dir="auto">debug.cuda_exact_chunks</code></td>
 <td></td>
-<td>false</td>
-<td>CUDA: a prompt’s chunks take every token left up to the prompt chunk (a prompt of 511 tokens in one chunk, as llama.cpp takes a whole batch) instead of the largest power of two that fits (256 + 128 + 64 + 32 + 16 + 8 + 7), the scratch of the odd size made when first needed (off until measured: false keeps the powers of two)</td>
+<td>auto: on for compute capability 7.5+</td>
+<td>CUDA: a prompt’s chunks take every token left up to the prompt chunk (a prompt of 511 tokens in one chunk, as llama.cpp takes a whole batch) instead of the largest power of two that fits (256 + 128 + 64 + 32 + 16 + 8 + 7), the scratch of the odd size made when first needed (unset: on for CUDA from compute capability 7.5, measured on a T4 and an L4; off below it, not passing its test on a P1000, and on HIP; true forces it, false keeps the powers of two)</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.prompt_overlap</code></td>
