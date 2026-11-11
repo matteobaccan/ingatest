@@ -2588,6 +2588,37 @@ than a LAN; not yet on Machine A nor between real PCs:</p>
 the send (at most about 10 % more time, less on a desktop CPU). Each activation that
 crosses a link costs about 40 µs more per hop on this VM, against a LAN round trip of
 200 µs or more: a few percent of a token split across two machines.</p>
+<p>Op offload on CUDA (0.46.5, <code dir="auto">gpu.op_offload</code>; a mixture’s routed experts kept in RAM, a
+prompt’s products run on the GPU after the experts go over the bus through a ring of
+pinned staging slots on a copy stream; <code dir="auto">docs/experiments.md</code>). Measured on a Colab L4
+(sm_89, 12 threads, 2026-11-11, issue
+<a href="https://github.com/matteobaccan/inga/issues/1076">#1076</a>), LFM2-8B-A1B Q4_K_M, <code dir="auto">inga bench -p 1466 -n 32 -r 5 --device cuda:0 --gpu-layers all --experts-on cpu</code>, separate
+runs in ABBA order, two rounds:</p>
+<table>
+<thead>
+<tr>
+<th>pp1466, tok/s</th>
+<th><code dir="auto">gpu.op_offload=off</code></th>
+<th><code dir="auto">gpu.op_offload=on</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>main (one expert at a time)</td>
+<td>255 / 235</td>
+<td>497 / 497</td>
+</tr>
+<tr>
+<td>the ring</td>
+<td>256 / 237</td>
+<td>827 / 845</td>
+</tr>
+</tbody>
+</table>
+<p>With it on, the ring is 1.68x main and 3.3x the CPU alone; tg32 is unchanged, about 47
+tok/s. It moved 8430 MiB of experts a prompt in 87 groups, about 890 ms, 9.7-10.1 GB/s.
+The off rows’ spread (up to 54 tok/s) is the CPU’s. Not measured: <code dir="auto">gpu.op_offload=auto</code>
+(the default stays off until it is), a T4, and small cards such as the P1000.</p>
 <p>Speculative decoding (<code dir="auto">--draft</code>, <code dir="auto">--lookup</code>) is not measured here: its gain depends on
 how often the guesses are right, which random weights cannot show.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="inga-against-ollama-as-a-user-sees-it">Inga against Ollama (as a user sees it)</h2><a class="sl-anchor-link" href="#inga-against-ollama-as-a-user-sees-it"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Inga against Ollama (as a user sees it)”</span></a></div>
