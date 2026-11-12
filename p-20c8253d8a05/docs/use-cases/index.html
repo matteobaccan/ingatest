@@ -237,6 +237,10 @@ extended it.</p>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-many-users-and-models/#a-response-cache-and-a-queue-with-limits">serve-many-users-and-models.md</a>: <code dir="auto">--response-cache SIZE</code>, <code dir="auto">--max-queued-requests</code>, <code dir="auto">--max-queued-tokens</code></td>
 </tr>
 <tr>
+<td>Serve your network over HTTPS, only to the networks you allow</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-many-users-and-models/#3-start-the-engine">serve-many-users-and-models.md</a>: <code dir="auto">--tls self-signed</code> (a certificate made once, its fingerprint at start) or <code dir="auto">--tls-cert</code> / <code dir="auto">--tls-key</code>, <code dir="auto">--allow 192.168.1.0/24</code> (a 403 elsewhere; the administration only this computer without a list): 0.46.5</td>
+</tr>
+<tr>
 <td>Keep long conversations going</td>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-long-conversations/">keep-long-conversations.md</a>: context shift, <code dir="auto">--cache-cap</code>, the prefix cache, <code dir="auto">--prompt-cache</code>, <code dir="auto">/save</code> / <code dir="auto">/load</code>, <code dir="auto">--history</code></td>
 </tr>
@@ -322,6 +326,10 @@ extended it.</p>
 <tr>
 <td>Keep documents in collections</td>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-with-documents/#5-keep-documents-in-a-collection">chat-with-documents.md</a>: files read and embedded once, kept on the server, the Documents page (each file’s state and how it was indexed, every column sorted: 0.44.0), a chat’s Collections, <code dir="auto">inga_documents: [{"collection"}]</code>, reranking by a loaded reranker; <code dir="auto">#name</code> in an <code dir="auto">inga run</code> or scheduled prompt, <code dir="auto">inga docs add NAME FILE...</code></td>
+</tr>
+<tr>
+<td>Copy a whole folder into a collection</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-with-documents/#5-keep-documents-in-a-collection">chat-with-documents.md</a>: the Documents page’s Add folder…, the files counted and their size said before anything is sent, the subfolders kept in the names: 0.46.5</td>
 </tr>
 <tr>
 <td>Keep a folder in sync with a collection of documents</td>
