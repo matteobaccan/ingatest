@@ -85,8 +85,10 @@ Mixtral, Qwen MoE or OLMoE one; also Phi-3 and Phi-4-mini (<code dir="auto">Phi3
 Phi-4-multimodal (<code dir="auto">Phi4MMForCausalLM</code>, <a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-about-an-image/">chat-about-an-image.md</a>)
 and Ling 2.0 (<code dir="auto">BailingMoeV2ForCausalLM</code>). Also the embedding and reranking models
 of the BERT family (sentence-transformers directories such as all-MiniLM-L6-v2,
-bge-small-en-v1.5, paraphrase-multilingual-MiniLM-L12-v2), served by <code dir="auto">inga serve</code> on
-<code dir="auto">/v1/embeddings</code> and <code dir="auto">/v1/rerank</code>.</li>
+bge-small-en-v1.5, paraphrase-multilingual-MiniLM-L12-v2) and the static Model2Vec
+models (minishlab’s potion-base-8M, potion-retrieval-32M, potion-code-16M-v2,
+potion-multilingual-128M), served by <code dir="auto">inga serve</code> on <code dir="auto">/v1/embeddings</code> and
+<code dir="auto">/v1/rerank</code>.</li>
 <li>RAM for the weights: about 2 bytes per parameter in BF16 (Qwen3-0.6B: 1.2 GB), or 1
 byte per parameter with <code dir="auto">--quantize q8_0</code>.</li>
 <li>Network access to download it, or the model directory on disk.</li>

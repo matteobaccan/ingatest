@@ -455,7 +455,7 @@ a cut.</li>
 </tr>
 <tr>
 <td><code dir="auto">POST /v1/embeddings</code></td>
-<td>OpenAI’s format: <code dir="auto">input</code> (a string or a list of strings) → unit-length vectors of the model’s hidden size, the final hidden states pooled as the model says (a GGUF file’s <code dir="auto">pooling_type</code>, a sentence-transformers directory’s pooling module; else the mean; <code dir="auto">--pooling mean|cls|last</code> overrides it). Embedding models of the BERT family (all-MiniLM, bge, paraphrase-multilingual, bge-m3, nomic-embed-text; GGUF or a Hugging Face directory) answer it, and only it and <code dir="auto">/v1/rerank</code>: a chat or completion request gets a clear error. A sentence-transformers model without a <code dir="auto">Normalize</code> module returns its vectors unscaled, as sentence-transformers does</td>
+<td>OpenAI’s format: <code dir="auto">input</code> (a string or a list of strings) → unit-length vectors of the model’s hidden size, the final hidden states pooled as the model says (a GGUF file’s <code dir="auto">pooling_type</code>, a sentence-transformers directory’s pooling module; else the mean; <code dir="auto">--pooling mean|cls|last</code> overrides it). Embedding models of the BERT family (all-MiniLM, bge, paraphrase-multilingual, bge-m3, nomic-embed-text; GGUF or a Hugging Face directory) and static Model2Vec directories (potion-*, the mean of the tokens’ vectors) answer it, and only it and <code dir="auto">/v1/rerank</code>: a chat or completion request gets a clear error. A sentence-transformers model without a <code dir="auto">Normalize</code> module returns its vectors unscaled, as sentence-transformers does</td>
 </tr>
 <tr>
 <td><code dir="auto">POST /v1/classify</code></td>

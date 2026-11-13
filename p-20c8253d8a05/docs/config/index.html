@@ -804,6 +804,30 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>how much a file’s many chunks lower each one’s score (0: not at all): a change log or an index page of a thousand chunks otherwise turns up for every question</td>
 </tr>
 <tr>
+<td><code dir="auto">docs.symbol_weight</code></td>
+<td></td>
+<td>0</td>
+<td>the weight, in the word search, of the names a chunk of source code defines (its functions, types, methods; 0: weighed as the rest of its text, the default: weighed apart, they gained nothing measurable on Inga’s own sources)</td>
+</tr>
+<tr>
+<td><code dir="auto">docs.definition_boost</code></td>
+<td></td>
+<td>0</td>
+<td>how much a chunk of source code that defines a name the question writes (<code dir="auto">Cart::total</code>, <code dir="auto">load_config</code>, <code dir="auto">HttpClient</code>) is raised, times the best score (0, the default: not at all; on Inga’s own sources it changed no answer)</td>
+</tr>
+<tr>
+<td><code dir="auto">docs.file_coherence</code></td>
+<td></td>
+<td>0.2</td>
+<td>how much a file with several chunks found has its best one raised, times the best score (0: not at all)</td>
+</tr>
+<tr>
+<td><code dir="auto">docs.path_prior</code></td>
+<td></td>
+<td>0.3</td>
+<td>what the score of a chunk of tests, examples, compatibility shims, vendored or generated source code is multiplied by (TypeScript declarations and re-export files by its square root; 1: not lowered): the code that does the work comes first</td>
+</tr>
+<tr>
 <td><code dir="auto">docs.reranker</code></td>
 <td></td>
 <td>none: a reranker loaded on the server, if any</td>
@@ -832,6 +856,18 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td></td>
 <td>half the logical CPUs, at least 1</td>
 <td>the threads that index a folder of documents (inga docs sync and add, and inga serve’s syncs), at low priority so the computer stays responsive; inga docs sync –full-speed indexes at normal priority on every thread instead</td>
+</tr>
+<tr>
+<td><code dir="auto">docs.fast_loss</code></td>
+<td></td>
+<td>0.02</td>
+<td>the most nDCG@10 a static encoder (a folder’s Fast mode) may lose against the best full encoder measured for the folder’s content and still be the Automatic mode’s choice (decided by the maintainer on 2026-11-13)</td>
+</tr>
+<tr>
+<td><code dir="auto">docs.split_encoders</code></td>
+<td></td>
+<td>false</td>
+<td>a folder of code and documents embeds each kind with its own encoder (the documents’ and the code’s) instead of the code’s encoder for every file; off because per kind measured lower on inga-mixed (0.676 against 0.693 nDCG@10, docs/experiments.md)</td>
 </tr>
 </tbody>
 </table>
@@ -1421,6 +1457,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td></td>
 <td>f16 if all fit, else q8_0 if more fit</td>
 <td>inga music, the server’s songs: the format of the DiT’s layers on a GPU, set to force one (q8_0: half the memory of f16; the spec’s §12 has the measures)</td>
+</tr>
+<tr>
+<td><code dir="auto">debug.encoder_gpu</code></td>
+<td></td>
+<td>false</td>
+<td>the embedding models and rerankers of the BERT family (MiniLM, BGE, e5, granite) on a CUDA or Vulkan GPU with room for them, many texts a pass, for inga docs, inga eval rag and the server’s collections; the CPU otherwise, said with why. Off until measured (the RAG spec’s RC4)</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.music_profile</code></td>

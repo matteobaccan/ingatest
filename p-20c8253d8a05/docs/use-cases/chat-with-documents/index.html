@@ -77,7 +77,7 @@ machine) and gives the model either the <strong>whole document</strong>, when it
 the model’s context, or, for a longer one, the <strong>passages closest to your question</strong>:
 the document is cut into chunks of about 500 tokens by headings and paragraphs, each
 chunk is embedded once by an embedding model (BERT encoders such as nomic-embed-text or
-BGE-M3), and the closest chunks are given to the model numbered, so the answer cites
+BGE-M3, or a static Model2Vec model such as potion-base-8M), and the closest chunks are given to the model numbered, so the answer cites
 them by file and place (<code dir="auto">[2]</code> → <code dir="auto">report.pdf p. 12</code>, <code dir="auto">notes.md#3-costs</code>,
 <code dir="auto">todo.txt:12-40</code>). The answer also says which of the two Inga did, and why.</p>
 <p>Each chunk keeps where it is in its file: its <strong>heading path</strong> (<code dir="auto">Report › 3 Costs › 3.2 Energy</code>, embedded with it), the <strong>anchor</strong> of its heading as GitHub makes them
@@ -312,8 +312,63 @@ does: <code dir="auto">"inga_documents": [{"collection": "wiki", "where": "categ
 <p>A collection can also follow a folder: notes, a wiki, a code repository. From the
 command line (the server need not run; a running <code dir="auto">inga serve</code> sees the changes):</p>
 <div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">inga docs add notes ~/notes --include "*.md" --watch --embed-model hf://nomic-ai/nomic-embed-text-v1.5-GGUF/nomic-embed-text-v1.5.Q8_0.gguf</span></div></div><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">inga docs status</span></div></div><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">inga docs sync notes</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="inga docs add notes ~/notes --include &quot;*.md&quot; --watch --embed-model hf://nomic-ai/nomic-embed-text-v1.5-GGUF/nomic-embed-text-v1.5.Q8_0.ggufinga docs statusinga docs sync notes"><div></div></button></div></figure></div>
-<p><code dir="auto">docs add</code> reads the folder at once with a progress line (<code dir="auto">42 % · 312 of 1204 files · 5210 chunks · src/store.rs · ~6 min left</code>). Without <code dir="auto">--embed-model</code> the web UI’s
-embedding model is used. The folder remembers the model its files were embedded with:
+<p><code dir="auto">docs add</code> reads the folder at once with a progress line (<code dir="auto">42 % · 312 of 1204 files · 5210 chunks · src/store.rs · ~6 min left</code>). Without <code dir="auto">--embed-model</code>, the folder’s
+<strong>mode</strong> chooses (<code dir="auto">--mode</code>, Automatic by default): Inga reads the language of a sample
+of its documents (up to 48) and counts the files its code parser reads, then takes, for
+the documents and for the code, the encoder measured best for that content, and says
+which and why:</p>
+<div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">Automatic:</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#d6deeb;--1:#403f53">  </span></span><span style="--0:#d6deeb;--1:#403f53">English documents, 120 files: potion-retrieval-32M, a static encoder within docs.fast_loss 0.02 of the best measured in English (0.755 against all-MiniLM-L6-v2's 0.765 nDCG@10, SciFact and HotpotQA), indexed about 500 times faster</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="Automatic:  English documents, 120 files: potion-retrieval-32M, a static encoder within docs.fast_loss 0.02 of the best measured in English (0.755 against all-MiniLM-L6-v2&#x27;s 0.765 nDCG@10, SciFact and HotpotQA), indexed about 500 times faster"><div></div></button></div></figure></div>
+<p>The three modes:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Documents in English</th>
+<th>Documents in Italian and other languages</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fast</td>
+<td>potion-retrieval-32M</td>
+<td>potion-multilingual-128M</td>
+<td>potion-code-16M-v2</td>
+</tr>
+<tr>
+<td>Quality</td>
+<td>all-MiniLM-L6-v2</td>
+<td>granite-embedding-107m-multilingual</td>
+<td>all-MiniLM-L6-v2</td>
+</tr>
+<tr>
+<td>Automatic</td>
+<td>Fast’s when it loses at most <code dir="auto">docs.fast_loss</code> (0.02), else Quality’s</td>
+<td>the same rule</td>
+<td>the same rule</td>
+</tr>
+</tbody>
+</table>
+<p>Fast encoders are static (Model2Vec): a folder is embedded in seconds, a question in
+well under a millisecond, for a loss the table of
+<a href="https://github.com/matteobaccan/inga/blob/main/docs/experiments.md"><code dir="auto">docs/experiments.md</code></a>
+(“Retrieval”) measures. With today’s measurements and <code dir="auto">docs.fast_loss</code> at 0.02,
+Automatic takes potion-retrieval-32M for English documents, granite-embedding-107m for
+Italian ones (and for other languages, which are not measured: it says so) and
+all-MiniLM-L6-v2 for code (<code dir="auto">docs.fast_loss</code> 0.02 was decided by the maintainer on
+2026-11-13). A model the mode chooses is downloaded the first time
+(its size said first); with <code dir="auto">--offline</code> and the model missing, the web UI’s embedding
+model is used instead, said. A folder with code and documents takes one encoder for
+every file, the one its mode takes for code (“code and documents, 701 files: one
+encoder for both, all-MiniLM-L6-v2; an encoder per kind measured lower (0.676 against
+0.693 nDCG@10 on inga-mixed)”); with <code dir="auto">docs.split_encoders = true</code> under <code dir="auto">[docs]</code> each
+kind gets its own, and a search embeds the question once per encoder and merges the two
+lists. To change the mode of a folder already indexed: <code dir="auto">inga docs sync notes --mode fast</code>; it asks first, with the passages to embed again and the time it takes
+(<code dir="auto">--yes</code> without a terminal). On the Documents page each folder has the same picker
+(Automatic, Fast, Quality) and a line with the encoders of its documents and its code,
+why in its tooltip; a change asks first in the same way. <code dir="auto">--embed-model M</code> names one
+model for every file instead. The folder remembers the models its files were embedded
+with:
 <code dir="auto">inga docs sync</code> needs no <code dir="auto">--embed-model</code> (and loads no model when nothing changed);
 given another one, it says so, embeds the new and changed files with it and tells how
 to embed them all again (<code dir="auto">inga docs sync notes --full --embed-model M</code>). Only the files the globs take are read (<code dir="auto">--include</code> and
@@ -333,7 +388,9 @@ line says so (<code dir="auto">indexing at low priority (nice 10, disk best-effo
 so does each folder’s report. On Linux that is nice 10 and the lowest best-effort disk
 priority of the thread, on macOS the background QoS class (the efficiency cores on Apple
 silicon), on Windows the threads’ background mode. If the system refuses it, the sync
-goes on at normal priority and says why. To go faster on a computer you are not using,
+goes on at normal priority and says why. While the chunks of some files are embedded,
+the next files are read, cut and tokenized on the threads the embedding model leaves,
+and the chunks of several small files are embedded together. To go faster on a computer you are not using,
 <code dir="auto">inga docs sync notes --full-speed</code> (or <code dir="auto">docs add ... --full-speed</code>) indexes at normal
 priority on every thread; to be gentler still, fewer threads:
 <code dir="auto">inga --set docs.ingest_threads=2 docs sync notes</code>, or <code dir="auto">ingest_threads = 2</code> under
