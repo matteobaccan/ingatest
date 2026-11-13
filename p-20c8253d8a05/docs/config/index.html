@@ -1357,6 +1357,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>Vulkan: prompts’ products (more than 8 tokens) of Q4_0, Q4_1, Q5_0, Q5_1, Q8_0, Q2_K, Q3_K, Q4_K, Q5_K and Q6_K weights through llama.cpp’s matrix-matrix shader on cooperative matrices (VK_KHR_cooperative_matrix: RDNA3 and RDNA4, NVIDIA from Turing; not Intel yet), where the device has them (<code dir="auto">inga devices</code> says it); F16 weights keep Inga’s own shaders, on the f32 activations; read when the device opens, then at each product: false there goes back to Inga’s own shaders, which round the activations to 8 bits (about 40 times farther from the exact products than the f16 roundings of the cooperative matrices, issue #1038), so inga bench –ab debug.vk_coopmat=false compares the logits within a rounding bound (10 standard deviations of one product’s difference, 0.15 of the logits’ root mean square) rather than byte for byte</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.vk_exact_chunks</code></td>
+<td></td>
+<td>true</td>
+<td>Vulkan: a prompt’s chunks take every token left up to the prompt chunk (a prompt of 1466 tokens in one chunk, as llama.cpp takes a whole batch) instead of the largest power of two that fits (1024 + 256 + 128 + 32 + 16 + 8 + 2), the scratch of the odd size made when first needed; the same work in fewer passes over the weights, as debug.cuda_exact_chunks on CUDA (on an RX 9060 XT, issue #1079: pp1466 919 -&gt; 1056 tokens/s, the same distributions); read at each prompt, so inga bench –ab debug.vk_exact_chunks=false compares the two in one load</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.vk_subgroups</code></td>
 <td></td>
 <td>true</td>

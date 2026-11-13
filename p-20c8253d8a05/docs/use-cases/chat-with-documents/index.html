@@ -385,9 +385,24 @@ MRR@10, nDCG@10 and the search times, per kind of question
 (<code dir="auto">tests/rag/inga-code.toml</code> is a sample on Inga’s own sources, <code dir="auto">tests/rag/wiki-synth.toml</code>
 a synthetic wiki). Keep a questions file for your own folder outside it, and compare
 embedding models and searches on it: <code dir="auto">--mode dense</code>, <code dir="auto">bm25</code>, <code dir="auto">hybrid</code> or
-<code dir="auto">hybrid+rerank</code> (with <code dir="auto">--rerank-model M</code>), and any <code dir="auto">[docs]</code> key with <code dir="auto">--set</code>
+<code dir="auto">hybrid+rerank</code> (with <code dir="auto">--rerank-model M</code>; several at once on one index:
+<code dir="auto">--mode bm25,dense,hybrid</code>), and any <code dir="auto">[docs]</code> key with <code dir="auto">--set</code>
 (<code dir="auto">inga --set docs.hub_penalty=1 eval rag ...</code>). <code dir="auto">--collection NAME</code> measures a
-collection already indexed, without reading the folder again.</p>
+collection already indexed, without reading the folder again. An answer written
+<code dir="auto">file.md#anchor</code>, <code dir="auto">file.md:L10-40</code> or <code dir="auto">src/a.rs::name</code> is also matched by place: the
+chunk found must hold that section, those lines or that function. Beside the scores,
+the report says how long indexing took (chunks per second), what it kept busy (the
+cores, the disk) and which of the two held it back, the memory the index takes, and
+the encoder, chunker, threads and search settings the numbers were measured with;
+<code dir="auto">--baseline before.json</code> (an earlier <code dir="auto">--json</code> report) shows each score before → after.</p>
+<p>Public sets measure the search on data that is not yours: <code dir="auto">python3 tools/rag-sets.py build scifact ~/rag-sets</code> (also <code dir="auto">squad-it</code>, Italian questions, and
+<code dir="auto">hotpotqa</code>, questions that need two pages; a few MB each, their licences listed by
+<code dir="auto">python3 tools/rag-sets.py list</code>) writes a set in BEIR’s layout, and
+<code dir="auto">inga eval rag --beir ~/rag-sets/scifact --embed-model M</code> measures it; any set in
+that layout (<code dir="auto">corpus.jsonl</code>, <code dir="auto">queries.jsonl</code>, <code dir="auto">qrels/test.tsv</code>, as BEIR and MTEB
+publish them) works the same way. The numbers measured so far are in
+<a href="https://github.com/matteobaccan/inga/blob/main/docs/experiments.md">experiments</a>,
+“Retrieval”.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="7-how-the-collections-are-searched">7. How the collections are searched</h2><a class="sl-anchor-link" href="#7-how-the-collections-are-searched"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “7. How the collections are searched”</span></a></div>
 <p>Each question is searched two ways, and the two lists are fused (<code dir="auto">docs.search = "hybrid"</code>, the default):</p>
 <ul>
