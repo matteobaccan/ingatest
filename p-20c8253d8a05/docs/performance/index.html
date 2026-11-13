@@ -3125,7 +3125,14 @@ runs in ABBA order, two rounds:</p>
 </tbody>
 </table>
 <p>With it on, the ring is 1.68x main and 3.3x the CPU alone; tg32 is unchanged, about 47
-tok/s. It moved 8430 MiB of experts a prompt in 87 groups, about 890 ms, 9.7-10.1 GB/s.
+tok/s. It moved 8430 MiB of experts a prompt in 87 groups, about 890 ms, 9.7-10.1 GB/s:
+the routed experts twice, as the rooms then held 1024 tokens and the prompt went in two
+pieces. The rooms now hold the prompt span (2048 tokens, up to 4096 for a larger
+<code dir="auto">--batch</code> when the plan leaves the memory), so a prompt copies each layer’s experts
+once: on the same L4, 1329-1360 tok/s instead of 855-872 (+55 %), 4447 MiB a prompt
+in 44 groups, about 390 ms (<code dir="auto">docs/experiments.md</code>).
+The log’s <code dir="auto">op offload: the last prompt step</code> line says what limits the ring: the GPU,
+the host’s fill of the pinned staging, the bus or the ring’s slots, with their times.
 The off rows’ spread (up to 54 tok/s) is the CPU’s. Not measured: <code dir="auto">gpu.op_offload=auto</code>
 (the default stays off until it is), a T4, and small cards such as the P1000.</p>
 <p>Speculative decoding (<code dir="auto">--draft</code>, <code dir="auto">--lookup</code>) is not measured here: its gain depends on

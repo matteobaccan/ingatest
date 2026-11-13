@@ -210,8 +210,10 @@ and fails when they do not fit, saying how many do.</li>
 <code dir="auto">--n-cpu-moe N</code>), to leave GPU memory to a longer context or another program.</li>
 <li><code dir="auto">--set gpu.op_offload=on</code> makes a prompt read faster when the experts stay on the CPU:
 from 32 tokens a step, the experts go to the GPU in groups through pinned memory and
-are multiplied there. On a Colab L4 with LFM2-8B-A1B Q4_K_M (<code dir="auto">--experts-on cpu</code>,
-1466-token prompt) a prompt reads 845 tokens/s with it on, 237 with it off; generation
+are multiplied there, each layer’s once a step of up to 2048 tokens. The log’s line
+<code dir="auto">op offload: the last prompt step</code> says what limits it (the GPU, the host’s copy into
+the pinned memory, or the bus). On a Colab L4 with LFM2-8B-A1B Q4_K_M (<code dir="auto">--experts-on cpu</code>,
+1466-token prompt) a prompt reads about 1340 tokens/s with it on, 237 with it off; generation
 is the same (about 47). It is off by default: <code dir="auto">auto</code> is not measured yet.</li>
 <li>The experts’ weight types are those of the GPU’s products (CUDA: F32, F16, Q8_0,
 Q4_0, Q4_1, Q5_0, Q5_1, Q5_K, Q2_K, Q3_K, Q4_K, Q6_K, IQ4_NL, IQ4_XS; Vulkan the same);
