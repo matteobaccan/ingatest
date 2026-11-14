@@ -1402,6 +1402,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>Vulkan: a prompt’s chunks take every token left up to the prompt chunk (a prompt of 1466 tokens in one chunk, as llama.cpp takes a whole batch) instead of the largest power of two that fits (1024 + 256 + 128 + 32 + 16 + 8 + 2), the scratch of the odd size made when first needed; the same work in fewer passes over the weights, as debug.cuda_exact_chunks on CUDA (on an RX 9060 XT, issue #1079: pp1466 919 -&gt; 1056 tokens/s, the same distributions); read at each prompt, so inga bench –ab debug.vk_exact_chunks=false compares the two in one load</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.vk_flash_attn</code></td>
+<td></td>
+<td>auto</td>
+<td>Vulkan: a prompt’s attention through llama.cpp’s flash attention shaders (vendored from b11489: on cooperative matrices where the device has VK_KHR_cooperative_matrix, the scalar build elsewhere; heads of 64, 128 and 256, the KV positions in tiles, the causal mask’s empty blocks skipped) instead of Inga’s attention.comp, which reads the keys and values again for every head and query; auto is on on AMD (measured on a Radeon RX 9060 XT, issue #1079: Qwen3-4B Q4_K_M, a prompt of 1466 tokens 2.9 times faster, 512 tokens 1.6 times, the same distributions) and off on the other vendors until it is measured on one of their cards; its tests compare it with the CPU on Mesa’s lavapipe (the scalar build); a paged KV cache’s positions are gathered into contiguous rows for it first (one copy a layer); decoding keeps Inga’s attention; read at each prompt, so inga bench –ab debug.vk_flash_attn=on compares the two in one load</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.vk_subgroups</code></td>
 <td></td>
 <td>true</td>
