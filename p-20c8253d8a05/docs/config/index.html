@@ -1156,6 +1156,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>the CPU’s attention takes two groups of 16 a pass in 512-bit registers where the CPU has AVX-512: the scores 32 keys against twelve queries, and over an f16 KV cache the weights by the values 32 values against twelve queries, rescaling and adding to the output in the same kernel; the same sums in the same order, so a prompt added to a long chat reads faster and gives the same result (false: 16 keys a pass, six queries and 16 values a pass in 256-bit registers and the output updated value by value, as before 0.46.5, the same bits, to measure the two with inga bench –ab; no effect on a CPU without AVX-512)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.attn_decode_passes</code></td>
+<td></td>
+<td>true</td>
+<td>the CPU’s attention of a token alone (generation) over a long f16 KV cache held in RAM runs in three passes, each spread over the threads: the scores by runs of 256 positions, read straight from the f16 keys where the CPU has AVX-512 (no converted copy of each block); each query’s online softmax; the weights by the values by runs of the head’s columns; the same sums in the same order, so generation after a long chat is faster and gives the same result (false: one task per KV head, the keys of each block converted first, as before 0.46.5, the same bits, to measure the two with inga bench –ab; no effect on a quantized cache, on one kept on disk or with debug.attn_split)</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.attn_split</code></td>
 <td></td>
 <td>false</td>
