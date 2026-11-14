@@ -1239,8 +1239,8 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <tr>
 <td><code dir="auto">debug.weights_thp</code></td>
 <td></td>
-<td>false</td>
-<td>Linux: the CPU’s weights rearranged at load (Q4_K, Q8_0, Q4_0 and the other repacked types) kept in memory with transparent huge pages asked (MADV_HUGEPAGE) instead of the heap, so the products read them through 2 MiB pages; the weights read from the mapped file as they are (Q6_K, the embeddings) are not covered; read at load: measured by runs with and without it, not inga bench –ab; the same bits</td>
+<td>true</td>
+<td>Linux: the CPU’s weights rearranged at load (Q4_K, Q8_0, Q4_0 and the other repacked types) kept in one piece of memory with transparent huge pages asked (MADV_HUGEPAGE) instead of the heap, so the products read them through 2 MiB pages; where the system has them on always or madvise (never: the heap, and the load says so); the weights read from the mapped file as they are (the embeddings) are not covered; false keeps them on the heap, in 4 KiB pages; read at load: measured by runs with and without it, not inga bench –ab; the same bits</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.cuda_short_conv</code></td>
