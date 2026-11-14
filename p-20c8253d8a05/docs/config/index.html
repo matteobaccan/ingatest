@@ -1183,6 +1183,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>the CPU’s products of a prompt of 32 tokens or more with the repacked Q8_0, Q4_0, Q5_0, IQ4_NL and Q4_K weights run on the AMX-INT8 tiles (Sapphire Rapids and later Xeons, on Linux, where the kernel grants the tile state; inga devices says whether they are used and why not): 16 rows by 48 tokens a step, the same sums in the same order as the AVX-512 VNNI panels (false: the VNNI panels, the same bits, to measure the two; no effect on a CPU without AMX-INT8)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.cpu_delta</code></td>
+<td></td>
+<td>true</td>
+<td>a gated DeltaNet layer (Qwen3.5, Qwen3-Next) on the CPU: what it does between its products and its delta rule, the causal convolution, its SiLU and the L2 norms of the queries and keys, are operations of the backend, a prompt’s spread over the threads, the SiLU four values at a time with AVX2 and eight with AVX-512; and a prompt’s delta rule is compiled for AVX2 and AVX-512 too, the same sums in the same order (false: value by value on one thread and the delta rule as compiled for every x86-64 CPU, as before, the same bits, to measure the two)</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.q6k_kernel</code></td>
 <td></td>
 <td>v2</td>
