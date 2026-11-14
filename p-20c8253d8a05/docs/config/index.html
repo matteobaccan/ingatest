@@ -1180,7 +1180,7 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td><code dir="auto">debug.cpu_amx</code></td>
 <td></td>
 <td>true</td>
-<td>the CPU’s products of a prompt of 32 tokens or more with the repacked Q8_0, Q4_0, Q5_0, IQ4_NL and Q4_K weights run on the AMX-INT8 tiles (Sapphire Rapids and later Xeons, on Linux, where the kernel grants the tile state; inga devices says whether they are used and why not): 16 rows by 48 tokens a step, the same sums in the same order as the AVX-512 VNNI panels (false: the VNNI panels, the same bits, to measure the two; no effect on a CPU without AMX-INT8)</td>
+<td>the CPU’s products of a prompt of 32 tokens or more with the repacked Q8_0, Q4_0, Q5_0, IQ4_NL and Q4_K weights, and of a prompt of 33 tokens or more with the Q5_K and Q6_K weights, run on the AMX-INT8 tiles (Sapphire Rapids and later Xeons, on Linux, where the kernel grants the tile state; inga devices says whether they are used and why not): 16 rows by 48 tokens a step, the same sums in the same order as the AVX-512 VNNI panels (false: the VNNI panels, the same bits, to measure the two; no effect on a CPU without AMX-INT8)</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.cpu_delta</code></td>
