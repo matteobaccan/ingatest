@@ -1177,6 +1177,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>the CPU’s float matrix product of the image, video and music models runs twelve tokens against 32 weight rows at once where the instruction set has the registers (AVX-512), the same sums in the same order as 16 rows at a time (false: 16 rows, as before 0.46.0, the same bits, to measure the two)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.cpu_amx</code></td>
+<td></td>
+<td>true</td>
+<td>the CPU’s products of a prompt of 32 tokens or more with the repacked Q8_0, Q4_0, Q5_0, IQ4_NL and Q4_K weights run on the AMX-INT8 tiles (Sapphire Rapids and later Xeons, on Linux, where the kernel grants the tile state; inga devices says whether they are used and why not): 16 rows by 48 tokens a step, the same sums in the same order as the AVX-512 VNNI panels (false: the VNNI panels, the same bits, to measure the two; no effect on a CPU without AMX-INT8)</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.q6k_kernel</code></td>
 <td></td>
 <td>v2</td>
