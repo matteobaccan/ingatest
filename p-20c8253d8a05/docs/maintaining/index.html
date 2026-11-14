@@ -239,6 +239,14 @@ pinned to a version that can (glslang 16.6.0, <code dir="auto">tools/install-gls
 the maintainer on 2026-10-29 in place of a shim;</li>
 <li>the committed binaries (PTX, SPIR-V) are rebuilt by the scripts only, and a change of
 compiler that rewrites Inga’s own modules is a measured change of its own.</li>
+<li>the CUDA PTX is rebuilt in CI, not on a laptop or in Colab: Actions → <strong>PTX rebuild</strong>
+(<code dir="auto">.github/workflows/ptx-rebuild.yml</code>) with the branch as <code dir="auto">ref</code>, run when <code dir="auto">ptx.yml</code> says
+the PTX was not rebuilt from the current inputs. It runs both scripts in NVIDIA’s image
+of CUDA 12.4.1 on Ubuntu 22.04, so the same inputs give the same bytes at every run,
+and uploads the regenerated files with <code dir="auto">changes.txt</code> (the modules new, changed or
+gone); they are checked (only the modules the change explains differ) and committed to
+the branch by hand (the maintainer, 2026-11-14: Colab’s Ubuntu 24.04 and gcc 13 gave
+other bytes for every MMQ and MMVQ module).</li>
 </ul>
 <div class="sl-heading-wrapper level-h2"><h2 id="working-with-agents">Working with agents</h2><a class="sl-anchor-link" href="#working-with-agents"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Working with agents”</span></a></div>
 <p>A large task can go to a sub-agent in a worktree of its own. Its brief holds the goal,
