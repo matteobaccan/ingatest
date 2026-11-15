@@ -1330,6 +1330,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>prompt lookup’s guess grows to <code dir="auto">2n - 1</code> tokens (<code dir="auto">n</code>: <code dir="auto">--draft-n</code>) after two checks in a row whose guesses were all accepted, back to <code dir="auto">n</code> at the first one that was not (to be measured on the A100 before it is a default)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.spec_gpu_verify</code></td>
+<td></td>
+<td>true</td>
+<td>speculative decoding on a GPU: the pass that checks a draft takes the logits of all its tokens from the output layer’s device in one product (false: the CPU’s output layer, one row per token of the draft), and the model’s multi-token prediction block drafts through that device’s output layer, the last token’s logits only (on an L4, Qwen3-8B with lookup drafts: 1 % to 9 % faster than plain decoding, where the CPU’s output layer was 2 % slower)</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.cuda_flash_decode_min</code></td>
 <td></td>
 <td>32, or 256 for blocks of 8 query heads</td>
