@@ -1108,6 +1108,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>CUDA: prompts through llama.cpp’s quantized products (false: Inga’s own tiles)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.cuda_guard</code></td>
+<td></td>
+<td>false</td>
+<td>CUDA: lay a canary between a weight group’s pieces in its one allocation and check it after the upload and at unload, naming a piece a kernel overran (a load-time guard for debugging, off the hot path)</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.cuda_batch_attention</code></td>
 <td></td>
 <td>auto: on for compute capability 8.0+</td>
@@ -1292,6 +1298,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td></td>
 <td>auto: on for compute capability 8.0+</td>
 <td>CUDA: a mixture’s layer whole on the GPU, the experts’ products reading the router’s ids there (llama.cpp’s MUL_MAT_ID; the router on the GPU too) (unset: on for compute capability 8.0 and newer, as measured on an A100; below, or false: the layer returns to the CPU for its experts)</td>
+</tr>
+<tr>
+<td><code dir="auto">debug.gemma4_moe_ids</code></td>
+<td></td>
+<td>true</td>
+<td>Gemma 4’s mixture layers (26B-A4B) whole on the GPU, as debug.cuda_moe_ids runs the other mixtures’: the router, the experts’ norms and output scales, GeGLU and the dense network beside them there (on an L4 the prompt 2.8x and the answer 1.4x faster with the same text; on CUDA it needs debug.cuda_moe_ids on too; Vulkan, Metal and HIP do not keep a mixture’s ids, so the layer stays on the CPU there)</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.cuda_big_groups</code></td>
