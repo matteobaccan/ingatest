@@ -227,19 +227,28 @@ into the roadmap with its value and effort.</li>
 <div class="sl-heading-wrapper level-h2"><h2 id="taking-in-outside-code">Taking in outside code</h2><a class="sl-anchor-link" href="#taking-in-outside-code"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Taking in outside code”</span></a></div>
 <p>llama.cpp’s kernels and shaders are ported, not rewritten:</p>
 <ul>
-<li><strong>vendored unchanged</strong> from a pinned llama.cpp build (today b12032 for CUDA, b11489
+<li>
+<p><strong>vendored unchanged</strong> from a pinned llama.cpp build (today b12032 for CUDA, b11489
 for Vulkan, whose shaders are the same at b12032), the files and their SHA-256 in a
 <code dir="auto">SOURCES</code> file, the licence copied beside them, checked by the build scripts and CI
-(<code dir="auto">tools/build-spv.sh --check</code>, <code dir="auto">tools/build-ggml-ptx.sh</code>);</li>
-<li><strong>compiled as llama.cpp compiles them</strong>: the same defines, the same launch parameters
+(<code dir="auto">tools/build-spv.sh --check</code>, <code dir="auto">tools/build-ggml-ptx.sh</code>);</p>
+</li>
+<li>
+<p><strong>compiled as llama.cpp compiles them</strong>: the same defines, the same launch parameters
 (grid, tiles, stream-k, workgroups), ported from its source and unit-tested against
-ports of its selection code;</li>
-<li><strong>no patch to the vendored files</strong>: when a compiler cannot build them, the compiler is
+ports of its selection code;</p>
+</li>
+<li>
+<p><strong>no patch to the vendored files</strong>: when a compiler cannot build them, the compiler is
 pinned to a version that can (glslang 16.6.0, <code dir="auto">tools/install-glslang.sh</code>), decided by
-the maintainer on 2026-10-29 in place of a shim;</li>
-<li>the committed binaries (PTX, SPIR-V) are rebuilt by the scripts only, and a change of
-compiler that rewrites Inga’s own modules is a measured change of its own.</li>
-<li>the CUDA PTX is rebuilt in CI, not on a laptop or in Colab: Actions → <strong>PTX rebuild</strong>
+the maintainer on 2026-10-29 in place of a shim;</p>
+</li>
+<li>
+<p>the committed binaries (PTX, SPIR-V) are rebuilt by the scripts only, and a change of
+compiler that rewrites Inga’s own modules is a measured change of its own.</p>
+</li>
+<li>
+<p>the CUDA PTX is rebuilt in CI, not on a laptop or in Colab: Actions → <strong>PTX rebuild</strong>
 (<code dir="auto">.github/workflows/ptx-rebuild.yml</code>) with the branch as <code dir="auto">ref</code>, run when <code dir="auto">ptx.yml</code> says
 the PTX was not rebuilt from the current inputs. It runs both scripts in NVIDIA’s image
 of CUDA 12.4.1 on Ubuntu 22.04 with llama.cpp’s sources at a fixed path (the PTX keeps
@@ -253,7 +262,40 @@ The container is the reference (the maintainer, 2026-11-14: “se ci fidassimo d
 container a prescindere?”): what it builds is trusted, NVVM’s output differs from one
 machine to another (Windows and Linux, Colab and CI gave other bytes for every MMQ and
 MMVQ module from the same sources), so the PTX is never built elsewhere; the GPU tests
-of the branch follow, on the runner and in Colab.</li>
+of the branch follow, on the runner and in Colab.</p>
+</li>
+<li>
+<p>six of Inga’s own kernels are built by clang 18 with CUDA 12.4’s headers and
+libdevice, not by nvcc: <code dir="auto">CLANG_KERNELS</code> of <code dir="auto">tools/build-ptx.sh</code> (<code dir="auto">delta</code>, <code dir="auto">gate</code>,
+<code dir="auto">moe</code>, <code dir="auto">sampling</code>, <code dir="auto">shortconv</code>, <code dir="auto">ssm</code>), with clang 18 in the builder image
+(<code dir="auto">tools/install-clang-18.sh</code>). Their committed PTX was clang’s from the start (there
+was no nvcc where they were written). When the builder image rebuilt every module
+with nvcc 12.4, Qwen3.5-9B’s prompt went from 1828 to 1568 tok/s on an L4 (pp512,
+14 % slower; pp2048 23 % slower, the generation 5 % faster), and with clang’s <code dir="auto">delta</code>
+and <code dir="auto">gate</code> back it was main’s again; the maintainer decided on 2026-11-14 that they
+stay clang’s, built by the script so that the image reproduces them, and the other
+four too until nvcc is measured on them. The image’s clang 18.1.8 rebuilt <code dir="auto">delta</code> and
+<code dir="auto">gate</code> byte for byte as committed (run 43638536323), <code dir="auto">moe</code>, <code dir="auto">shortconv</code> and <code dir="auto">ssm</code> with
+only their comment lines changed, and <code dir="auto">sampling</code> with one comparison against +∞
+written <code dir="auto">setp.geu</code> instead of <code dir="auto">setp.equ</code> (the same result for every value, NaN
+included) and two registers fewer: its committed file came from another clang 18
+(run 43640425901). Why nvcc’s <code dir="auto">delta</code> is slower,
+read in the two PTX (not profiled kernel by kernel):</p>
+<ul>
+<li>the square root of the L2 norms of q and k: nvcc’s default <code dir="auto">-prec-sqrt=true</code> writes
+the IEEE-rounded <code dir="auto">sqrt.rn.f32</code> (a sequence of instructions), clang takes libdevice’s
+<code dir="auto">sqrt.approx.f32</code> (one), six of them in each build;</li>
+<li>the code: the prompt’s two kernels are longer with nvcc, <code dir="auto">delta_chunk_prep_f32</code> 999
+PTX lines against clang’s 625 and <code dir="auto">delta_chunk_scan_f32</code> 3831 against 3324, with
+more address arithmetic (250 <code dir="auto">add.s64</code> against 191) and shared-memory loads (68
+against 33); the generation’s <code dir="auto">delta_step_f32</code> is nvcc’s better one.</li>
+</ul>
+<p>Neither build is wrong (KL against the CPU 0.039 with clang’s, 0.035 with nvcc’s).
+nvcc’s <code dir="auto">-prec-sqrt=false</code> changes only the square roots, not the rest of the code
+(<code dir="auto">docs/experiments.md</code>); its L4 measurement is the next one. The script’s commands were derived from the committed files
+(they were not written down when the files were built). A kernel
+joins or leaves the list as a measured change of its own.</p>
+</li>
 </ul>
 <div class="sl-heading-wrapper level-h2"><h2 id="working-with-agents">Working with agents</h2><a class="sl-anchor-link" href="#working-with-agents"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Working with agents”</span></a></div>
 <p>A large task can go to a sub-agent in a worktree of its own. Its brief holds the goal,
