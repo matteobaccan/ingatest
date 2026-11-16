@@ -79,8 +79,7 @@ player says how much it uses and how much the browser allows.</li>
 <ol>
 <li>On the Music page, <strong>Player for phones (offline)</strong> (beside the model’s name, or
 under Music in the side bar) opens <code dir="auto">/player/</code> in a new tab. On another device, open
-<code dir="auto">http://ADDRESS:8080/player/</code> (the server started with <code dir="auto">inga serve --host 0.0.0.0</code>
-to be reachable on the network).</li>
+<code dir="auto">http://ADDRESS:8080/player/</code> (the server started with <code dir="auto">inga serve --host 0.0.0.0 --allow 192.168.1.0/24</code>, your network’s range, to be reachable on the network).</li>
 <li>The list shows the server’s songs. <strong>Play</strong> streams one; <strong>Keep on this device</strong>
 downloads it with its cover and its lyrics in time (“On this device · 18.4 MB ·
 FLAC”); <strong>Remove</strong> frees the space. <strong>Format for keeping</strong> chooses FLAC (smaller,

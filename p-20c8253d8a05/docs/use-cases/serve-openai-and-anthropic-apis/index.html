@@ -101,7 +101,8 @@ fails to load leaves the server up: <code dir="auto">/health</code> and the web 
 stops the server with exit 1 instead).</p>
 <p>The server listens on <code dir="auto">127.0.0.1:8080</code>, which is reachable from this machine only. Use
 <code dir="auto">--port N</code> to change the port and <code dir="auto">--host 0.0.0.0</code> to accept other machines. Then set a
-key with <code dir="auto">--api-key KEY</code> (or <code dir="auto">serve.api_key</code> in <code dir="auto">inga.toml</code>): clients send it
+key (without a key or <code dir="auto">--allow NETWORK</code>, a server other machines reach does not start
+unless <code dir="auto">--open-network</code> says it is meant) with <code dir="auto">--api-key KEY</code> (or <code dir="auto">serve.api_key</code> in <code dir="auto">inga.toml</code>): clients send it
 as <code dir="auto">Authorization: Bearer KEY</code>, as the OpenAI SDKs do with their <code dir="auto">api_key</code>, or as
 <code dir="auto">x-api-key: KEY</code>, as the Anthropic SDKs do. Only <code dir="auto">GET /health</code> answers without it. The
 traffic is not encrypted: put the server behind an HTTPS proxy outside a trusted network.

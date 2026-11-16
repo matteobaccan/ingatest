@@ -223,7 +223,7 @@ extended it.</p>
 </tr>
 <tr>
 <td>Serve your network over HTTPS, only to the networks you allow</td>
-<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-many-users-and-models/#3-start-the-engine">serve-many-users-and-models.md</a>: <code dir="auto">--tls self-signed</code> (a certificate made once, its fingerprint at start) or <code dir="auto">--tls-cert</code> / <code dir="auto">--tls-key</code>, <code dir="auto">--allow 192.168.1.0/24</code> (a 403 elsewhere; the administration only this computer without a list): 0.46.5</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-many-users-and-models/#3-start-the-engine">serve-many-users-and-models.md</a>: <code dir="auto">--tls self-signed</code> (a certificate made once, its fingerprint at start) or <code dir="auto">--tls-cert</code> / <code dir="auto">--tls-key</code>, <code dir="auto">--allow 192.168.1.0/24</code> (a 403 elsewhere; the administration only this computer without a list; the list also on the web UI’s Server settings), <code dir="auto">--admin-from</code> for a narrower list of administrators, and no start on the network with no key and no list unless <code dir="auto">--open-network</code></td>
 </tr>
 <tr>
 <td>Keep long conversations going</td>

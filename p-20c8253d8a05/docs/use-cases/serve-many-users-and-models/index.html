@@ -222,7 +222,12 @@ call, the models it may use and its limits (see “A key per person or app” be
 </li>
 <li>
 <p><strong><code dir="auto">--host 0.0.0.0</code></strong>: accept other machines (the default, 127.0.0.1, is this machine
-only).</p>
+only). A server other machines reach needs something that says who may use it: an API
+key (<code dir="auto">--api-key</code>, <code dir="auto">--api-keys</code>) or a list of networks (<code dir="auto">--allow</code>). With neither,
+<code dir="auto">inga serve</code> does not start: it says why (anyone on the network could use the models
+and the chat) and names the three ways out, the third being <code dir="auto">--open-network</code>
+(<code dir="auto">serve.open_network = true</code>) to serve the network open on purpose, which the start
+lines and the web UI’s Server settings then say.</p>
 </li>
 <li>
 <p><strong><code dir="auto">--allow NETWORK</code></strong> (<code dir="auto">serve.allow</code> in <code dir="auto">inga.toml</code>): the server answers only these
@@ -242,6 +247,24 @@ everyone, not only for that computer; every other setting is refused with a mess
 naming it, and the settings it reads leave out the folders and the server block. The
 mesh’s handover is not limited by network: it is protected only by the API key, when the
 server has one. <code dir="auto">inga serve</code> says at start which of the two is in force.</p>
+</li>
+<li>
+<p><strong><code dir="auto">--admin-from NETWORK</code></strong> (<code dir="auto">serve.admin_from</code>): a narrower list for the
+administration, in the same form as <code dir="auto">--allow</code>. With <code dir="auto">--allow 192.168.1.0/24 --admin-from 192.168.1.10</code> the whole network uses the models and the chat, and only
+192.168.1.10 and this computer reach the settings, keys, logs and models’ pages; the
+others get a 403 there that names the flag. Without <code dir="auto">--allow</code> it names who administers
+besides this computer. An entry outside <code dir="auto">--allow</code> is said at start: that address is
+refused before the administration is asked.</p>
+</li>
+<li>
+<p><strong>The list in the web UI</strong>: <strong>Developer → Server → Server settings → Allowed networks</strong>
+holds the list as a comma-separated field. A change is answered from the next
+connection on and saved as <code dir="auto">[serve] allow</code> of <code dir="auto">inga.toml</code> (the page says where; a
+<code dir="auto">--allow</code> on the command line is read instead of the file at the next start, and the
+page says that too). The server refuses, with the reason, an entry that is not a
+network, a list that would shut out the address you are changing it from, and an empty
+list where that would leave the server open to everyone with no key. The same over the
+API: <code dir="auto">POST /api/inga/server {"allow": ["192.168.1.0/24"]}</code>.</p>
 </li>
 <li>
 <p><strong><code dir="auto">--tls self-signed</code></strong> (<code dir="auto">serve.tls = "self-signed"</code>): HTTPS with a certificate Inga
@@ -460,6 +483,14 @@ a request for a model that is not loaded gets a 409 instead of loading it.</p>
 <tr>
 <td><code dir="auto">--allow NETWORK</code>, <code dir="auto">serve.allow</code></td>
 <td>Answer only these networks (CIDR ranges or addresses); the administration only this computer without a list.</td>
+</tr>
+<tr>
+<td><code dir="auto">--admin-from NETWORK</code>, <code dir="auto">serve.admin_from</code></td>
+<td>The administration answers only these networks and this computer.</td>
+</tr>
+<tr>
+<td><code dir="auto">--open-network</code>, <code dir="auto">serve.open_network</code></td>
+<td>Serve another address than this computer’s with no key and no <code dir="auto">--allow</code>, on purpose.</td>
 </tr>
 <tr>
 <td><code dir="auto">--tls self-signed</code>, <code dir="auto">serve.tls</code></td>

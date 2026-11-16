@@ -504,6 +504,18 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>the networks the server answers, addresses or CIDR ranges (IPv4 and IPv6); other addresses get a 403 naming this setting. This computer is always allowed</td>
 </tr>
 <tr>
+<td><code dir="auto">serve.admin_from</code></td>
+<td><code dir="auto">--admin-from</code></td>
+<td>this computer, and the networks of serve.allow</td>
+<td>the networks the administration (settings, keys, logs, models) answers besides this computer, addresses or CIDR ranges: a narrower list than serve.allow</td>
+</tr>
+<tr>
+<td><code dir="auto">serve.open_network</code></td>
+<td><code dir="auto">--open-network</code> (true)</td>
+<td>false</td>
+<td>serve an address other computers reach (serve.host) with no API key and no serve.allow, on purpose; without it inga serve refuses to start so</td>
+</tr>
+<tr>
 <td><code dir="auto">serve.tls</code></td>
 <td><code dir="auto">--tls</code></td>
 <td>off (plain HTTP)</td>

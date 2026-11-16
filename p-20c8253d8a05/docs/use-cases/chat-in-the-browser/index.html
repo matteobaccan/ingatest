@@ -975,7 +975,10 @@ network</em> and <em>Require authentication</em> (with the number of named keys 
 keys</strong>, the Server tab’s key table) are set at start and show the flag that changes
 them (<code dir="auto">--port</code>, <code dir="auto">--host 0.0.0.0</code>, <code dir="auto">--api-key</code> / <code dir="auto">--api-keys</code>), as do <em>Allow
 per-request MCPs</em> (<code dir="auto">--no-mcp</code>) and <em>Allow calling servers from mcp.json</em>
-(<code dir="auto">--allow-mcp-commands</code>). <em>Enable CORS</em> (with the allowed origin), <em>Just-in-time model
+(<code dir="auto">--allow-mcp-commands</code>). <em>Allowed networks</em> is a field: the addresses or CIDR ranges
+the server answers, separated by commas (empty: every address); a change applies at
+once and is saved as <code dir="auto">serve.allow</code> in <code dir="auto">inga.toml</code>, and the row says who administers
+(<code dir="auto">--admin-from</code>) and when the server is open to the whole network (<code dir="auto">--open-network</code>). <em>Enable CORS</em> (with the allowed origin), <em>Just-in-time model
 loading</em> (off: a request naming a model that is not loaded gets a 409 until it is
 loaded), <em>Auto-unload unused models</em> (the idle time in minutes) and <em>Only keep last
 loaded model</em> change at once and last until the server stops (<code dir="auto">POST /api/inga/settings {"server": {...}}</code>); the command line gives their start values.</li>
@@ -1259,8 +1262,8 @@ is named after Inga’s version: after an upgrade the next visit loads the new p
 <code dir="auto">localhost</code>. On the computer that runs Inga, <code dir="auto">http://localhost:8080/</code> is enough. From a
 phone on the LAN:</p>
 <ul>
-<li><strong>Without HTTPS</strong> (<code dir="auto">inga serve --host 0.0.0.0</code>, then <code dir="auto">http://192.168.1.20:8080/</code> on
-the phone) the page works fully in the phone’s browser, and <strong>Add to Home screen</strong>
+<li><strong>Without HTTPS</strong> (<code dir="auto">inga serve --host 0.0.0.0 --allow 192.168.1.0/24</code>, your network’s
+range, then <code dir="auto">http://192.168.1.20:8080/</code> on the phone) the page works fully in the phone’s browser, and <strong>Add to Home screen</strong>
 still adds a shortcut, but the browser does not install it as an app nor run the
 service worker.</li>
 <li><strong>As an app</strong>: put a TLS reverse proxy in front of Inga, for example
