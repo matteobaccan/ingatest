@@ -1396,6 +1396,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>prompt lookup’s guess grows to <code dir="auto">2n - 1</code> tokens (<code dir="auto">n</code>: <code dir="auto">--draft-n</code>) after two checks in a row whose guesses were all accepted, back to <code dir="auto">n</code> at the first one that was not (to be measured on the A100 before it is a default)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.prefix_checkpoints</code></td>
+<td></td>
+<td>4</td>
+<td>a hybrid model’s (Qwen3.5, LFM2) checkpoints of its recurrent state kept in the prefix cache where a prompt’s system prompt and tools end, so a new chat, a regenerate or an edit with them reads only its own part; the least recently used go first (0: none taken, every new chat reads its whole prompt, as before 0.46.7)</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.spec_gpu_verify</code></td>
 <td></td>
 <td>true</td>
