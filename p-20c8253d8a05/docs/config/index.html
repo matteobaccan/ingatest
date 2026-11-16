@@ -1276,6 +1276,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>CUDA: a gated DeltaNet layer’s prompt (Qwen3.5) through llama.cpp’s tensor-core kernel, where llama.cpp runs it (compute capability 8.6, 8.9, 12.0 and 12.1, 16 key heads and 16 to 64 value heads of 128, 64 tokens or more; the prompt 1.5x to 1.7x faster on an L4 with the same text; false: Inga’s own chunked kernel; read at each prompt)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.cuda_preload</code></td>
+<td></td>
+<td>true</td>
+<td>CUDA: load llama.cpp’s prompt kernels a model uses (its products per weight type, its flash attention per head size, the gated delta rule) with the model, once its weights are uploaded, so the first prompt does not load them; false: each at the first prompt that needs it (read at load)</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.image_gpu</code></td>
 <td></td>
 <td>false</td>
