@@ -134,12 +134,6 @@ test’s settings. The tests share a shape:</p>
 <li><code dir="auto">GH_TOKEN</code> from Colab’s Secrets, never printed (masked in every log line and issue);</li>
 <li>each ref fetched and built in a directory and target of its own, the build skipped while
 its commit is the same; llama.cpp, nsys and the models only when the test needs them;</li>
-<li><strong>binaries built in CI</strong> for a measure of many branches (the maintainer, 2026-11-16):
-Actions → <strong>Branch binaries</strong> with <code dir="auto">NAME=BRANCH</code> pairs builds each branch’s Linux
-release binary side by side (<code dir="auto">.github/workflows/branch-binaries.yml</code>), the artifact
-<code dir="auto">inga-NAME</code> with <code dir="auto">inga.commit</code>; the cell downloads them (about 50 MB each) instead of
-building each branch on the GPU’s machine (about 4 minutes a branch on a Colab L4);
-the GPU tests (<code dir="auto">cargo test -p inga-cuda</code>) still build on the GPU’s machine;</li>
 <li>models from Hugging Face into <code dir="auto">/content/models</code> (kept between runs of one session);</li>
 <li><strong>interleaved order</strong> (main, branch, branch, main: ABBA) and the mean of the rounds,
 each round’s value shown beside it, so a drift of the machine shows;</li>
