@@ -61,11 +61,15 @@ computer by <strong>ACE-Step 1.5</strong> (turbo, MIT for code and weights): a 4
 FLAC file. The web UI’s <strong>Music</strong> page makes one in a few clicks and keeps every song in a
 library on the server; <code dir="auto">inga music</code> writes one from the terminal. Nothing leaves your
 computer but the model’s download.</p>
-<p>Every song carries its label: the model that made it and its licence (“Generated with
-ACE-Step 1.5 · turbo (MIT) by Inga”), its title, its style and its seed, inside the file
-(a WAV’s <code dir="auto">LIST</code>/<code dir="auto">INFO</code> chunk, a FLAC’s Vorbis comments, <code dir="auto">AI_GENERATED=true</code>) and in its
-parameters file. A FLAC also carries the song’s cover and its lyrics, plain and in time
-(<code dir="auto">LYRICS</code>, <code dir="auto">SYNCEDLYRICS</code>).</p>
+<p>Every song carries what it takes to make it again, inside the file: its title, its style,
+its lyrics (plain and in time), its cover, the model that made it and its licence
+(“Generated with ACE-Step 1.5 · turbo (MIT) by Inga”, <code dir="auto">AI_GENERATED=true</code>), when it was
+made and every parameter one by one (length, BPM, key, time signature, language, steps,
+shift, seed, the song it comes from), plus <code dir="auto">GENERATION_PARAMETERS</code>, one JSON object with
+all of them and the model’s revision, to remake the song with Inga or to read them for
+another model. A FLAC carries them as Vorbis comments and a PICTURE block, a WAV as an
+ID3v2.4 tag (its <code dir="auto">id3 </code> chunk, which players, tag editors and <code dir="auto">ffprobe</code> read) beside its
+<code dir="auto">LIST</code>/<code dir="auto">INFO</code> chunk; the parameters file holds them too.</p>
 <img src="/ingatest/p-20c8253d8a05/images/webui-music.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-music-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-music.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="The Music page: the form, a song with its waveform and player, the library" width="1280" height="860" loading="lazy" decoding="async" />
 <div class="sl-heading-wrapper level-h2"><h2 id="requirements">Requirements</h2><a class="sl-anchor-link" href="#requirements"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Requirements”</span></a></div>
 <ul>
@@ -115,7 +119,7 @@ of 8”, “making the sound”) with a bar and the time left, measured on the s
 this computer (with two variants, a line for each); <strong>Stop</strong> ends it (both variants). While you wait, catch the falling notes: each one
 plays its tone and joins your melody.</li>
 <li>The song plays with its waveform and its cover; <strong>Download WAV</strong> or <strong>Download
-FLAC</strong> (the FLAC carries the cover), <strong>Parameters (.json)</strong>, <strong>Make another with a
+FLAC</strong> (both carry the cover, the lyrics and every parameter), <strong>Parameters (.json)</strong>, <strong>Make another with a
 new seed</strong>, <strong>Reuse these settings</strong>, <strong>New cover</strong> (the next seed).</li>
 <li><strong>Karaoke</strong>: the lyrics in time with the song, the line being sung large, its words
 filling as they are sung, the next line under it; <strong>Full screen</strong>, <strong>Download
