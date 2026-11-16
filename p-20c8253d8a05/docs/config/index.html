@@ -1294,6 +1294,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>CUDA: a gated DeltaNet layer’s prompt (Qwen3.5) through llama.cpp’s tensor-core kernel, where llama.cpp runs it (compute capability 8.6, 8.9, 12.0 and 12.1, 16 key heads and 16 to 64 value heads of 128, 64 tokens or more; the prompt 1.5x to 1.7x faster on an L4 with the same text; false: Inga’s own chunked kernel; read at each prompt)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.bench_gpu_draw</code></td>
+<td></td>
+<td>true</td>
+<td>bench: the generation test’s one-token steps draw the greedy token on the GPU as inga run does, and read back the token instead of the whole logits, so bench measures the path a chat runs (on an L4 tg128 of Qwen3.5-9B 40.35 -&gt; 40.81 tokens/s, the same logits, 2026-11-16; false: the logits are read back and the token picked on the CPU, as llama-bench does; the table says when it is on)</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.cuda_preload</code></td>
 <td></td>
 <td>true</td>
