@@ -1384,6 +1384,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>HIP: wait after every kernel, so an error names it (no graphs)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.cuda_head_in_stage</code></td>
+<td></td>
+<td>auto: on for CUDA, off on HIP</td>
+<td>CUDA and HIP, with every layer and the output layer on one GPU: a step’s final norm and output layer run on the GPU right after its layers, so only the logits or the drawn token come back, not the hidden state read, normed on the CPU and written again (unset: on for CUDA; off on HIP, not measured on an AMD card); the final norm is then the GPU’s, the logits differ by roundings; a drafter that reads the hidden states (a multi-token prediction block) keeps the old path; read at each step: inga bench –ab compares it</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.gpu_sampling</code></td>
 <td></td>
 <td>true</td>
