@@ -1120,6 +1120,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>CUDA and HIP: the attention of several sessions decoding together in one launch per operation (unset: on for CUDA GPUs of compute capability 8.0 and newer, as measured on an A100; off below and on HIP: each session’s rows in turn; Vulkan runs it)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.load_parallel</code></td>
+<td></td>
+<td>true</td>
+<td>a thread reads the model’s weights from the disk a little ahead of the load that uploads them to a GPU or rearranges them for the CPU, so the reads and the copies overlap (on an L4 a cold load of Qwen3.5-9B 2.90 -&gt; 2.70 s, a warm one 2.05 -&gt; 1.87 s, 2026-11-16; the same weights either way; it helps most when the file is not in the page cache yet)</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.vk_batch_attention</code></td>
 <td></td>
 <td>true</td>
