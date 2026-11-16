@@ -3506,6 +3506,18 @@ sides ran the same kernel): those gates stay class c below sm_80. Sm_80 means an
 <td>fetched into memory</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.cpu_prefetch</code></td>
+<td>2048 bytes ahead</td>
+<td>b</td>
+<td>1024-4096 flat, 0 is 0.77x</td>
+</tr>
+<tr>
+<td><code dir="auto">debug.cpu_prefetch_l2</code></td>
+<td>8192 bytes, L2</td>
+<td>b+c</td>
+<td>AVX-512 1.15x; AVX2 not run</td>
+</tr>
+<tr>
 <td>Background removal: memory</td>
 <td>1.5 GiB + 16 B/px</td>
 <td>c</td>

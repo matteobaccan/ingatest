@@ -1210,6 +1210,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>a gated DeltaNet layer (Qwen3.5, Qwen3-Next) on the CPU: what it does between its products and its delta rule, the causal convolution, its SiLU and the L2 norms of the queries and keys, are operations of the backend, a prompt’s spread over the threads, the SiLU four values at a time with AVX2 and eight with AVX-512; and a prompt’s delta rule is compiled for AVX2 and AVX-512 too, the same sums in the same order (false: value by value on one thread and the delta rule as compiled for every x86-64 CPU, as before, the same bits, to measure the two)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.cpu_conv_step</code></td>
+<td></td>
+<td>true</td>
+<td>a generation step’s causal convolution on the CPU (a gated DeltaNet layer’s, one token: Qwen3.5, Qwen3-Next) channel after channel without the reference’s branch and row lookup per tap, four taps unrolled, the same sums in the same order (false: the reference’s loop, the same bits, to measure the two)</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.q6k_kernel</code></td>
 <td></td>
 <td>v2</td>
@@ -1220,6 +1226,18 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td></td>
 <td>true</td>
 <td>the CPU’s Q5_K and Q6_K weights repacked at load by groups of eight rows for generation where the instruction set has the kernels (AVX-512 VNNI): one stream of bytes and one load of the activations for eight rows, the results those of the rows as stored bit for bit, generation 1.09-1.12x on Qwen3.5-0.8B Q4_K_M at 4 threads on a 4-vCPU AVX-512 Xeon; a prompt of 16 tokens and more unpacks its rows for the kernels of the rows as stored (false: the rows as stored, as before 0.46.7, to measure the two). Read at load: compare two runs with –set, not inga bench –ab</td>
+</tr>
+<tr>
+<td><code dir="auto">debug.cpu_prefetch</code></td>
+<td></td>
+<td>2048</td>
+<td>how far ahead, in bytes, the CPU’s AVX2 and AVX-512 generation kernels ask the memory for the weights they read next (a hint to the caches, the results the same bits); to measure distances with inga bench –ab</td>
+</tr>
+<tr>
+<td><code dir="auto">debug.cpu_prefetch_l2</code></td>
+<td></td>
+<td>8192</td>
+<td>how far ahead, in bytes, the CPU’s AVX2 and AVX-512 generation kernels also ask the memory for the weights into the L2 cache, beyond debug.cpu_prefetch’s distance into the L1, so that a core keeps more of its reads in flight: generation 1.12-1.13x on Qwen3.5-0.8B Q4_K_M at 4 threads on a 4-vCPU AVX-512 Xeon (0: not at all, as before 0.46.7; a hint to the caches, the results the same bits); to measure distances with inga bench –ab</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.cpu_task_kb</code></td>
