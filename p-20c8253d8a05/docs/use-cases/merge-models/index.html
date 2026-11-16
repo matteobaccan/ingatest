@@ -118,7 +118,10 @@ the <code dir="auto">inga</code> executable on your <code dir="auto">PATH</code>
 </table>
 <p>Quantized models are dequantized, merged in f32 and quantized again to <code dir="auto">--type</code> (by
 default the base’s type), with <code dir="auto">inga quantize</code>’s rules. A merge to <code dir="auto">Q4_K_M</code> gives the
-same tensors as the merge to F32 quantized with <code dir="auto">inga quantize --type q4_k_m</code>.</p>
+same tensors as the merge to F32 quantized with <code dir="auto">inga quantize --type q4_k_m</code>. When one
+model is merged with its adapters (<code dir="auto">MODEL+ADAPTER</code>), the tensors the adapters do not change
+keep their bytes where <code dir="auto">--type</code> gives them the type they already have: only the adapted
+weights are quantized again.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="3-use-a-mergekit-recipe">3. Use a mergekit recipe</h2><a class="sl-anchor-link" href="#3-use-a-mergekit-recipe"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “3. Use a mergekit recipe”</span></a></div>
 <p>A YAML (or JSON) recipe as mergekit reads it gives a parameter per model, per layer
 (a list is a gradient from the first layer to the last) and per kind of tensor
