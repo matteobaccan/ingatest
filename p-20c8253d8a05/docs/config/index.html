@@ -1236,8 +1236,8 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <tr>
 <td><code dir="auto">debug.batch_scheduler</code></td>
 <td></td>
-<td>false</td>
-<td>inga serve –parallel and inga bench –users: one loop forms each batched step from the sessions whose next token is ready, the others joining the next step (debug.batch_wait_pct), instead of the lock-step (a step waits for every decoding session); a step holds up to debug.batch_tokens tokens, the decode rows first, then the chunks of as many waiting prompts as fit (the lock-step: one chunk a step); only the sessions whose step ran are woken; read when the batcher is made (at the server’s load, at each –users count); the same arithmetic per session on the CPU (off until measured on a GPU)</td>
+<td>true</td>
+<td>inga serve –parallel and inga bench –users: one loop forms each batched step from the sessions whose next token is ready, the others joining the next step (debug.batch_wait_pct), instead of the lock-step (a step waits for every decoding session); a step holds up to debug.batch_tokens tokens, the decode rows first, then the chunks of as many waiting prompts as fit (the lock-step: one chunk a step); only the sessions whose step ran are woken; read when the batcher is made (at the server’s load, at each –users count); the same arithmetic per session on the CPU; false: the lock-step</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.batch_tokens</code></td>
