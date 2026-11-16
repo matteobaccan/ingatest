@@ -1408,6 +1408,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>HIP: wait after every kernel, so an error names it (no graphs)</td>
 </tr>
 <tr>
+<td><code dir="auto">debug.evict_uploaded</code></td>
+<td></td>
+<td>true</td>
+<td>after a load, let the operating system drop from Inga’s memory the file’s pages of the layers wholly on a GPU (they are read again from the file if ever needed); false: keep them mapped</td>
+</tr>
+<tr>
 <td><code dir="auto">debug.cuda_head_in_stage</code></td>
 <td></td>
 <td>auto: on for CUDA, off on HIP</td>
