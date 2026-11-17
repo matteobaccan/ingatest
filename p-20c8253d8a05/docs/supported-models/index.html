@@ -528,8 +528,9 @@ experts (Qwen2 / Qwen3 MoE, OLMoE, Mixtral, gpt-oss, ERNIE 4.5 MoE, GLM-4.5, Lin
 2.0, Qwen3.5 / 3.6 MoE, Qwen3-Next, Granite MoE) the attention, the shared experts, then the routed
 experts of as many layers as fit (<code dir="auto">--experts-on</code>, <code dir="auto">--cpu-moe</code>); the full-attention and
 DeltaNet layers of Qwen3.5 / 3.6 and Qwen3-Next; the Mamba2, attention and
-feed-forward layers (or shared experts) of Mamba-2, Nemotron-H and Nemotron 3, whose
-latent routed experts stay on the CPU; LFM2’s and LFM2.5’s
+feed-forward layers (or shared experts) of Mamba-2, Nemotron-H and Nemotron 3, then
+Nemotron 3’s squared-ReLU routed experts (Super’s in their latent space) of as many
+layers as fit (checked against the CPU on lavapipe); LFM2’s and LFM2.5’s
 layers (dense and LFM2-MoE): the gated short convolutions with their state, the
 attention layers, the dense networks and the routed experts, on Vulkan (checked
 against the CPU on lavapipe); on every CUDA GPU too (measured on an A100 and a Tesla T4); on HIP the convolutions are
@@ -538,9 +539,14 @@ CPU and the attention layers go to the GPU), as on Metal and WebGPU, which lack 
 kernel. Gemma 4 runs on Vulkan and Metal: the layers of
 the 12B and the 31B, and the 26B-A4B’s attention, dense networks and routed experts
 (as the other mixtures’: checked against the CPU on lavapipe, the Metal
-code compile-checked only); on CUDA and HIP too, whose attention now takes
-its global layers’ heads of 512 values (pending a check on a real NVIDIA card; HIP not
-run on an AMD card). A hybrid dense model too large for the GPU (Qwen3.5, Qwen3.8-27B) runs its
+code compile-checked only); on CUDA and HIP too, whose attention takes its
+global layers’ heads of 512 values. On CUDA the 26B-A4B’s mixture layers run whole on the
+GPU (router, experts and dense network, <code dir="auto">debug.gemma4_moe_ids</code>, from compute capability
+8.0) and its final softcap is applied there: on a Colab L4 (2026-11-16) its
+<code dir="auto">gemma-4-26B-A4B-it-UD-Q4_K_M.gguf</code> whole on the card generates 59.3 tokens/s, llama.cpp
+b12318 59.5, with the same text as before those changes
+(<a href="/ingatest/p-20c8253d8a05/docs/performance/#machine-l-a-google-colab-l4-2026-11-16">performance</a>); HIP not run on
+an AMD card. A hybrid dense model too large for the GPU (Qwen3.5, Qwen3.8-27B) runs its
 last layers whole there and the first ones on the CPU. Gemma 3n, Gemma 4
 E2B / E4B, DeepSeek (latent attention), DeepSeek V4, Kimi Linear / K3, Qwen3.8-Flash-Next, GLM-5.3-Flash and the diffusion language models run
 on the CPU; with <code dir="auto">--device auto</code> the placement says why (and puts the output layer

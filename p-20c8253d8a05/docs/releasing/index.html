@@ -89,7 +89,8 @@ REST API alike. Without the secret, tag by hand (<code dir="auto">git tag vX.Y.Z
 exists.</li>
 <li><code dir="auto">.github/workflows/talks.yml</code>: the talk decks (<a href="https://github.com/matteobaccan/inga/blob/main/docs/talks/README.md"><code dir="auto">talks/</code></a>) built as
 HTML with a pinned Marp CLI; <code dir="auto">release-tag.yml</code> starts it after tagging, and
-it keeps the decks of that tag (<code dir="auto">inga-talk.it.html</code>, <code dir="auto">inga-talk.en.html</code>) as the
+it keeps the decks of that tag (<code dir="auto">inga-talk.it.html</code>, <code dir="auto">inga-talk.en.html</code>, and
+<code dir="auto">optimisation-talk.it.html</code>, <code dir="auto">optimisation-talk.en.html</code>) as the
 workflow artifact <code dir="auto">inga-talks-&lt;tag&gt;</code> for 90 days, never in the release (the
 maintainer’s own presentation material); run without a tag, the artifact is <code dir="auto">inga-talks</code>.</li>
 <li><code dir="auto">.github/workflows/install.yml</code> (<strong>Installers</strong>): when <code dir="auto">packaging/</code> changes, the
@@ -268,12 +269,15 @@ partial one), checking every row, not only the ones planned for this release.
 footer and the title slide), the feature slides (what it does, before / after,
 what to keep), the performance slides (from the rows just overwritten in
 <code dir="auto">performance.md</code>, each with its configuration and link) and the roadmap (the
-release titles of <code dir="auto">TODO.md</code>‘s index), plus the tag count on the development slide; the
+release titles of <code dir="auto">TODO.md</code>’s index), plus the tag count on the development slide; the
 “coming” pills (<code dir="auto">&lt;span class="tag"&gt;x.y.z&lt;/span&gt;</code>) of what the release shipped are
 removed, the counts taken from the docs (providers, browser models) checked again,
 the slides of a new feature added in both decks with their lengths, and the slide
 counts of <code dir="auto">talks/README.md</code> updated; the screenshots come from <code dir="auto">docs/images/</code>, so a
 web UI change refreshes them there;
+In the talk on inference optimisation (<code dir="auto">optimisation.it.md</code> and <code dir="auto">optimisation.en.md</code>)
+the version of the footer and the title slide, and the comparison with llama.cpp when
+<code dir="auto">performance.md</code>‘s rows of that card changed.
 <code dir="auto">python3 tools/talk.py check</code> must pass. After the tag, <code dir="auto">talks.yml</code> builds the
 decks’ HTML pages and keeps them as the artifact <code dir="auto">inga-talks-&lt;tag&gt;</code>, not in the release.
 <strong>Website.</strong> The site in <code dir="auto">site/</code> (<a href="/ingatest/p-20c8253d8a05/docs/website/"><code dir="auto">website.md</code></a>) follows the product by

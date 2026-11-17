@@ -351,7 +351,12 @@ kind gets its own, and a search embeds the question once per encoder and merges 
 lists. To change the mode of a folder already indexed: <code dir="auto">inga docs sync notes --mode fast</code>; it asks first, with the passages to embed again and the time it takes
 (<code dir="auto">--yes</code> without a terminal). On the Documents page each folder has the same picker
 (Automatic, Fast, Quality) and a line with the encoders of its documents and its code,
-why in its tooltip; a change asks first in the same way. <code dir="auto">--embed-model M</code> names one
+why in its tooltip; a change asks first in the same way, the time said with its basis:
+the model that will embed each kind (the embedding model when the encoder the mode
+chose is not downloaded), the passages, the rate and where it was measured (the
+encoders’ table, measured on another machine; or this folder’s last sync on this
+computer), or that there is no rate to estimate with yet. While a folder syncs, its line
+says the time left and the passages per second measured so far. <code dir="auto">--embed-model M</code> names one
 model for every file instead. The folder remembers the models its files were embedded
 with:
 <code dir="auto">inga docs sync</code> needs no <code dir="auto">--embed-model</code> (and loads no model when nothing changed);

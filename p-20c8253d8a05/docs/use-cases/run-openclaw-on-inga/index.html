@@ -272,9 +272,9 @@ happens often.</li>
 (minutes for a 30B model); later turns reuse the KV cache. A changing memory block
 (Inga’s memory, step 6) is in the system prompt, so when the recalled facts change
 between turns the prompt is evaluated again.</li>
-<li><strong>Streaming with tools</strong>: when tools are offered, Inga sends the answer once it is
-complete rather than token by token (it must see whether the text is a tool call);
-OpenClaw shows it when it arrives.</li>
+<li><strong>Streaming with tools</strong>: when tools are offered, the answer’s text streams as it is
+written up to where the model starts a tool call; the call (read once the answer is
+complete) comes at the end.</li>
 <li><strong>Small models</strong> call tools less reliably: a call written as plain text is not run
 (OpenClaw logs a warning). OpenClaw’s <code dir="auto">--local-model-lean</code> / <code dir="auto">localModelLean</code> and its
 Tool Search keep fewer tools in the prompt; a larger model is the real fix.</li>

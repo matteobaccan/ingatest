@@ -85,7 +85,8 @@ generating at the same time are computed as one batch, which reads the weights o
 for all of them: on Llama-3.2-1B, four clients get 1.5x the total tokens per second of
 <code dir="auto">--parallel 1</code>. This holds on a GPU too: a dense model’s layers on a
 CUDA, HIP or Vulkan GPU decode the sessions together, up to eight per pass, Gemma 4
-12B / 31B included, mixtures (their experts on the GPU or the CPU) and
+included (on CUDA its full-attention layers, with heads of 512, attend each session on
+its own within the batched step), mixtures (their experts on the GPU or the CPU) and
 hybrid models (their DeltaNet, Mamba2 or LFM2 layers on the GPU, each session’s state
 apart) (Metal and WebGPU take turns, and the log says why: <code dir="auto">note: the 4 sessions of this model take turns, their decode steps not batched yet: a GPU without part copies</code>). The attention of the sessions decoding together runs in one
 launch per operation on Vulkan (<code dir="auto">debug.vk_batch_attention</code>, on) and on CUDA GPUs of
@@ -155,6 +156,16 @@ request arriving waits for that one step, and from the next step on the two are
 batched; when one is left, it goes back to decoding alone. <code dir="auto">/metrics</code> counts those
 steps in <code dir="auto">inga_batch_alone_steps_total</code>, and the tokens the GPU drew itself in
 <code dir="auto">inga_tokens_device_sampled_total</code>. The answers are the same either way.</p>
+</li>
+<li>
+<p><strong>Each step takes the sessions that are ready</strong> (on by default): a batched step is
+formed from the sessions whose next token is ready, and the others join the next step,
+instead of every session waiting for the slowest. On a Colab L4 with Qwen3.5-9B Q4_K_M
+and 32 users at once, 351.5 tokens per second in all instead of 300.9 (+16.8 %), the
+first token at 2.5 s instead of 3.3 at the median and 2.6 s instead of 4.6 at the 95th
+percentile; with 8 users the same speed, the 95th percentile 657 ms instead of 855; one
+user unchanged. A greedy answer given beside others may differ in a word from the same
+request alone (the batched kernels add in another order). <code dir="auto">debug.batch_scheduler = false</code> keeps the old steps.</p>
 </li>
 <li>
 <p><strong><code dir="auto">--prefill-yield N</code></strong> (0 = off): with <code dir="auto">--parallel 2</code> or more, a long
@@ -240,7 +251,7 @@ system), <code dir="auto">/metrics</code>, <code dir="auto">/props</code>, <code
 copy, delete and push. With a list, the administration answers the listed networks
 too. Another computer that is answered can still use the chat, as before: its chats,
 profile, memory, projects, shared items, documents and their search, and stopping a
-generation. Until logins arrive (0.47.0) these are the server’s, not the person’s: what
+generation. Until logins arrive (0.47.1) these are the server’s, not the person’s: what
 one computer keeps, the others see. It can also switch three options, memory, web
 search and the embedding model (only one the server already has), and they change for
 everyone, not only for that computer; every other setting is refused with a message

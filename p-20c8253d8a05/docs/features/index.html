@@ -552,7 +552,7 @@ Output is checked against llama.cpp.</p>
 </tr>
 <tr>
 <td><strong>Interfaces</strong></td>
-<td>Terminal chat (<code dir="auto">inga run</code>); a chat page with a model hub and an API tester in the browser, started with or without a model, its chats (and the page’s data but its own settings) kept on the server under the user’s profile, branched on edits and regenerations, exported as Markdown, HTML or JSON and shared as read-only links of the server, installable as an app (PWA) and usable on a phone; OpenAI, Anthropic, Ollama, LM Studio and KoboldAI APIs (<code dir="auto">inga serve</code>), models unloaded when idle, named API keys with limits and usage per key, <code dir="auto">inga serve</code> as a service started at boot (<code dir="auto">inga service</code>: systemd, launchd, Windows services)</td>
+<td>Terminal chat (<code dir="auto">inga run</code>); a chat page with a model hub and an API tester in the browser, started with or without a model, its chats (and the page’s data but its own settings) kept on the server under the user’s profile, branched on edits and regenerations, exported as Markdown, HTML or JSON and shared as read-only links of the server, installable as an app (PWA) and usable on a phone; OpenAI, Anthropic, Ollama, LM Studio and KoboldAI APIs (<code dir="auto">inga serve</code>), models unloaded when idle, named API keys with limits and usage per key, a server other machines reach only with a key, the networks allowed (<code dir="auto">--allow</code>, also set on the web UI’s Server page; a narrower <code dir="auto">--admin-from</code> for the administration) or <code dir="auto">--open-network</code> said on purpose, <code dir="auto">inga serve</code> as a service started at boot (<code dir="auto">inga service</code>: systemd, launchd, Windows services)</td>
 </tr>
 <tr>
 <td><strong>Images, video and audio</strong></td>
@@ -576,7 +576,7 @@ Output is checked against llama.cpp.</p>
 </tr>
 <tr>
 <td><strong>Music generation</strong></td>
-<td>ACE-Step 1.5 turbo (MIT): a 48 kHz stereo song from a description and lyrics, sung or instrumental, on the CPU; <code dir="auto">inga music</code> into WAV or FLAC (FLAC by Inga’s own encoder), the length estimated from the lyrics; the web UI’s Music page (Describe it with the chat model, Full control, presets, the voice, a library on the server, a game while it waits); a cover for every song (drawn by the image model, else a pattern from its seed) and its lyrics in time for karaoke (aligned with the speech-to-text model, else estimated), both in the FLAC; <strong>Redo this part</strong> (a part chosen on the waveform made again with a new seed, the rest kept: ACE-Step’s repaint); the player at <code dir="auto">/player/</code> keeps the songs on a phone and plays them offline (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/play-your-songs-offline/">guide</a>); every song labelled with the model and its licence in the file and its parameters; <code dir="auto">inga pull kit://ace-step</code> (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/make-music/">guide</a>)</td>
+<td>ACE-Step 1.5 turbo (MIT): a 48 kHz stereo song from a description and lyrics, sung or instrumental, on the CPU; <code dir="auto">inga music</code> into WAV or FLAC (FLAC by Inga’s own encoder), the length estimated from the lyrics; the web UI’s Music page (Describe it with the chat model, Full control, presets, the voice, a library on the server, a game while it waits); a cover for every song (drawn by the image model, else a pattern from its seed) and its lyrics in time for karaoke (aligned with the speech-to-text model, else estimated), both in the FLAC; <strong>Redo this part</strong> (a part chosen on the waveform made again with a new seed, the rest kept: ACE-Step’s repaint); the player at <code dir="auto">/player/</code> keeps the songs on a phone and plays them offline (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/play-your-songs-offline/">guide</a>); every song’s file labelled with the model, its licence and every parameter it was made with (<code dir="auto">GENERATION_PARAMETERS</code>; in the WAV an ID3v2.4 tag that players and <code dir="auto">ffprobe</code> read); <code dir="auto">inga pull kit://ace-step</code> (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/make-music/">guide</a>)</td>
 </tr>
 <tr>
 <td><strong>GPU</strong></td>
@@ -800,7 +800,6 @@ web UI’s code by <code dir="auto">node tools/screenshots/stubbed.cjs --docs</c
 <thead>
 <tr>
 <th>Memory</th>
-<th>Decide</th>
 <th>Schedules</th>
 <th>Skills</th>
 </tr>
@@ -808,13 +807,11 @@ web UI’s code by <code dir="auto">node tools/screenshots/stubbed.cjs --docs</c
 <tbody>
 <tr>
 <td><a href="/ingatest/p-20c8253d8a05/images/webui-memory.png"><img src="/ingatest/p-20c8253d8a05/images/webui-memory.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-memory-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-memory.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Memory" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
-<td><a href="/ingatest/p-20c8253d8a05/images/webui-decide.png"><img src="/ingatest/p-20c8253d8a05/images/webui-decide.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-decide-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-decide.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Decide" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
 <td><a href="/ingatest/p-20c8253d8a05/images/webui-schedules.png"><img src="/ingatest/p-20c8253d8a05/images/webui-schedules.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-schedules-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-schedules.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Schedules" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
 <td><a href="/ingatest/p-20c8253d8a05/images/webui-skills.png"><img src="/ingatest/p-20c8253d8a05/images/webui-skills.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-skills-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-skills.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Skills" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
 </tr>
 <tr>
 <td>The facts the models remember across chats</td>
-<td>Typed answers with their probabilities, read from the logits</td>
 <td>Prompts run at set times, and their results</td>
 <td>Agent Skills, reviewed and pinned before they install</td>
 </tr>

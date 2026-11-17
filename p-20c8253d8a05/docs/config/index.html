@@ -1225,7 +1225,7 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td><code dir="auto">debug.q5k_q6k_repack</code></td>
 <td></td>
 <td>true</td>
-<td>the CPU’s Q5_K and Q6_K weights repacked at load by groups of eight rows for generation where the instruction set has the kernels (AVX-512 VNNI): one stream of bytes and one load of the activations for eight rows, the results those of the rows as stored bit for bit, generation 1.09-1.12x on Qwen3.5-0.8B Q4_K_M at 4 threads on a 4-vCPU AVX-512 Xeon; a prompt of 16 tokens and more unpacks its rows for the kernels of the rows as stored (false: the rows as stored, as before 0.46.7, to measure the two). Read at load: compare two runs with –set, not inga bench –ab</td>
+<td>the CPU’s Q5_K and Q6_K weights repacked at load by groups of eight rows for generation where the instruction set has the kernels (AVX-512 VNNI): one stream of bytes and one load of the activations for eight rows, the results those of the rows as stored bit for bit, generation 1.09-1.12x on Qwen3.5-0.8B Q4_K_M at 4 threads on a 4-vCPU AVX-512 Xeon; a prompt of 16 tokens and more unpacks its rows for the kernels of the rows as stored (false: the rows as stored, as before 0.47.0, to measure the two). Read at load: compare two runs with –set, not inga bench –ab</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.cpu_prefetch</code></td>
@@ -1237,7 +1237,7 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td><code dir="auto">debug.cpu_prefetch_l2</code></td>
 <td></td>
 <td>8192</td>
-<td>how far ahead, in bytes, the CPU’s AVX2 and AVX-512 generation kernels also ask the memory for the weights into the L2 cache, beyond debug.cpu_prefetch’s distance into the L1, so that a core keeps more of its reads in flight: generation 1.12-1.13x on Qwen3.5-0.8B Q4_K_M at 4 threads on a 4-vCPU AVX-512 Xeon (0: not at all, as before 0.46.7; a hint to the caches, the results the same bits); to measure distances with inga bench –ab</td>
+<td>how far ahead, in bytes, the CPU’s AVX2 and AVX-512 generation kernels also ask the memory for the weights into the L2 cache, beyond debug.cpu_prefetch’s distance into the L1, so that a core keeps more of its reads in flight: generation 1.12-1.13x on Qwen3.5-0.8B Q4_K_M at 4 threads on a 4-vCPU AVX-512 Xeon (0: not at all, as before 0.47.0; a hint to the caches, the results the same bits); to measure distances with inga bench –ab</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.cpu_task_kb</code></td>
@@ -1399,7 +1399,7 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td><code dir="auto">debug.prefix_checkpoints</code></td>
 <td></td>
 <td>4</td>
-<td>a hybrid model’s (Qwen3.5, LFM2) checkpoints of its recurrent state kept in the prefix cache where a prompt’s system prompt and tools end, so a new chat, a regenerate or an edit with them reads only its own part; the least recently used go first (0: none taken, every new chat reads its whole prompt, as before 0.46.7)</td>
+<td>a hybrid model’s (Qwen3.5, LFM2) checkpoints of its recurrent state kept in the prefix cache where a prompt’s system prompt and tools end, so a new chat, a regenerate or an edit with them reads only its own part; the least recently used go first (0: none taken, every new chat reads its whole prompt, as before 0.47.0)</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.spec_gpu_verify</code></td>

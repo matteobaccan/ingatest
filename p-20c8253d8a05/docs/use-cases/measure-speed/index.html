@@ -119,6 +119,10 @@ default <code dir="auto">neoni8mm</code> measures the <code dir="auto">smmla</co
 <p>An instruction set the CPU lacks is an error (<code dir="auto">this CPU cannot run AVX-512 kernels</code>).</p>
 <p>To compare with llama.cpp, run its <code dir="auto">llama-bench</code> with the same tests on the same file:
 <code dir="auto">llama-bench -m Llama-3.2-1B-Instruct-Q4_K_M.gguf -p 128 -n 64 -t 1,4 -r 3</code>.
+On a GPU, <code dir="auto">inga bench</code> draws the generation test’s tokens there, as <code dir="auto">inga run</code> and the
+chat do, and reads back only the token (on an L4, Qwen3.5-9B’s tg128 40.81 tokens/s
+against 40.35 reading the whole logits); the run says so, and <code dir="auto">--set debug.bench_gpu_draw=false</code> reads the logits back and picks the token on the CPU, as
+llama-bench does.
 <a href="/ingatest/p-20c8253d8a05/docs/performance/">performance.md</a> has both engines side by side, each row the latest measurement.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="6-measure-at-depth-a-prompt-added-to-a-long-chat">6. Measure at depth: a prompt added to a long chat</h2><a class="sl-anchor-link" href="#6-measure-at-depth-a-prompt-added-to-a-long-chat"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “6. Measure at depth: a prompt added to a long chat”</span></a></div>
 <p><code dir="auto">-p 512</code> reads a prompt into an empty cache. In a chat or an agent, every turn adds a

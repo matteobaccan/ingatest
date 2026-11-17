@@ -63,7 +63,7 @@ Hugging Face cache and loads them into the running server. Inga’s logo at the 
 left column opens <strong>Server: this machine</strong>, with the loaded models and live metrics.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="the-menu">The menu</h3><a class="sl-anchor-link" href="#the-menu"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “The menu”</span></a></div>
 <p>The left column holds <strong>New chat</strong>, every page (Chat, Memory, Documents, Images,
-Decide, Schedules, Skills, Storage, Mesh, Models — just below Mesh, with its sections
+Schedules, Skills, Storage, Mesh, Models — just below Mesh, with its sections
 and Speed under it — and the Developer group under its heading: Server, Logs, API docs,
 CLI), and on the chat page your
 chats (<strong>Recents</strong>, with their search, export, import and share); at its foot the server
@@ -251,7 +251,6 @@ new chat, the chat’s settings, share and export.</p>
 <thead>
 <tr>
 <th>Memory</th>
-<th>Decide</th>
 <th>Schedules</th>
 <th>Skills</th>
 </tr>
@@ -259,13 +258,11 @@ new chat, the chat’s settings, share and export.</p>
 <tbody>
 <tr>
 <td><a href="/ingatest/p-20c8253d8a05/images/webui-memory.png"><img src="/ingatest/p-20c8253d8a05/images/webui-memory.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-memory-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-memory.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Memory" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
-<td><a href="/ingatest/p-20c8253d8a05/images/webui-decide.png"><img src="/ingatest/p-20c8253d8a05/images/webui-decide.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-decide-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-decide.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Decide" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
 <td><a href="/ingatest/p-20c8253d8a05/images/webui-schedules.png"><img src="/ingatest/p-20c8253d8a05/images/webui-schedules.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-schedules-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-schedules.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Schedules" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
 <td><a href="/ingatest/p-20c8253d8a05/images/webui-skills.png"><img src="/ingatest/p-20c8253d8a05/images/webui-skills.webp" srcset="/ingatest/p-20c8253d8a05/images/webui-skills-800.webp 800w, /ingatest/p-20c8253d8a05/images/webui-skills.webp 1280w" sizes="auto, (min-width: 72rem) 45rem, 100vw" alt="Skills" width="1280" height="860" loading="lazy" decoding="async" /></a></td>
 </tr>
 <tr>
 <td>The facts the models remember across chats</td>
-<td>Typed answers with their probabilities, read from the logits</td>
 <td>Prompts run at set times, and their results</td>
 <td>Agent Skills, reviewed and pinned before they install</td>
 </tr>
@@ -475,7 +472,7 @@ plain words:</p>
 </tr>
 <tr>
 <td><code dir="auto">... cannot be reached</code></td>
-<td>B is not running, the address or port is wrong, B listens on <code dir="auto">127.0.0.1</code> only (add <code dir="auto">--host 0.0.0.0</code>), or a firewall blocks it.</td>
+<td>B is not running, the address or port is wrong, B listens on <code dir="auto">127.0.0.1</code> only (add <code dir="auto">--host 0.0.0.0</code> with <code dir="auto">--allow</code> your network or <code dir="auto">--api-key</code>), or a firewall blocks it.</td>
 </tr>
 <tr>
 <td><code dir="auto">... answers, but does not let this page call it</code></td>
@@ -1280,9 +1277,13 @@ the phone), or Tailscale’s <code dir="auto">tailscale serve 8080</code>, which
 <code dir="auto">127.0.0.1</code> behind the proxy and set <code dir="auto">--api-key</code> if the proxy is reachable by others.</li>
 </ul>
 <div class="sl-heading-wrapper level-h3"><h3 id="themes-and-languages">Themes and languages</h3><a class="sl-anchor-link" href="#themes-and-languages"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Themes and languages”</span></a></div>
-<p><strong>Settings</strong>, the last entry of the side bar (a phone’s bottom bar), opens a menu with
-the theme, the language and <strong>About</strong> (the version, the build, a link to the releases);
-arrow keys move in it and Escape closes it. <strong>Theme</strong>: <strong>Auto</strong> follows the
+<p><strong>Settings</strong>, the last entry of the side bar (a phone’s bottom bar), opens the settings:
+a search box and the sections, the theme and the language among them; arrow keys move
+along the sections and Escape closes it. The last section, <strong>About</strong>, is the version and
+the build (commit, date, platform, CPU instructions, backends, mesh protocol, API spec,
+with <strong>Copy for an issue report</strong>), <strong>Check for a newer version</strong> and the box that checks
+at start, with what GitHub sees, the project’s links and the open source licences; the
+command palette’s <strong>About</strong> opens it too. <strong>Theme</strong>: <strong>Auto</strong> follows the
 computer’s light or dark setting, <strong>Light</strong> and <strong>Dark</strong> fix one, <strong>Matrix</strong> is
 phosphor green on black in a monospace font with a faint falling code behind the
 conversation (still when the system asks for reduced motion), <strong>Blade Runner</strong> is

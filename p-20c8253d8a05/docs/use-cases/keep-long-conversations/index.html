@@ -158,6 +158,14 @@ bit for bit, and they go to <code dir="auto">--kv-disk</code> with the rest. The
 <code dir="auto">--prefix-cache</code> like the CPU’s. The load says so:</p>
 <div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">note: qwen3.6-35b-a3b: the prefix cache and --kv-disk copy the KV cache and recurrent states of the layers on the GPU to RAM when a conversation is left, and back to the GPU when a prompt continues it</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="note: qwen3.6-35b-a3b: the prefix cache and --kv-disk copy the KV cache and recurrent states of the layers on the GPU to RAM when a conversation is left, and back to the GPU when a prompt continues it"><div></div></button></div></figure></div>
 <p>Layers run on other machines (a mesh) keep no copies: their KV caches stay there.</p>
+<p>A hybrid model (Qwen3.5, LFM2, Nemotron-H) keeps one more kind of copy: where a chat’s
+system prompt and tools end, the server copies its recurrent state with the attention
+layers’ keys and values, so a new chat, a regenerate or an edited message with the same
+system prompt and tools reads only its own part instead of the whole prompt again. Up to
+4 such checkpoints are kept in <code dir="auto">--prefix-cache</code>, the least recently used dropped first
+(<code dir="auto">debug.prefix_checkpoints</code>, 0 turns them off); the log says when one is kept (with its
+memory), reused, or why not, and <code dir="auto">GET /api/inga/status</code> shows the prefix cache’s copies
+and checkpoints beside the KV cache.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="before-the-first-message-the-warm-up-chatwarm-auto-by-default">Before the first message: the warm-up (<code dir="auto">chat.warm</code>, <code dir="auto">auto</code> by default)</h3><a class="sl-anchor-link" href="#before-the-first-message-the-warm-up-chatwarm-auto-by-default"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Before the first message: the warm-up (chat.warm, auto by default)”</span></a></div>
 <p>The first message of a chat has nothing cached: the system prompt and the tools’
 definitions (thousands of tokens with web search, MCP, the workspace and skills on) are
@@ -212,9 +220,9 @@ first prompt that continues a kept conversation reads it back:</p>
 model file’s bytes (a fine-tune or a new download with the same layout is another
 model), the Inga version, the KV cache type, <code dir="auto">--experts-precision</code>, <code dir="auto">--cache-cap</code> and
 the LoRA weights. The others are never read and leave as the least recently used.
-<code dir="auto">--kv-disk-max</code> holds at start too. A hybrid model (Qwen3.5, Qwen3-Next) keeps its
-recurrent state at the conversation’s end only, so its kept conversations serve the
-next turn, not the same prompt asked again.</p>
+<code dir="auto">--kv-disk-max</code> holds at start too. On disk, a hybrid model (Qwen3.5, Qwen3-Next) keeps
+its recurrent state at the conversation’s end, so its kept conversations serve the next
+turn; the checkpoints at the end of the system prompt and tools (above) stay in RAM.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="a-context-larger-than-the-ram">A context larger than the RAM</h3><a class="sl-anchor-link" href="#a-context-larger-than-the-ram"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “A context larger than the RAM”</span></a></div>
 <p><code dir="auto">--kv-ram SIZE</code> keeps at most SIZE of a context’s keys and values in RAM; the older
 positions go, by blocks of 256, to a file of each layer under <code dir="auto">--kv-disk</code> (default
