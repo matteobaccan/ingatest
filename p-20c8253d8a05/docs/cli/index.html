@@ -327,7 +327,7 @@ sets up tab completion.</p>
 </tr>
 <tr>
 <td><code dir="auto">connect &lt;tool&gt;</code></td>
-<td>What claude-code, codex, opencode, pi, aider, qwen-code or openai-sdk needs to use <code dir="auto">inga serve</code> (environment lines for <code dir="auto">--shell sh|fish|powershell|cmd</code>, the <code dir="auto">model_map</code> names), then a test request saying which model and node answered (<code dir="auto">--url</code>, <code dir="auto">--key-env</code>, <code dir="auto">--model</code>, <code dir="auto">--write FILE</code>, <code dir="auto">--no-test</code>); <code dir="auto">--run</code> starts the tool already connected, for that run only (<code dir="auto">-- ARGS</code> passed to it, <code dir="auto">--serve MODEL</code> when no server runs; <a href="/ingatest/p-20c8253d8a05/docs/integrations/">integrations</a>)</td>
+<td>What claude-code, codex, opencode, pi, aider, qwen-code or openai-sdk needs to use <code dir="auto">inga serve</code> (environment lines for <code dir="auto">--shell sh|fish|powershell|cmd</code>, the <code dir="auto">model_map</code> names), then a test request saying which model and node answered (<code dir="auto">--url</code>, <code dir="auto">--key-env</code>, <code dir="auto">--model</code>, <code dir="auto">--write FILE</code>, <code dir="auto">--no-test</code>); <code dir="auto">--run</code> starts the tool already connected, for that run only (<code dir="auto">-- ARGS</code> passed to it, <code dir="auto">--serve MODEL</code> when no server runs, with the agent’s context; Inga’s MCP server in Claude Code’s, Codex’s, OpenCode’s and Qwen Code’s configuration; <a href="/ingatest/p-20c8253d8a05/docs/integrations/">integrations</a>)</td>
 <td><code dir="auto">inga connect claude-code --run</code></td>
 </tr>
 <tr>
@@ -421,8 +421,8 @@ sets up tab completion.</p>
 <td>Turn a thinking model’s reasoning on or off (Qwen3, Qwen3.5, DeepSeek V3.1, …); <code dir="auto">/think on|off</code> in the chat</td>
 </tr>
 <tr>
-<td><code dir="auto">--reasoning-effort low|medium|high</code></td>
-<td>Reasoning effort: gpt-oss’s levels; for the other thinking models a reasoning budget of 1024, 4096 or 16384 tokens</td>
+<td><code dir="auto">--reasoning-effort low|medium|high|max</code></td>
+<td>Reasoning effort: gpt-oss’s and DeepSeek V4’s levels; for the other thinking models a reasoning budget of 1024, 4096 or 16384 tokens (max: no limit)</td>
 </tr>
 <tr>
 <td><code dir="auto">--reasoning-budget N</code></td>
@@ -1169,7 +1169,7 @@ not with <code dir="auto">-p</code>. Spec: <a href="https://github.com/matteobac
 </tr>
 <tr>
 <td><code dir="auto">--workspace DIR</code></td>
-<td>The folder of the file tools (<code dir="auto">list_files</code>, <code dir="auto">read_file</code>, <code dir="auto">search_files</code>, <code dir="auto">write_file</code>) offered to the requests that ask (the chat’s Files button, <code dir="auto">"inga_workspace": true</code>): paths outside it refused, every write approved by a person; the web UI’s Server tab may choose another, kept in the home’s <code dir="auto">settings.json</code> (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/read-pages-and-work-on-files/">guide</a>)</td>
+<td>The folder of the file tools (<code dir="auto">list_files</code>, <code dir="auto">read_file</code>, <code dir="auto">search_files</code>, <code dir="auto">write_file</code>, <code dir="auto">edit_file</code>) offered to the requests that ask (the chat’s Files button, <code dir="auto">"inga_workspace": true</code>): paths outside it refused, every write and edit approved by a person; the web UI’s Server tab may choose another, kept in the home’s <code dir="auto">settings.json</code> (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/read-pages-and-work-on-files/">guide</a>)</td>
 </tr>
 <tr>
 <td><code dir="auto">--whisper M</code></td>
@@ -1326,7 +1326,7 @@ not with <code dir="auto">-p</code>. Spec: <a href="https://github.com/matteobac
 </tr>
 <tr>
 <td><code dir="auto">connect</code></td>
-<td><code dir="auto">--url URL</code> (<a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a>), <code dir="auto">--key-env VAR</code> (LOCAL_LLM_API_KEY, else <code dir="auto">client.api_key</code>), <code dir="auto">--model M</code>, <code dir="auto">--shell sh|fish|powershell|cmd</code>, <code dir="auto">--write FILE</code>, <code dir="auto">--no-test</code>, <code dir="auto">--run</code> (start the tool; <code dir="auto">-- ARGS</code> to it), <code dir="auto">--serve MODEL</code> (with <code dir="auto">--run</code>: a server for the run when none answers)</td>
+<td><code dir="auto">--url URL</code> (<a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a>), <code dir="auto">--key-env VAR</code> (LOCAL_LLM_API_KEY, else <code dir="auto">client.api_key</code>), <code dir="auto">--model M</code>, <code dir="auto">--shell sh|fish|powershell|cmd</code>, <code dir="auto">--write FILE</code>, <code dir="auto">--no-test</code>, <code dir="auto">--run</code> (start the tool; <code dir="auto">-- ARGS</code> to it), <code dir="auto">--serve MODEL</code> (with <code dir="auto">--run</code>: a server for the run when none answers, 32768 tokens of context or the model’s trained context), <code dir="auto">--ctx N</code> (with <code dir="auto">--serve</code>: its context, kept)</td>
 </tr>
 <tr>
 <td><code dir="auto">service</code></td>

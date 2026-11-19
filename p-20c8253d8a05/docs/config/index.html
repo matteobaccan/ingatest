@@ -867,6 +867,18 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td>the vision model that reads the pages of a PDF without a text layer and the PNG or JPEG pictures added as documents (a model as inga serve names it, or a file, with its mmproj file next to it); never the chat model by itself</td>
 </tr>
 <tr>
+<td><code dir="auto">docs.transcription_model</code></td>
+<td></td>
+<td>none: the recordings of a folder are listed, not transcribed</td>
+<td>the speech-to-text model that transcribes the recordings (WAV, MP3, FLAC) of the folders of documents at their sync, each recording’s turns indexed under their minute (the file of a Whisper, Parakeet or Cohere Transcribe model, or a Hugging Face Whisper directory); a recording is transcribed once, its transcript kept</td>
+</tr>
+<tr>
+<td><code dir="auto">docs.diarizer</code></td>
+<td></td>
+<td>none: the turns of a recording have no speaker</td>
+<td>the Sortformer model that finds who speaks in the recordings docs.transcription_model transcribes, so each turn is cited under its minute and its speaker (12:30 S1)</td>
+</tr>
+<tr>
 <td><code dir="auto">docs.rerank_top</code></td>
 <td></td>
 <td>32</td>
@@ -1710,7 +1722,7 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td><code dir="auto">debug.spec_tie_margin</code></td>
 <td></td>
 <td>0</td>
-<td>greedy decoding with drafts: a token whose two best logits lie closer than this is left to a plain step, so the text is the one decoding without drafts writes (0, off: the check’s token, which a batched product’s rounding may change; its size not measured on a real model yet)</td>
+<td>greedy decoding with drafts: a token whose two best logits lie closer than this is left to a plain step, so the text stays closer to the one decoding without drafts writes, not always the same: the accepted tokens’ cache comes from the batched check (0, off: the check’s token, which a batched product’s rounding may change; its size not measured on a real model yet)</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.ttft_parts</code></td>
@@ -1759,6 +1771,12 @@ you name (CI, a secrets manager), or <code dir="auto">{ file = "PATH" }</code>, 
 <td></td>
 <td>false</td>
 <td>GPU: a step of inga serve holding a prompt’s chunk among the other sessions’ decode steps runs the GPU’s whole layers in one pass for every row, each weight read once, in place of two device calls (the decode rows, then the chunk); dense models of attention layers only, the others as before (off until measured on a GPU)</td>
+</tr>
+<tr>
+<td><code dir="auto">debug.cuda_delta_state_f16</code></td>
+<td></td>
+<td>false</td>
+<td>CUDA: the DeltaNet layers’ recurrent states (Qwen3.5, Qwen3-Next) kept in f16 on the GPU and computed in f32 inside each step, half the memory of each session’s state, and the GPU’s memory plan counting the halved states, so more sessions fit (off until checked on a GPU against the f32 states; an embedded PTX without the hstate kernels leaves the states in f32 and the log says why; read at load)</td>
 </tr>
 <tr>
 <td><code dir="auto">debug.cuda_short_decode</code></td>

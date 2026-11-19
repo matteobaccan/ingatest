@@ -107,6 +107,16 @@ parts in one folder on an NVMe SSD and give <code dir="auto">inga run</code> the
 speed on a real machine is not measured yet. Its layers run on the CPU. Its reasoning
 (the messages it writes to <code dir="auto">self</code>) is shown as thinking, its answer to <code dir="auto">user</code> as the
 answer, and its tool calls (<code dir="auto">&lt;atem:function_calls&gt;</code>) run as any model’s.</p>
+<p>DeepSeek V4 Flash 0731 (284B parameters, 13B per token, MIT) is the same kind of job,
+from <a href="https://huggingface.co/lmstudio-community/DeepSeek-V4-Flash-0731-GGUF">lmstudio-community’s GGUF files</a>:
+four MXFP4 parts of 156.4 GB in all, as their header says: 9.2 GB of attention,
+compressors, hyper-connections, router, embeddings and output layer, which stay in RAM,
+and 11,008 experts of 13.4 MB (256 in each of the 43 layers), of which each token reads
+6 per layer, 3.4 GB. With the four parts in one folder:</p>
+<div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">inga run DeepSeek-V4-Flash-0731-MXFP4-00001-of-00004.gguf --mem-limit 40G</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="inga run DeepSeek-V4-Flash-0731-MXFP4-00001-of-00004.gguf --mem-limit 40G"><div></div></button></div></figure></div>
+<p>Its layers run on the CPU. Its tool calls (<code dir="auto">&lt;｜DSML｜tool_calls&gt;</code>) run as any model’s,
+and <code dir="auto">--think on</code> with <code dir="auto">--reasoning-effort high</code> or <code dir="auto">max</code> (<code dir="auto">reasoning_effort</code> in the API)
+gives it DeepSeek’s own prompt for that effort.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="how-it-works">How it works</h2><a class="sl-anchor-link" href="#how-it-works"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “How it works”</span></a></div>
 <ul>
 <li>

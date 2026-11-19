@@ -94,6 +94,11 @@ the <code dir="auto">inga</code> executable on your <code dir="auto">PATH</code>
 <div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">inga serve hf://nomic-ai/nomic-embed-text-v1.5-GGUF:Q8_0 --api-key "$LOCAL_LLM_API_KEY"</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="inga serve hf://nomic-ai/nomic-embed-text-v1.5-GGUF:Q8_0 --api-key &quot;$LOCAL_LLM_API_KEY&quot;"><div></div></button></div></figure></div>
 <p>The key is optional on your own machine; with one, every agent sends it. Then connect
 the agent.</p>
+<p><strong>In one command</strong>: <code dir="auto">inga connect claude-code --run</code> (also <code dir="auto">codex</code>, <code dir="auto">opencode</code>,
+<code dir="auto">qwen-code</code>) starts the agent with this MCP server already in its configuration, for that
+run only, the key in a variable
+(<a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-with-coding-agents/#one-command-inga-connect-tool---run">use-with-coding-agents.md</a>).
+By hand, per agent:</p>
 <p><strong>Claude Code</strong> (by URL):</p>
 <div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">claude mcp add --transport http inga http://127.0.0.1:8080/mcp \</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#d6deeb;--1:#403f53">  </span></span><span style="--0:#d6deeb;--1:#403f53">--header "Authorization: Bearer $LOCAL_LLM_API_KEY"</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="claude mcp add --transport http inga http://127.0.0.1:8080/mcp \  --header &quot;Authorization: Bearer $LOCAL_LLM_API_KEY&quot;"><div></div></button></div></figure></div>
 <p><strong>Codex</strong> (through the bridge; it takes <code dir="auto">--url</code> and <code dir="auto">--api-key</code>, else <code dir="auto">client.url</code> and

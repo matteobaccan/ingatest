@@ -144,9 +144,9 @@ the error message, the Hugging Face link and what you want to do with it are eno
 </tr>
 <tr>
 <td><code dir="auto">deepseek4</code></td>
-<td>DeepSeek V4 (V4-Flash and the models of its layout; text)</td>
+<td>DeepSeek V4 (V4-Flash, V4-Flash 0731 and the models of its layout; text; its DSML tool calls; on the CPU, the routed experts streamed from the disk when the RAM is short)</td>
 <td>✅ ¹</td>
-<td>synthetic only</td>
+<td>synthetic only (the real file’s keys and tensor names)</td>
 </tr>
 <tr>
 <td><code dir="auto">deepseek41</code></td>
@@ -216,9 +216,9 @@ the error message, the Hugging Face link and what you want to do with it are eno
 </tr>
 <tr>
 <td><code dir="auto">nemotron_h</code>, <code dir="auto">nemotron_h_moe</code></td>
-<td>NVIDIA Nemotron-H (8B, 47B, 56B), Nemotron Nano 2 (9B), Nemotron 3 Nano (30B-A3B) and Super (120B-A12B, latent experts); not the Puzzle models (per-layer expert counts); the MTP draft head is not run</td>
+<td>NVIDIA Nemotron-H (8B, 47B, 56B), Nemotron Nano 2 (9B), Nemotron 3 Nano (30B-A3B), Super (120B-A12B, latent experts) and 3.5 Super VL (120B-A12B, its text); not the Puzzle models (per-layer expert counts); the MTP draft head is not run</td>
 <td>✅</td>
-<td>synthetic only</td>
+<td>synthetic only (3.5 Super VL: the real file’s keys and tensor names)</td>
 </tr>
 <tr>
 <td><code dir="auto">granitehybrid</code></td>
@@ -370,6 +370,12 @@ the error message, the Hugging Face link and what you want to do with it are eno
 <td>✅ ¹¹</td>
 <td>synthetic only (the real file’s keys and tensor names)</td>
 </tr>
+<tr>
+<td><code dir="auto">muse-glimmer</code></td>
+<td>Meta’s Muse Glimmer (30B, dense; text, from lmstudio-community’s GGUF file; on the CPU)</td>
+<td>✅ ¹²</td>
+<td>synthetic only (the real file’s keys and tensor names)</td>
+</tr>
 </tbody>
 </table>
 <p>¹ Checked against llama.cpp 781dbc5 on synthetic files (prompts past 128 positions,
@@ -386,7 +392,13 @@ llama.cpp’s MTP graph on synthetic files, within 1.3e-3); its vision variant r
 projector, the image rows routed with <code dir="auto">exp_probs_b_vl</code> and seen both ways, checked on
 synthetic files against llama.cpp’s graph). Its KV cache keeps every position’s key and compressor rows, so that it can go
 back to any position: on long contexts it takes more memory than llama.cpp’s, which
-keeps only the window and the windows being filled.
+keeps only the window and the windows being filled. DeepSeek V4 Flash 0731
+(lmstudio-community’s MXFP4 files, 156.4 GB): the header read on 2026-11-18 has the
+keys and tensor names of the synthetic files, and 46 compression ratios for 43
+layers, of which Inga reads the first 43 as llama.cpp does; its pre-tokenizer
+<code dir="auto">joyai-llm</code> is llama.cpp’s; its tool calls in DSML (<code dir="auto">&lt;｜DSML｜tool_calls&gt;</code>) are read
+and held back while the answer streams, and <code dir="auto">reasoning_effort</code> <code dir="auto">high</code> and <code dir="auto">max</code> write
+DeepSeek’s own prompt for them when its chat template has none (the GGUF’s has none).
 ² Checked against llama.cpp 781dbc5 on synthetic files, with and without the n-gram
 embeddings (prompts of 40, 70 and 150 tokens: the QSA layers keeping 2 of up to 37
 blocks of 4, the DeltaNet in chunks of 64; the largest difference over every logit of
@@ -480,8 +492,8 @@ interleaved layout) on the sliding-window layers only; each head’s output norm
 without a weight and gated by the sigmoid of its own projection of the attention’s
 input; a norm without a weight after the attention; the residuals `h * alpha + block</p>
 <ul>
-<li>beta<code dir="auto">; the router on the normalized stream (sigmoid, a selection bias, the top 8 renormalized), the experts in their latent space (4096 of 8192) between </code>ffn_latent_down<code dir="auto">with its norm and</code>ffn_latent_up<code dir="auto">, each expert's output scaled and normalized before its weight; </code>post_ffw_norm<code dir="auto">scaling the experts' output before its norm; the logits multiplied by</code>logit_scale<code dir="auto"> and soft-capped. The tokenizer is the GPT-4o pre-tokenizer's (</code>&lt;|eot|&gt;<code dir="auto">ends the answer,</code>&lt;|eom|&gt;<code dir="auto"> does not); the chat format's messages to recipients are read (</code>to=self<code dir="auto">the reasoning,</code>to=user<code dir="auto">and</code>to=commentary<code dir="auto"> the answer) and so are its ATEM tool calls. No real file was run (the smallest, UD-IQ1_S, is 176 GB): to be checked (</code>docs/todo/real-world-checks.md<code dir="auto">). Its layers run on the CPU: with </code>–device auto` the output layer alone may go to a GPU,
-and the placement says why.</li>
+<li>beta<code dir="auto">; the router on the normalized stream (sigmoid, a selection bias, the top 8 renormalized), the experts in their latent space (4096 of 8192) between </code>ffn_latent_down<code dir="auto">with its norm and</code>ffn_latent_up<code dir="auto">, each expert's output scaled and normalized before its weight; </code>post_ffw_norm<code dir="auto">scaling the experts' output before its norm; the logits multiplied by</code>logit_scale<code dir="auto"> and soft-capped. The tokenizer is the GPT-4o pre-tokenizer's (</code>&lt;|eot|&gt;<code dir="auto">ends the answer,</code>&lt;|eom|&gt;<code dir="auto"> does not); the chat format's messages to recipients are read (</code>to=self<code dir="auto">the reasoning,</code>to=user<code dir="auto">and</code>to=commentary<code dir="auto"> the answer) and so are its ATEM tool calls. No real file was run (the smallest, UD-IQ1_S, is 176 GB): to be checked (</code>docs/todo/real-world-checks.md<code dir="auto">). Its layers run on the CPU: with </code>–device auto<code dir="auto"> the output layer alone may go to a GPU, and the placement says why. ¹² Checked on 2026-11-18 against a direct transcription of llama.cpp's graph (</code>src/models/muse-glimmer.cpp<code dir="auto"> of master 2cbfc3c) on synthetic files written with the metadata keys and the 17 tensor names of lmstudio-community's Q4_K_M file (its header read by HTTP range requests): 4 layers, the real file's pattern (three sliding-window layers, then a global one), a prompt of 9 tokens past a window of 4, in one batch and token by token. As llama.cpp: the embeddings normalized without a weight; per-head Q/K norms; RoPE (the interleaved layout) on the sliding-window layers only; the attention's output gated, value by value, by the sigmoid of its own projection of the attention's input; the attention's and the SwiGLU network's outputs normalized with an epsilon of 1e-8 and scaled (</code>post_attention_norm<code dir="auto">, </code>post_ffw_norm<code dir="auto">) before plain residuals; the logits multiplied by </code>logit_scale<code dir="auto"> and soft-capped. The tokenizer is Llama 4's (</code>llama4<code dir="auto">, which llama.cpp and Inga run as the GPT-4o pre-tokenizer), and its chat template writes Muse Spark's ATEM tool calls. No real file was run (the Q4_K_M is 16.76 GB): to be checked (</code>docs/todo/real-world-checks.md<code dir="auto">). Its layers run on the CPU: with </code>–device auto` the output layer alone may go to a GPU, and the placement
+says why.</li>
 </ul>
 <div class="sl-heading-wrapper level-h3"><h3 id="diffusion-language-models">Diffusion language models</h3><a class="sl-anchor-link" href="#diffusion-language-models"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Diffusion language models”</span></a></div>
 <p>The answer is denoised from masks in a few steps, many tokens at once, instead of being

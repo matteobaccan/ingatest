@@ -238,15 +238,19 @@ Gemma 3n’s, Gemma 4’s, GLM-4.xV’s, SmolVLM’s, LLaVA 1.5’s, Phi-4-multi
 Pixtral’s and the Qwen-VL projectors; LLaVA 1.6’s projectors (several resolutions) are refused, and the
 others follow (see <code dir="auto">TODO.md</code>).</li>
 <li><strong>“images with M-RoPE positions cannot run on other machines”</strong>: a Qwen-VL or
-GLM-4.xV model split across machines (<code dir="auto">--nodes</code>, <code dir="auto">--tp-nodes</code>) reads text only.</li>
+GLM-4.xV model split across machines (<code dir="auto">--nodes</code>, <code dir="auto">--tp-nodes</code>) reads text only; run
+it on one machine to read images.</li>
 <li><strong>“this GLM-4 file has no M-RoPE sections”</strong>: the GLM-4.xV language model was
 converted without them (an old conversion, or the text-only GLM-4); take a GGUF file
 converted by a recent llama.cpp.</li>
 <li><strong>“the KV cache cannot forget positions with an image’s M-RoPE positions”</strong>: with
 <code dir="auto">--cache-cap</code>, a Qwen-VL conversation holding an image cannot drop its oldest
 positions; use a larger <code dir="auto">--ctx</code>.</li>
-<li><strong>“images do not run on the GPU’s layers yet”</strong>: the model’s layers are on a GPU
-(<code dir="auto">--device auto</code> found one); start the server with <code dir="auto">--device cpu</code> for this model.</li>
+<li><strong>“images do not run on the GPU’s layers yet”</strong> (or <strong>“images with M-RoPE positions do
+not run on the GPU’s layers yet”</strong>): the model’s layers are on a GPU; start the server
+with <code dir="auto">--device cpu</code> for this model. <code dir="auto">inga run</code> with <code dir="auto">--image</code> or <code dir="auto">--video</code> places the
+model on the CPU by itself and says so; with a GPU named by <code dir="auto">--device</code> (<code dir="auto">--device cuda:0</code>) it keeps your choice and stops before loading: use <code dir="auto">--device cpu</code>, or leave
+<code dir="auto">--device</code> out.</li>
 <li><strong>“images by http(s) URL are off”</strong>: send the image’s bytes, or start the server
 with <code dir="auto">--allow-image-urls</code>.</li>
 <li><strong>“image format (PNG and JPEG are supported)”</strong>: convert the image (GIF, WebP, …)

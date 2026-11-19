@@ -158,7 +158,8 @@ there is no other, HIP only when named; <code dir="auto">--device NAME</code> ta
 the layers across them. <a href="https://github.com/matteobaccan/inga/blob/main/src/commands/placement.rs"><code dir="auto">fit_with</code></a>
 puts the last layers on the GPU first, the output layer once every layer fits, and the
 routed experts from the last layer back (<code dir="auto">place_experts</code>, <code dir="auto">--experts-on</code>, <code dir="auto">--cpu-moe</code>).
-An upload that runs out of memory is made again with fewer layers (<code dir="auto">upload_fitting</code>); a
+An upload that runs out of memory is made again with fewer layers on the same device, which
+the failed stages give back (<code dir="auto">upload_fitting</code>, <code dir="auto">GpuStages::try_new</code>); a
 GPU whose kernels lack a weight type or the architecture passes to the next one
 (<code dir="auto">try_each</code>). Then <code dir="auto">Engine::plan_after_gpu</code> gives the RAM the GPU took over to the
 experts the CPU runs, and the placement map (<code dir="auto">placement::of_model</code>) is printed.</p>
