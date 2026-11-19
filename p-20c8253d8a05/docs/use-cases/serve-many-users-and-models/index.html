@@ -262,9 +262,10 @@ call, the models it may use and its limits (see “A key per person or app” be
 <li>
 <p><strong><code dir="auto">--host 0.0.0.0</code></strong>: accept other machines (the default, 127.0.0.1, is this machine
 only). A server other machines reach needs something that says who may use it: an API
-key (<code dir="auto">--api-key</code>, <code dir="auto">--api-keys</code>) or a list of networks (<code dir="auto">--allow</code>). With neither,
+key (<code dir="auto">--api-key</code>, <code dir="auto">--api-keys</code>), accounts (<code dir="auto">inga user add</code>,
+<a href="#accounts-each-person-signs-in">below</a>) or a list of networks (<code dir="auto">--allow</code>). With none,
 <code dir="auto">inga serve</code> does not start: it says why (anyone on the network could use the models
-and the chat) and names the three ways out, the third being <code dir="auto">--open-network</code>
+and the chat) and names the four ways out, the last being <code dir="auto">--open-network</code>
 (<code dir="auto">serve.open_network = true</code>) to serve the network open on purpose, which the start
 lines and the web UI’s Server settings then say.</p>
 </li>
@@ -279,8 +280,9 @@ system), <code dir="auto">/metrics</code>, <code dir="auto">/props</code>, <code
 copy, delete and push. With a list, the administration answers the listed networks
 too. Another computer that is answered can still use the chat, as before: its chats,
 profile, memory, projects, shared items, documents and their search, and stopping a
-generation. Until logins arrive (0.48.0) these are the server’s, not the person’s: what
-one computer keeps, the others see. It can also switch three options, memory, web
+generation. Without accounts these are the server’s, not the person’s: what one
+computer keeps, the others see; with accounts (<a href="#accounts-each-person-signs-in">below</a>)
+each person who signs in has their own. It can also switch three options, memory, web
 search and the embedding model (only one the server already has), and they change for
 everyone, not only for that computer; every other setting is refused with a message
 naming it, and the settings it reads leave out the folders and the server block. The

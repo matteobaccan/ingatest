@@ -385,11 +385,11 @@ page’s <strong>LoRA</strong> settings or a request’s <code dir="auto">loras<
 </tr>
 <tr>
 <td><code dir="auto">--lora F[:W]</code></td>
-<td>A LoRA file (a path or <code dir="auto">hf://</code>) at weight <code dir="auto">W</code> (1), repeatable: Stable Diffusion 1.x / 2.x and SDXL (<a href="#lora-a-style-or-a-subject-added-to-the-model">above</a>)</td>
+<td>A LoRA file (a path or <code dir="auto">hf://</code>) at weight <code dir="auto">W</code> (1), repeatable: Stable Diffusion 1.x / 2.x, SDXL and Qwen-Image (<a href="#lora-a-style-or-a-subject-added-to-the-model">above</a>)</td>
 </tr>
 <tr>
 <td><code dir="auto">--device D</code></td>
-<td>Where the denoiser (the UNet, or the transformer of Flux, SD 3 and Qwen-Image) and the VAE run: <code dir="auto">auto</code> (default, <code dir="auto">gpu.device</code>), <code dir="auto">cpu</code>, <code dir="auto">cuda[:N]</code>; on a CUDA GPU only with <code dir="auto">--set debug.image_gpu=true</code> (below)</td>
+<td>Where the denoiser (the UNet, or the transformer of Flux, SD 3 and Qwen-Image) and the VAE run: <code dir="auto">auto</code> (default, <code dir="auto">gpu.device</code>), <code dir="auto">cpu</code>, <code dir="auto">cuda[:N]</code>, <code dir="auto">vulkan[:N]</code>; on a GPU only with <code dir="auto">--set debug.image_gpu=true</code> (CUDA: <a href="#on-an-nvidia-gpu-experimental">below</a>; Vulkan, the transformers only: <a href="#on-an-amd-or-intel-gpu-with-vulkan-experimental">below</a>)</td>
 </tr>
 </tbody>
 </table>

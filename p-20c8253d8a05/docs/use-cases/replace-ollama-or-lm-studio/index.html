@@ -186,6 +186,8 @@ template (the same text). <code dir="auto">/api/generate</code> takes a <code di
 <p><code dir="auto">GET /api/v0/models/{id}</code> gives one model; <code dir="auto">POST /api/v0/completions</code> and
 <code dir="auto">/api/v0/embeddings</code> are the OpenAI routes under LM Studio’s prefix. <code dir="auto">stop_reason</code> is
 <code dir="auto">eosFound</code>, <code dir="auto">maxPredictedTokensReached</code> or <code dir="auto">stopStringFound</code>, as LM Studio reports it.</p>
+<p>To keep LM Studio’s own chat window and have Inga answer it, through LM Studio’s
+OpenAI-compatible endpoint plugin: <a href="/ingatest/p-20c8253d8a05/docs/use-cases/use-inga-from-lm-studio/">use-inga-from-lm-studio.md</a>.</p>
 <p>Clients: Open WebUI takes Inga as an Ollama connection (<code dir="auto">http://127.0.0.1:11434</code>) or an
 OpenAI one (<code dir="auto">http://127.0.0.1:11434/v1</code>); the <code dir="auto">ollama</code> CLI itself with
 <code dir="auto">OLLAMA_HOST=127.0.0.1:11434</code>. Real Ollama clients are among the real-world

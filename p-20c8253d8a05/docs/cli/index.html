@@ -146,6 +146,11 @@ sets up tab completion.</p>
 <td><code dir="auto">inga merge base.gguf coder.gguf writer.gguf --method ties --density 0.5 -o merged.gguf</code>, <code dir="auto">inga merge base.gguf coder.gguf writer.gguf --moe --prompts code.txt --prompts prose.txt -o 2x.gguf</code></td>
 </tr>
 <tr>
+<td><code dir="auto">customize &lt;model&gt; --edit E</code></td>
+<td>A model changed on this computer through seven steps: the model, the change (a card for each: what it does, the pros, the cons, the cost, how to undo it), its licence read and said in plain words (Inga stops where the licence does not allow the change), your consent (<code dir="auto">--yes</code>), the change made and measured beside the original (first-token KL divergence, perplexity, size, <code dir="auto">--speed</code>, the change’s own score), then a new file beside it, never over it, with a reproduce file; <code dir="auto">--edit identity</code> (a copy, to see the steps) or <code dir="auto">abliterate</code> (refusals removed from a dense model; its datasets fetched only with <code dir="auto">--fetch</code> or your yes), <code dir="auto">--type T</code> (repeatable), <code dir="auto">--search</code> (<code dir="auto">--trials N</code>, <code dir="auto">--pick N</code>) the trade-offs between its score and the KL, <code dir="auto">--reproduce FILE</code> the same output made again, <code dir="auto">--list</code> the changes’ cards (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/customize-a-model/">guide</a>)</td>
+<td><code dir="auto">inga customize Qwen3-0.6B-Q8_0.gguf --edit abliterate --fetch --type q4_k_m</code></td>
+</tr>
+<tr>
 <td><code dir="auto">optimize &lt;model&gt;</code></td>
 <td>A variant of the model (the file <code dir="auto">inga quantize</code> writes, kept in <code dir="auto">~/.cache/inga/cache/models</code>, the original untouched): the one Inga proposes for this machine (planned on the GPU’s memory, the RAM and the disk), or <code dir="auto">--type T</code>; a stopped conversion resumes from its next missing layer; <code dir="auto">--while-running</code> makes it while the model next runs; <code dir="auto">--check</code> measures a variant against the original (perplexity ratio, KL divergence, same top token); <code dir="auto">--variant T</code> on <code dir="auto">run</code>, <code dir="auto">serve</code>, <code dir="auto">bench</code> and <code dir="auto">info</code> runs it, remembered per model</td>
 <td><code dir="auto">inga optimize model-F16.gguf</code>, <code dir="auto">inga optimize model-F16.gguf --check --variant q4_k_m</code>, <code dir="auto">inga run model-F16.gguf --variant q8_0</code></td>
@@ -182,7 +187,7 @@ sets up tab completion.</p>
 </tr>
 <tr>
 <td><code dir="auto">speak &lt;model&gt; [TEXT]</code></td>
-<td>Text to speech with a Piper voice (<code dir="auto">VOICE.onnx</code> and its JSON; Italian voices), an OuteTTS model and the WavTokenizer vocoder (llama.cpp’s <code dir="auto">llama-tts</code> files) or Audio8 TTS (its folder; <code dir="auto">--voice-sample</code> / <code dir="auto">--voice-text</code> clone a voice) into a WAV file or raw PCM; <code dir="auto">--voice</code> / <code dir="auto">--save-voice</code> keep a voice, <code dir="auto">--language it</code> reads numbers in Italian</td>
+<td>Text to speech with a Piper voice (<code dir="auto">VOICE.onnx</code> and its JSON; Italian voices), an OuteTTS model and the WavTokenizer vocoder (llama.cpp’s <code dir="auto">llama-tts</code> files) or Audio8 TTS (its folder; <code dir="auto">--voice-sample</code> / <code dir="auto">--voice-text</code> clone a voice) into a WAV file, an MP3 (<code dir="auto">-o speech.mp3</code> or <code dir="auto">--format mp3</code>: 64 kbit/s mono, about 0.5 MB a minute, Inga’s own encoder) or raw PCM; <code dir="auto">--voice</code> / <code dir="auto">--save-voice</code> keep a voice, <code dir="auto">--language it</code> reads numbers in Italian</td>
 <td><code dir="auto">inga speak OuteTTS-0.3-500M-Q8_0.gguf "Hello" -o hello.wav</code></td>
 </tr>
 <tr>
@@ -282,7 +287,7 @@ sets up tab completion.</p>
 </tr>
 <tr>
 <td><code dir="auto">data</code></td>
-<td>What Inga keeps on disk — models, model variants, converted experts, expert profiles, saved prompts, settings, memories, collections of documents, shared chats, evals (and the votes of the arena of 0.45, no longer read), the speeds measured, the results of scheduled tasks — with sizes and the free disk, and the variants not run for 30 days; <code dir="auto">data list [kind]</code>, <code dir="auto">data rm ID...</code>, <code dir="auto">data clear KIND|--all [--yes]</code> (asks first unless <code dir="auto">--yes</code>); <code dir="auto">--json</code> for the summary and <code dir="auto">list</code></td>
+<td>What Inga keeps on disk — models, model variants, converted experts, expert profiles, saved prompts, settings, memories, collections of documents, shared chats, evals (and the votes of the arena of 0.45, no longer read), the speeds measured, the results of scheduled tasks, each account’s chats, memories and projects (<code dir="auto">accounts</code>) — with sizes and the free disk, and the variants not run for 30 days; <code dir="auto">data list [kind]</code>, <code dir="auto">data rm ID...</code> (<code dir="auto">accounts:NAME</code>: an account’s data, the account kept), <code dir="auto">data clear KIND|--all [--yes]</code> (asks first unless <code dir="auto">--yes</code>); <code dir="auto">--json</code> for the summary and <code dir="auto">list</code></td>
 <td><code dir="auto">inga data list experts</code></td>
 </tr>
 <tr>
@@ -334,6 +339,11 @@ sets up tab completion.</p>
 <td><code dir="auto">skill add</code>, <code dir="auto">search</code>, <code dir="auto">sources</code>, <code dir="auto">list</code>, <code dir="auto">show</code>, <code dir="auto">enable</code>, <code dir="auto">disable</code>, <code dir="auto">revoke</code>, <code dir="auto">remove</code></td>
 <td>Agent Skills in <code dir="auto">~/.cache/inga/skills</code>: <code dir="auto">add SOURCE</code> (a folder, a <code dir="auto">.zip</code>, a git repository, a catalog’s <code dir="auto">SOURCE/NAME</code>) shows <code dir="auto">SKILL.md</code> and every file and asks (<code dir="auto">--yes</code>), <code dir="auto">--ref REF</code>, <code dir="auto">--path DIR</code>, <code dir="auto">--replace</code>, <code dir="auto">--offline</code>; <code dir="auto">search [QUERY]</code> the catalogs (<code dir="auto">--source</code>, <code dir="auto">--scripts</code> / <code dir="auto">--no-scripts</code>, <code dir="auto">--license</code>, <code dir="auto">--refresh</code>); <code dir="auto">sources [add NAME URL [--kind git|index|clawhub] | remove NAME | refresh [NAME]]</code>; <code dir="auto">show NAME [FILE]</code>; <code dir="auto">revoke NAME</code> takes back “always allow”; <code dir="auto">--json</code></td>
 <td><code dir="auto">inga skill search pdf</code>, <code dir="auto">inga skill add anthropics/pdf</code></td>
+</tr>
+<tr>
+<td><code dir="auto">user add</code>, <code dir="auto">list</code>, <code dir="auto">passwd</code>, <code dir="auto">role</code>, <code dir="auto">suspend</code>, <code dir="auto">resume</code>, <code dir="auto">unlock</code>, <code dir="auto">two-factor-off</code>, <code dir="auto">remove</code></td>
+<td>Accounts with a login and roles for <code dir="auto">inga serve</code> (<code dir="auto">users.json</code> of Inga’s home, the passwords as PBKDF2-HMAC-SHA256 hashes): the first account turns logins on, each person then signs in to the web UI and has their own chats, settings and memories; <code dir="auto">admin</code> (everything), <code dir="auto">user</code> (the chat and their own data and keys, not the administration), <code dir="auto">api</code> (API calls with their own keys only); <code dir="auto">add NAME --role R</code> prints a password made for it (<code dir="auto">--password-stdin</code>: yours), <code dir="auto">unlock</code> after ten failed sign-ins, <code dir="auto">two-factor-off</code> for a lost phone; a running server reads a change within a second (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-many-users-and-models/">guide</a>)</td>
+<td><code dir="auto">inga user add anna --role admin</code>, <code dir="auto">inga user list</code></td>
 </tr>
 <tr>
 <td><code dir="auto">completions &lt;shell&gt;</code></td>
@@ -976,6 +986,10 @@ not with <code dir="auto">-p</code>. Spec: <a href="https://github.com/matteobac
 <tr>
 <td><code dir="auto">--open-network</code></td>
 <td>Serve another address than this computer’s with no API key and no <code dir="auto">--allow</code>, on purpose; without it such a server does not start</td>
+</tr>
+<tr>
+<td><code dir="auto">--session-idle D</code>, <code dir="auto">--session-max D</code></td>
+<td>With accounts (<code dir="auto">inga user add</code>), a web UI session ends after D unused (7d), or D after its sign-in, used or not (30d) (<code dir="auto">serve.session_idle</code>, <code dir="auto">serve.session_max</code>)</td>
 </tr>
 <tr>
 <td><code dir="auto">--tls self-signed</code></td>

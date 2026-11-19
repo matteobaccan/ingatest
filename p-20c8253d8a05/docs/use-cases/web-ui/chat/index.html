@@ -99,6 +99,22 @@ share it with others. Over HTTP: <code dir="auto">POST /api/inga/shared</code>, 
 button. A thinking model’s reasoning is shown apart, in a collapsible <strong>Reasoning</strong>
 block; while it streams, its <strong>Stop thinking</strong> button ends the
 reasoning and the model answers at once.</li>
+<li><strong>Documents</strong>: type <code dir="auto">#</code> in the message and the list of your collections opens where
+you type, narrowed as you go on, each with its files, size and last update (Up, Down,
+Enter or Tab, Esc); the collections a chat uses are chips at the top of the message box,
+each with an × to turn it off, and <strong>Collections</strong> chooses them too. A file attached to
+the message is read whole when it fits in a third of the context, else by excerpts.
+Under an answer on documents, its excerpts with their file, page and collection, and the
+citations <code dir="auto">[n]</code> in it checked against them (<code dir="auto">citations supported 2 of 3</code>; an
+unsupported one in the warning colour). <strong>Steps and sources</strong> opens the answer’s panel
+beside the chat (below it on a phone): its steps with their times as they happen (the
+collections searched, the tools, MCP servers and models asked, the check of the
+citations), the plan the model wrote in its reasoning, and its evidence, each excerpt
+cited or not and checked, and the web pages read; once open, it follows the next
+answers until closed. The answer comes in the language of the question, or the one
+chosen in the model’s options (<strong>Answer language</strong>). See
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-with-documents/">chat-with-documents.md</a> and
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-documents-in-a-collection/">keep-documents-in-a-collection.md</a>.</li>
 <li><strong>Formulas and diagrams</strong>: <code dir="auto">$...$</code> and <code dir="auto">\(...\)</code> in a line, <code dir="auto">$$...$$</code>
 and <code dir="auto">\[...\]</code> on lines of their own are drawn by KaTeX (a price such as “$5 and $10”
 stays text; a display formula has <strong>Copy LaTeX</strong>). A <code dir="auto">```mermaid</code> block is

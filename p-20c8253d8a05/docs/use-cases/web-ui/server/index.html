@@ -76,6 +76,18 @@ is usable (<code dir="auto">yes, Auto picks it</code>, <code dir="auto">only whe
 with the reason), the CPU, and the APIs without devices (<code dir="auto">CUDA: no NVIDIA driver found</code>) — and, for each model, the <strong>Device</strong> chosen for it (<code dir="auto">auto (server)</code>, <code dir="auto">cpu</code>,
 <code dir="auto">vulkan:0, all GPU layers</code>) beside where it actually runs, with the reason when a model
 fell back to the CPU or a GPU was passed over.</p>
+<p>Under the System cards, one <strong>card per GPU</strong> says what fills its memory, as a bar and a
+list: each model Inga holds there with its weights and KV cache apart, Inga’s other
+buffers, the other programs by name and size (Ollama, LM Studio, a browser: on NVIDIA
+cards through NVML, on AMD cards under Linux from the kernel’s DRM figures, on a Mac what
+Metal counts for Inga), the memory no program is counted for, what is free and how much
+more the driver’s budget lets Inga take, with the load, temperature, power and the
+graphics and memory clocks (<code dir="auto">GET /api/inga/system</code>). For each loaded model, its
+<strong>sessions</strong>: those answering and those idle, the KV cache and buffers they reserve on its
+GPU (or may take in RAM), and the conversations its prefix cache keeps in RAM
+(<code dir="auto">models[].sessions</code> of <code dir="auto">GET /api/inga/status</code>). More in
+<a href="/ingatest/p-20c8253d8a05/docs/use-cases/monitor-a-server/">monitor-a-server.md</a>. The process lists and clocks are checked
+on fake figures only, not on a real card.</p>
 <p>Each row of the <strong>Settings</strong> table says how it changes: the settings
 that change while the server runs (<strong>Models loaded at most</strong>, <strong>Unload a model unused
 for</strong>, <strong>Models loadable from this page</strong>) have a <strong>Change</strong> button that opens

@@ -88,6 +88,14 @@ extended it.</p>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-from-hugging-face/">run-a-model-from-hugging-face.md</a>: <code dir="auto">hf://</code> references, the shared cache, <code dir="auto">pull</code>, <code dir="auto">list</code>, <code dir="auto">search</code>, gated models, offline use; ModelScope’s <code dir="auto">ms://</code></td>
 </tr>
 <tr>
+<td>Download gated models with your Hugging Face token</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-from-hugging-face/#4-gated-and-private-models">run-a-model-from-hugging-face.md</a>: the token in Settings or <code dir="auto">inga hub token set</code>, a kit’s gated files said before they download (0.48.0)</td>
+</tr>
+<tr>
+<td>Download models behind a proxy</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-from-hugging-face/#behind-a-proxy">run-a-model-from-hugging-face.md</a>: the downloads’ proxy in <code dir="auto">inga.toml</code> and on the command line, said by every download (0.48.0)</td>
+</tr>
+<tr>
 <td>See which downloaded models are out of date, and update them</td>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-model-from-hugging-face/#8-which-models-are-out-of-date">run-a-model-from-hugging-face.md</a>: the Models page’s Check for updates (asked only on a click), Update available and Download update, old formats said with what to do</td>
 </tr>
@@ -155,12 +163,20 @@ extended it.</p>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-mixture-of-experts-model/">run-a-mixture-of-experts-model.md</a>: Qwen3-30B-A3B, OLMoE, Mixtral; experts streamed from disk, <code dir="auto">--mem-limit</code></td>
 </tr>
 <tr>
+<td>See where each token’s time goes, and the expert cache’s hit rate</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-mixture-of-experts-model/#how-it-works">run-a-mixture-of-experts-model.md</a>: <code dir="auto">inga profile</code>, the time per token split between disk reads and arithmetic, the hits by layer (0.48.0)</td>
+</tr>
+<tr>
 <td>Run a dense model larger than your RAM</td>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-dense-model-larger-than-ram/">run-a-dense-model-larger-than-ram.md</a>: layers streamed from disk, bounded memory, the memory plan</td>
 </tr>
 <tr>
 <td>Run a Hugging Face model in its original format</td>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-safetensors-model/">run-a-safetensors-model.md</a>: <code dir="auto">config.json</code> + safetensors + <code dir="auto">tokenizer.json</code>, <code dir="auto">--quantize</code>, GPTQ / AWQ / FP8, Apple MLX (0.26.0)</td>
+</tr>
+<tr>
+<td>Run a compressed-tensors int4 checkpoint (“AWQ-4bit” on the Hub)</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/run-a-safetensors-model/#5-quantized-checkpoints">run-a-safetensors-model.md</a>: llm-compressor’s <code dir="auto">pack-quantized</code> converted to Q4_0 / Q4_1 at load; Qwen3.5 and Gemma 4 directories (0.48.0)</td>
 </tr>
 <tr>
 <td>Quantize a model into a GGUF file for any tool</td>
@@ -248,6 +264,14 @@ extended it.</p>
 <tr>
 <td>Serve your network over HTTPS, only to the networks you allow</td>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-many-users-and-models/#other-machines-keys-networks-and-https">serve-many-users-and-models.md</a>: <code dir="auto">--tls self-signed</code> (a certificate made once, its fingerprint at start) or <code dir="auto">--tls-cert</code> / <code dir="auto">--tls-key</code>, <code dir="auto">--allow 192.168.1.0/24</code> (a 403 elsewhere; the administration only this computer without a list; the list also on the web UI’s Server settings), <code dir="auto">--admin-from</code> for a narrower list of administrators, and no start on the network with no key and no list unless <code dir="auto">--open-network</code></td>
+</tr>
+<tr>
+<td>Give each person an account: a login, a role, two-factor sign-in</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-many-users-and-models/#accounts-each-person-signs-in">serve-many-users-and-models.md</a>: <code dir="auto">inga user add NAME --role admin|user|api</code>, the sign-in page, sessions with a CSRF token, TOTP, API keys per account, each account’s chats and memories (0.48.0)</td>
+</tr>
+<tr>
+<td>Keep web pages from reaching a server bound to this computer</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/serve-many-users-and-models/#other-machines-keys-networks-and-https">serve-many-users-and-models.md</a>: a <code dir="auto">Host</code> that is not this computer refused while bound to loopback (DNS rebinding), <code dir="auto">--allow-host NAME</code>, <code dir="auto">serve.allowed_hosts</code> (0.48.0)</td>
 </tr>
 <tr>
 <td>Keep long conversations going</td>
@@ -345,12 +369,36 @@ extended it.</p>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-documents-in-a-collection/#2-keep-documents-in-a-collection">keep-documents-in-a-collection.md</a>: the Documents page’s Add folder…, the files counted and their size said before anything is sent, the subfolders kept in the names: 0.46.5</td>
 </tr>
 <tr>
+<td>Read scanned pages and pictures in documents (OCR)</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-documents-in-a-collection/#scanned-pages-and-pictures">keep-documents-in-a-collection.md</a>: a vision model reads the pages with no text (<code dir="auto">docs.ocr_model</code>), said page by page (0.48.0)</td>
+</tr>
+<tr>
+<td>Ask a collection from the chat with <code dir="auto">#</code></td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-documents-in-a-collection/#ask-a-collection-in-a-chat">keep-documents-in-a-collection.md</a>: <code dir="auto">#name</code> in the web UI’s chat with its picker, the collection’s excerpts in the answer (0.48.0)</td>
+</tr>
+<tr>
+<td>Keep a document’s tables and lists in its passages</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-documents-in-a-collection/#tables-lists-and-page-headers">keep-documents-in-a-collection.md</a>: DOCX and HTML tables and lists kept, a PDF’s running headers and footers dropped (0.48.0)</td>
+</tr>
+<tr>
+<td>Search meeting transcripts by speaker and time</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-documents-in-a-collection/#meeting-transcripts-by-speaker-and-time">keep-documents-in-a-collection.md</a>: WebVTT and SRT transcripts in passages of ten minutes, each turn with its speaker and time (0.48.0)</td>
+</tr>
+<tr>
+<td>Try a collection’s search, and get answers in your language</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-documents-in-a-collection/#2-keep-documents-in-a-collection">keep-documents-in-a-collection.md</a>: the Documents page’s Search playground, each excerpt’s language, the answer in the question’s language (<code dir="auto">inga_answer_language</code>) (0.48.0)</td>
+</tr>
+<tr>
 <td>Keep a folder in sync with a collection of documents</td>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-documents-in-a-collection/#3-keep-a-folder-in-sync">keep-documents-in-a-collection.md</a>: <code dir="auto">inga docs add NAME DIR</code> with <code dir="auto">--include</code>, <code dir="auto">--exclude</code>, <code dir="auto">--watch</code> or <code dir="auto">--every</code>, <code dir="auto">inga docs sync</code> / <code dir="auto">status</code>, the Documents page’s Map a server folder…; only the changed passages embedded again</td>
 </tr>
 <tr>
 <td>Find the right passages: search by words and by meaning</td>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-with-documents/#5-how-the-collections-are-searched">chat-with-documents.md</a>: hybrid search (BM25 and the embeddings, fused by rank), headings and dates kept with each passage, filters, whole sections, <code dir="auto">inga docs search</code>, <code dir="auto">inga eval rag</code></td>
+</tr>
+<tr>
+<td>Check an answer’s citations against the documents</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/chat-with-documents/#4-check-that-it-works">chat-with-documents.md</a>: each cited sentence checked against its passage, by a small model when <code dir="auto">docs.check_model</code> names one, the verdict under the answer (0.48.0)</td>
 </tr>
 <tr>
 <td>Ask questions about a code base (experimental)</td>
@@ -392,8 +440,16 @@ extended it.</p>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/talk-to-a-model-by-voice/">talk-to-a-model-by-voice.md</a>: OuteTTS with the WavTokenizer vocoder, <code dir="auto">inga speak</code>, <code dir="auto">/v1/audio/speech</code>, the web UI’s hands-free Voice mode (speech in, the answer spoken sentence by sentence, barge-in), Piper’s Italian voices and Deep focus</td>
 </tr>
 <tr>
+<td>Clone a voice from a recording, and speak in it</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/talk-to-a-model-by-voice/#clone-a-voice-with-audio8-tts">talk-to-a-model-by-voice.md</a>: Audio8 TTS, <code dir="auto">inga voice add NAME --sample FILE</code> (its transcript by Whisper, <code dir="auto">--whisper</code>), the voices kept and cloned in the web UI, speech as MP3 (0.48.0)</td>
+</tr>
+<tr>
 <td>Generate images from text</td>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/generate-images/">generate-images.md</a>: Stable Diffusion 1.x / 2.x, SDXL, SD-Turbo, SDXL-Turbo, SD 3.x, Flux.1 and Qwen-Image, Z-Image Turbo, Lumina-Image 2.0 and Chroma (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/generate-images/#z-image-lumina-image-20-and-chroma">0.44.0</a>), Sana (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/generate-images/#sana">0.44.0</a>), <code dir="auto">inga image</code>, <code dir="auto">/v1/images/generations</code>, the web UI’s image mode</td>
+</tr>
+<tr>
+<td>Draw a picture in 2 steps with Sana Sprint</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/generate-images/#sana">generate-images.md</a>: NVIDIA’s SANA-Sprint 1.6B, its diffusers folder, Sana’s picture edits through DC-AE’s encoder (0.48.0)</td>
 </tr>
 <tr>
 <td>Draw pictures on an NVIDIA GPU (experimental)</td>
@@ -424,6 +480,10 @@ extended it.</p>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/add-a-lora-to-an-image-model/">add-a-lora-to-an-image-model.md</a>: SD 1.x / 2.x, SDXL and Qwen-Image LoRAs (kohya, diffusers, PEFT; Qwen-Image Lightning in 8 steps, 0.44.0), <code dir="auto">--lora FILE[:WEIGHT]</code>, the images API’s <code dir="auto">loras</code>, Hugging Face’s LoRAs searched for the model’s base, the Images page’s LoRA section</td>
 </tr>
 <tr>
+<td>Use an image LoRA on a quantized checkpoint on the GPU</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/add-a-lora-to-an-image-model/#2-draw-with-a-lora">add-a-lora-to-an-image-model.md</a>: the LoRA added at run time beside the quantized layer’s product, on CUDA and Vulkan (0.48.0)</td>
+</tr>
+<tr>
 <td>Remove a picture’s background</td>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/edit-images/#7-remove-a-pictures-background">edit-images.md</a>: BiRefNet or BiRefNet lite on the CPU (<code dir="auto">inga image remove-background</code>, <code dir="auto">--refine</code>, <code dir="auto">--mask-output</code>), <code dir="auto">POST /v1/images/remove-background</code>, the Images page’s Remove background tab</td>
 </tr>
@@ -438,6 +498,10 @@ extended it.</p>
 <tr>
 <td>Make a song from a description and lyrics</td>
 <td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/make-music/">make-music.md</a>: ACE-Step 1.5 turbo (MIT), the web UI’s Music page (Describe it with the chat model, or Full control; the length from the lyrics; a library on the server), <code dir="auto">inga music</code>, WAV or FLAC labelled with the model and its licence, <code dir="auto">/api/inga/music</code></td>
+</tr>
+<tr>
+<td>Bring songs made elsewhere into the music library</td>
+<td><a href="/ingatest/p-20c8253d8a05/docs/use-cases/make-music/#on-the-music-page">make-music.md</a>: Import songs (several MP3s or a folder), songs made with Suno kept with their tags and lyrics, every song as MP3 (0.48.0)</td>
 </tr>
 <tr>
 <td>Make a 3D model from a picture</td>

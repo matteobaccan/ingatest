@@ -124,13 +124,13 @@ models where they are.</p>
 </tr>
 <tr>
 <td><strong>LiteLLM</strong>, <strong>OpenRouter-style gateways</strong> (one endpoint for many models)</td>
-<td>API nodes (other servers and providers, keys encrypted), routes with fallback, strategies, a cascade from a small model to a larger one and <code dir="auto">local-only</code>, named API keys with limits and budgets</td>
-<td>you need a gateway shared by many teams with logins (<a href="https://github.com/matteobaccan/inga/blob/main/docs/superpowers/specs/2026-10-11-users-policies-white-label-design.md">users</a>; LDAP: <a href="https://github.com/matteobaccan/inga/blob/main/docs/superpowers/specs/2026-10-14-ldap-login-design.md">spec</a>, <strong>planned</strong>)</td>
+<td>API nodes (other servers and providers, keys encrypted), routes with fallback, strategies, a cascade from a small model to a larger one and <code dir="auto">local-only</code>, named API keys with limits and budgets, accounts with a login and roles</td>
+<td>you need a gateway shared by many teams with groups, policies or single sign-on (<a href="https://github.com/matteobaccan/inga/blob/main/docs/superpowers/specs/2026-10-11-users-policies-white-label-design.md">users</a>; LDAP: <a href="https://github.com/matteobaccan/inga/blob/main/docs/superpowers/specs/2026-10-14-ldap-login-design.md">spec</a>, <strong>planned</strong>)</td>
 </tr>
 <tr>
 <td><strong>Open WebUI</strong>, <strong>LibreChat</strong>, <strong>Jan</strong>, <strong>AnythingLLM</strong>, <strong>GPT4All</strong> (a local chat page)</td>
-<td><code dir="auto">inga serve</code>‘s web UI: chats, the models’ speeds on this computer, web search, documents, a memory, image generation, voice chat, an installable app</td>
-<td>you need several users with logins and roles (<a href="https://github.com/matteobaccan/inga/blob/main/docs/superpowers/specs/2026-10-11-users-policies-white-label-design.md">users</a>, to schedule), or plugins / pipelines (a sandbox for plugins: spec in preparation)</td>
+<td><code dir="auto">inga serve</code>‘s web UI: chats, the models’ speeds on this computer, web search, documents, a memory, image generation, voice chat, an installable app; accounts with a login and roles (<code dir="auto">inga user add</code>), each person with their own chats, memories and keys</td>
+<td>you need single sign-on (OIDC, LDAP) or groups and policies (<a href="https://github.com/matteobaccan/inga/blob/main/docs/superpowers/specs/2026-10-11-users-policies-white-label-design.md">users</a>, to schedule), or plugins / pipelines (a sandbox for plugins: spec in preparation)</td>
 </tr>
 <tr>
 <td><strong>KoboldCpp</strong> (as an API server)</td>
@@ -176,8 +176,8 @@ models where they are.</p>
 </tr>
 <tr>
 <td>A <strong>text-to-speech server</strong> (llama.cpp’s <code dir="auto">llama-tts</code>, Coqui…)</td>
-<td><code dir="auto">inga speak</code>, <code dir="auto">/v1/audio/speech</code> with OuteTTS and WavTokenizer; the web UI’s hands-free voice chat</td>
-<td>you need other TTS models or many voices (Higgs Audio v3 <strong>planned</strong>, then Kokoro and Chatterbox: <a href="https://github.com/matteobaccan/inga/blob/main/docs/superpowers/specs/2026-10-14-tts-voices-design.md">spec</a>)</td>
+<td><code dir="auto">inga speak</code>, <code dir="auto">/v1/audio/speech</code> with OuteTTS and WavTokenizer, Piper’s Italian voices and Audio8 TTS (23 languages, a voice cloned from a short recording, kept with <code dir="auto">inga voice</code>); the web UI’s hands-free voice chat</td>
+<td>you need other TTS models (Higgs Audio v3 <strong>planned</strong>, then Kokoro and Chatterbox: <a href="https://github.com/matteobaccan/inga/blob/main/docs/superpowers/specs/2026-10-14-tts-voices-design.md">spec</a>)</td>
 </tr>
 <tr>
 <td><strong>stable-diffusion.cpp</strong>, <strong>AUTOMATIC1111 / Forge</strong>, <strong>ComfyUI</strong> (plain text-to-image)</td>
@@ -188,6 +188,16 @@ models where they are.</p>
 <td><strong>rembg</strong>, <strong>remove.bg</strong> (a picture’s background removed)</td>
 <td><code dir="auto">inga image remove-background</code>, <code dir="auto">POST /v1/images/remove-background</code>, the Images page’s Remove background: BiRefNet or BiRefNet lite on the CPU, the subject on transparency and its mask, the edges’ colours refined on request (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/edit-images/#7-remove-a-pictures-background">guide</a>)</td>
 <td>you need other segmentation models (U²-Net, SAM’s prompts by points) or a whole folder in one command</td>
+</tr>
+<tr>
+<td><strong>ComfyUI</strong>, <strong>Hunyuan3D</strong> (a picture to a 3D model)</td>
+<td><code dir="auto">inga 3d</code>, the web UI’s 3D page: Idol Turbo makes a picture of one object into Gaussian splats (PLY) and a mesh with its colours (GLB, STL) (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/make-a-3d-model-from-a-picture/">guide</a>)</td>
+<td>you need text to 3D or other 3D models (Hunyuan3D)</td>
+</tr>
+<tr>
+<td><strong>Heretic</strong> (a model’s refusals removed)</td>
+<td><code dir="auto">inga customize --edit abliterate</code>, the Customize page: the licence read first, refusals and the first-token KL measured before and after, <code dir="auto">--search</code> of the parameters, a reproduce file (<a href="/ingatest/p-20c8253d8a05/docs/use-cases/customize-a-model/">guide</a>)</td>
+<td>you need its other behaviours (slop, humour, sycophancy, length) or its ARA modifier</td>
 </tr>
 <tr>
 <td><strong>diffusers</strong> / <strong>ComfyUI</strong> for text to video</td>
@@ -217,7 +227,8 @@ models where they are.</p>
 </tbody>
 </table>
 <p>Not replaced yet (keep them): high-throughput multi-GPU servers (vLLM, SGLang, TGI) for
-many concurrent users (Inga batches the decode of several users on the CPU only today;
+many concurrent users (Inga batches the decode of several users on the CPU and on a CUDA,
+HIP or Vulkan GPU, without tensor parallelism across GPUs;
 <a href="https://github.com/matteobaccan/inga/blob/main/docs/superpowers/specs/2026-10-14-high-throughput-serving-design.md">spec</a>, with
 <a href="https://github.com/matteobaccan/inga/blob/main/docs/superpowers/specs/2026-10-09-multi-gpu-tensor-parallel-design.md">tensor parallelism</a>).</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="drop-in-for-other-servers">Drop-in for other servers</h2><a class="sl-anchor-link" href="#drop-in-for-other-servers"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Drop-in for other servers”</span></a></div>

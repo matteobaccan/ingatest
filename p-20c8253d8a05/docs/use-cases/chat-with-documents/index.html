@@ -263,6 +263,10 @@ kept for the next time it is asked (the last 1,024 questions).</p>
 <td><code dir="auto">hybrid</code> (default), <code dir="auto">dense</code> or <code dir="auto">bm25</code>: how the collections are searched; <code dir="auto">docs.rrf_k</code>, <code dir="auto">docs.bm25_weight</code>, <code dir="auto">docs.candidates</code>, <code dir="auto">docs.per_file</code> and <code dir="auto">docs.hub_penalty</code> tune it (<a href="/ingatest/p-20c8253d8a05/docs/config/">config</a>).</td>
 </tr>
 <tr>
+<td>The model’s <strong>Answer language</strong></td>
+<td>The answers in the language of the question (Automatic), or always in one of the ten languages, whatever the documents’ language (<code dir="auto">inga_answer_language</code> in the API; <a href="/ingatest/p-20c8253d8a05/docs/use-cases/keep-documents-in-a-collection/">more</a>).</td>
+</tr>
+<tr>
 <td><code dir="auto">--pooling</code></td>
 <td>How the embedding model pools (<code dir="auto">auto</code> follows the model).</td>
 </tr>

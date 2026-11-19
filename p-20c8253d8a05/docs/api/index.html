@@ -351,7 +351,7 @@ malformed: no source header, a tab, no <code dir="auto">openapi: 3.1.0</code>, a
 the crate’s version, an operation without <code dir="auto">operationId</code> or <code dir="auto">responses</code>, a duplicated
 path or <code dir="auto">operationId</code>. A pull request that adds a route adds it here; the release PR
 sets <code dir="auto">info.version</code> in every file to the new version.</p>
-<p>The behaviour is tested end to end by <a href="https://github.com/matteobaccan/inga/blob/main/tests/server.rs"><code dir="auto">tests/server.rs</code></a>, which
+<p>The behaviour is tested end to end by <a href="https://github.com/matteobaccan/inga/blob/main/tests/server/main.rs"><code dir="auto">tests/server/</code></a>, which
 starts <code dir="auto">inga serve</code> on a small synthetic model and talks raw HTTP to it:</p>
 <table>
 <thead>

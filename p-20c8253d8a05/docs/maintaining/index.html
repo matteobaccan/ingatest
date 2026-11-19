@@ -221,9 +221,14 @@ only and said so. An unknown licence is marked ❓, never guessed.</li>
 <li><strong>Its numbers are its claims</strong>: written as “its claim”, with the source; marked ❓
 what could not be checked.</li>
 <li><strong>Where it goes</strong>: a row in <code dir="auto">docs/comparison.md</code> (Part 1 engines, Part 2 apps, Part 3
-routers, gateways and proxies) and an entry in <code dir="auto">docs/todo/inbox.md</code> with what Inga
-could take, each idea tied to its source; a decision of the maintainer moves it into
-the backlog or a release.</li>
+routers, gateways and proxies) and an entry in <code dir="auto">docs/todo/inbox.md</code> for each idea Inga
+could take, with its <strong>motivation</strong> (the maintainer, 2026-11-18): what Inga’s users
+would gain, the source and its numbers (the source’s or a tester’s, said so), what it
+costs, and what Inga already has or plans near it (the item named). News for an item
+already in the inbox or the backlog is a dated line in that item, not a new entry.
+Every idea is discussed with the maintainer before it is scheduled; the inbox is
+triaged only when the current list, the releases’ files in <code dir="auto">docs/todo/</code>, is finished,
+and a decision of the maintainer moves an idea into the backlog or a release.</li>
 <li><strong>A model</strong>: its <code dir="auto">config.json</code> (architectures, <code dir="auto">model_type</code>, layer types) and a GGUF
 file’s header (the first megabytes, read with a range request:
 <code dir="auto">general.architecture</code> and the keys), checked against Inga’s <code dir="auto">docs/supported-models.md</code>
