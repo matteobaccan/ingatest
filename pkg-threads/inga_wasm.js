@@ -612,7 +612,7 @@ function __wbg_get_imports(memory) {
             const ret = arg0.call(arg1, arg2, arg3);
             return ret;
         }, arguments); },
-        __wbg_error_2f058c71e443dfbe: function(arg0, arg1) {
+        __wbg_error_a5ff4bcf0e6e6819: function(arg0, arg1) {
             console.error(getStringFromWasm0(arg0, arg1));
         },
         __wbg_get_2080c49015e35254: function() { return handleError(function (arg0, arg1) {
@@ -627,12 +627,12 @@ function __wbg_get_imports(memory) {
             const ret = new Error(getStringFromWasm0(arg0, arg1));
             return ret;
         },
-        __wbg_now_58eb51f89693cab3: function() {
-            const ret = Date.now();
+        __wbg_now_5c07aa9761de795d: function(arg0) {
+            const ret = arg0.now();
             return ret;
         },
-        __wbg_now_b7ae2c34e70a8ed2: function(arg0) {
-            const ret = arg0.now();
+        __wbg_now_9fd70abac5ff7385: function() {
+            const ret = Date.now();
             return ret;
         },
         __wbg_of_e7ea0fcd535c1444: function(arg0, arg1) {
@@ -646,7 +646,7 @@ function __wbg_get_imports(memory) {
             const ret = Promise.resolve(arg0);
             return ret;
         },
-        __wbg_static_accessor_PERFORMANCE_aa45b01cc4afcb19: function() {
+        __wbg_static_accessor_PERFORMANCE_36da0f0090d87481: function() {
             const ret = performance;
             return ret;
         },
@@ -654,7 +654,7 @@ function __wbg_get_imports(memory) {
             const ret = arg0.subarray(arg1 >>> 0, arg2 >>> 0);
             return ret;
         },
-        __wbg_timeOrigin_56ea514abbf1154c: function(arg0) {
+        __wbg_timeOrigin_0a0b2a0d6ec8314e: function(arg0) {
             const ret = arg0.timeOrigin;
             return ret;
         },

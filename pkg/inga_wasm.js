@@ -935,12 +935,12 @@ function __wbg_get_imports() {
         __wbg_end_23ba48463344fbc0: function(arg0) {
             arg0.end();
         },
-        __wbg_error_2f058c71e443dfbe: function(arg0, arg1) {
-            console.error(getStringFromWasm0(arg0, arg1));
-        },
         __wbg_error_2fa67a9496f77475: function(arg0) {
             const ret = arg0.error;
             return ret;
+        },
+        __wbg_error_a5ff4bcf0e6e6819: function(arg0, arg1) {
+            console.error(getStringFromWasm0(arg0, arg1));
         },
         __wbg_features_29757024dfb82d0d: function(arg0) {
             const ret = arg0.features;
@@ -1228,12 +1228,12 @@ function __wbg_get_imports() {
             const ret = new Uint8Array(arg0, arg1 >>> 0, arg2 >>> 0);
             return ret;
         },
-        __wbg_now_58eb51f89693cab3: function() {
-            const ret = Date.now();
+        __wbg_now_5c07aa9761de795d: function(arg0) {
+            const ret = arg0.now();
             return ret;
         },
-        __wbg_now_b7ae2c34e70a8ed2: function(arg0) {
-            const ret = arg0.now();
+        __wbg_now_9fd70abac5ff7385: function() {
+            const ret = Date.now();
             return ret;
         },
         __wbg_onSubmittedWorkDone_f62945abb48d8a84: function(arg0) {
@@ -1410,7 +1410,7 @@ function __wbg_get_imports() {
             const ret = typeof global === 'undefined' ? undefined : global;
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
         },
-        __wbg_static_accessor_PERFORMANCE_aa45b01cc4afcb19: function() {
+        __wbg_static_accessor_PERFORMANCE_36da0f0090d87481: function() {
             const ret = performance;
             return ret;
         },
